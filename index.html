@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Research Assesor — Sistema de Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1a6fb5;--blue-l:#e6f1fb;--blue-m:#378add;
+  --green:#1D9E75;--green-l:#EAF3DE;
+  --amber:#BA7517;--amber-l:#FAEEDA;
+  --red:#E24B4A;--red-l:#FCEBEB;
+  --gray:#f7f7f5;--gray2:#efefed;--gray3:#d3d1c7;
+  --border:rgba(0,0,0,0.09);--text:#1a1a18;--text2:#6b6b68;--text3:#a0a09e;
+  --white:#ffffff;--zoom:#2D8CFF;--wa:#25D366;
+  --sidebar-w:240px;--topbar-h:56px;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+  --r:10px;--r-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 12px rgba(0,0,0,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:var(--font);color:var(--text);background:var(--gray);overflow:hidden;}
+.app{display:flex;height:100vh;height:100dvh;}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50;transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.s-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);}
+.logo-mark{display:flex;align-items:center;gap:10px;}
+.logo-r{width:36px;height:36px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:700;}
+.logo-tx strong{font-size:14px;font-weight:600;color:var(--blue);display:block;}
+.logo-tx span{font-size:11px;color:var(--text3);}
+.nav{padding:10px 8px;flex:1;overflow-y:auto;}
+.nav-sec{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 4px;}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);cursor:pointer;font-size:13.5px;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
+.ni:hover{background:var(--gray);}
+.ni.active{background:var(--blue-l);color:var(--blue);font-weight:500;}
+.ni-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.n-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;border-radius:99px;padding:1px 6px;}
+.s-foot{padding:12px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);}
+.s-foot strong{display:block;color:var(--text2);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{height:var(--topbar-h);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;}
+.t-ham{display:none;background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:var(--text2);font-size:20px;}
+.t-title{font-size:15px;font-weight:600;flex:1;}
+.t-actions{display:flex;gap:8px;}
+.content{flex:1;overflow-y:auto;padding:20px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--border);font-size:13px;font-family:var(--font);font-weight:500;cursor:pointer;background:var(--white);color:var(--text);transition:all .15s;white-space:nowrap;user-select:none;}
+.btn:hover{background:var(--gray);}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--blue);color:white;border-color:var(--blue);}
+.btn-p:hover{background:#155fa3;}
+.btn-g{background:var(--wa);color:white;border-color:var(--wa);}
+.btn-g:hover{background:#1eb055;}
+.btn-z{background:var(--zoom);color:white;border-color:var(--zoom);}
+.btn-z:hover{background:#1a78ee;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-danger{background:var(--red);color:white;border-color:var(--red);}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.metric{background:var(--gray);border-radius:var(--r);padding:14px 16px;}
+.ml{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:5px;}
+.mv{font-size:24px;font-weight:600;line-height:1;}
+.ms{font-size:11px;color:var(--text2);margin-top:4px;}
+.mv.blue{color:var(--blue);}.mv.green{color:var(--green);}.mv.amber{color:var(--amber);}.mv.red{color:var(--red);}.mv.zoom{color:var(--zoom);}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px;}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:0 12px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--gray);}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+.b-green{background:var(--green-l);color:#1a6645;}
+.b-amber{background:var(--amber-l);color:#7a4c0a;}
+.b-red{background:var(--red-l);color:#8b2020;}
+.b-blue{background:var(--blue-l);color:#114f8a;}
+.b-gray{background:var(--gray2);color:var(--text2);}
+.b-zoom{background:#ddeeff;color:#0e5bc0;}
+.prog{height:5px;background:var(--gray2);border-radius:99px;overflow:hidden;}
+.pf{height:100%;border-radius:99px;background:var(--blue);transition:width .4s;}
+.pf.done{background:var(--green);}
+.av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:var(--blue-l);color:var(--blue);}
+.av-sm{width:28px;height:28px;font-size:10px;}
+.ci{display:flex;align-items:center;gap:10px;}
+.fi{margin-bottom:14px;}
+.fl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block;}
+.fin{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);font-size:13.5px;font-family:var(--font);background:var(--white);color:var(--text);transition:border .15s;-webkit-appearance:none;}
+.fin:focus{outline:none;border-color:var(--blue-m);box-shadow:0 0 0 3px rgba(26,111,181,.1);}
+textarea.fin{resize:vertical;min-height:70px;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.m-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;backdrop-filter:blur(2px);animation:fIn .15s;}
+@keyframes fIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--white);border-radius:var(--r-lg);padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:sUp .2s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow-md);}
+@keyframes sUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:18px;}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;}
+.tab{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);border:1px solid transparent;transition:all .15s;}
+.tab:hover{background:var(--gray);}
+.tab.active{background:var(--blue-l);color:var(--blue);border-color:#b5d4f4;}
+.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r);margin-bottom:8px;}
+.al-amber{background:var(--amber-l);}
+.al-blue{background:var(--blue-l);}
+.al-green{background:var(--green-l);}
+.al-red{background:var(--red-l);}
+.al-body{flex:1;min-width:0;}
+.al-body strong{font-size:13px;font-weight:600;display:block;margin-bottom:1px;}
+.al-body span{font-size:12px;color:var(--text2);}
+.al-act{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.wa-bubble{background:#dcf8c6;border-radius:12px 12px 4px 12px;padding:12px 14px;font-size:13px;color:#1a3d24;white-space:pre-line;line-height:1.55;margin:10px 0;border:1px solid rgba(0,0,0,.06);max-width:90%;}
+.zs{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;background:var(--white);}
+.zs:hover{box-shadow:var(--shadow);}
+.zdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.zdot.prox{background:var(--zoom);}
+.zdot.hoy{background:var(--green);animation:pulse 1.5s infinite;}
+.zdot.past{background:var(--gray3);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.zt{font-size:12px;color:var(--text3);width:85px;flex-shrink:0;}
+.zi{flex:1;min-width:0;}
+.zi strong{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.zi span{font-size:12px;color:var(--text2);}
+.za{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;}
+.code{font-family:var(--mono);font-size:11.5px;background:#1e1e2e;color:#cdd6f4;border-radius:var(--r);padding:14px 16px;overflow-x:auto;line-height:1.6;margin:8px 0;}
+.code .kw{color:#cba6f7}.code .fn{color:#89dceb}.code .str{color:#a6e3a1}.code .com{color:#585b70}.code .num{color:#fab387}
+.bar-w{display:flex;align-items:flex-end;gap:5px;height:80px;}
+.bar{flex:1;border-radius:4px 4px 0 0;background:#b5d4f4;cursor:pointer;transition:background .15s;min-height:2px;}
+.bar:hover{background:var(--blue);}
+.bls{display:flex;gap:5px;margin-top:5px;}
+.bl{flex:1;font-size:10px;color:var(--text3);text-align:center;}
+.empty{text-align:center;padding:36px 20px;color:var(--text3);font-size:13px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.zoom-status{padding:10px 14px;border-radius:var(--r);font-size:13px;margin-top:8px;display:none;}
+.zoom-status.ok{background:var(--green-l);color:#1a6645;display:block;}
+.zoom-status.err{background:var(--red-l);color:#8b2020;display:block;}
+.zoom-status.loading{background:var(--blue-l);color:#114f8a;display:block;}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49;}
+.tip{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4;}
+.config-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;}
+.cfg-ok{background:var(--green-l);color:#1a6645;}
+.cfg-no{background:var(--red-l);color:#8b2020;}
+@media(max-width:768px){
+  :root{--sidebar-w:260px;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:var(--shadow-md);}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-backdrop{display:block;}
+  .t-ham{display:flex;}
+  .content{padding:14px;}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .g3{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .g2{grid-template-columns:1fr;gap:12px;}
+  .fr{grid-template-columns:1fr;gap:0;}
+  .t-actions .btn span.t{display:none;}
+}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--gray3);border-radius:99px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="sidebar-backdrop" id="backdrop" style="display:none;" onclick="closeSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="s-logo">
+      <div class="logo-mark">
+        <div class="logo-r">R</div>
+        <div class="logo-tx"><strong>Research Assesor</strong><span>Sistema de Gestión</span></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-sec">Principal</div>
+      <div class="ni active" onclick="nav('dashboard')" id="nav-dashboard"><span class="ni-icon">◉</span>Dashboard</div>
+      <div class="ni" onclick="nav('trabajos')" id="nav-trabajos"><span class="ni-icon">📋</span>Trabajos</div>
+      <div class="ni" onclick="nav('pagos')" id="nav-pagos"><span class="ni-icon">💳</span>Pagos</div>
+      <div class="nav-sec">Clientes</div>
+      <div class="ni" onclick="nav('agenda')" id="nav-agenda"><span class="ni-icon">👥</span>Agenda</div>
+      <div class="ni" onclick="nav('recordatorios')" id="nav-recordatorios"><span class="ni-icon">💬</span>Recordatorios <span class="n-badge" id="badge-rec" style="display:none;">0</span></div>
+      <div class="nav-sec">Sesiones</div>
+      <div class="ni" onclick="nav('zoom')" id="nav-zoom"><span class="ni-icon">🎥</span>Sesiones Zoom</div>
+      <div class="nav-sec">Sistema</div>
+      <div class="ni" onclick="nav('config')" id="nav-config"><span class="ni-icon">⚙️</span>Configuración</div>
+      <div class="ni" onclick="nav('sheets')" id="nav-sheets"><span class="ni-icon">📊</span>Google Sheets</div>
+    </nav>
+    <div class="s-foot"><strong>📱 +593 098 681 0281</strong>Research Assesor</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="t-ham" onclick="toggleSidebar()">☰</button>
+      <div class="t-title" id="topbar-title">Dashboard</div>
+      <div class="t-actions" id="topbar-actions">
+        <button class="btn btn-p" onclick="openNuevoTrabajo()"><span>+</span><span class="t">Nuevo Trabajo</span></button>
+      </div>
+    </header>
+    <div class="content" id="content"></div>
+  </div>
+  <div id="modal-root"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIG ZOOM — se guarda en localStorage
+// ═══════════════════════════════════════════════════════════
+const CFG_KEY = 'ra_config';
+function getCfg() {
+  try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch(e){ return {}; }
+}
+function saveCfg(obj) {
+  const c = getCfg();
+  localStorage.setItem(CFG_KEY, JSON.stringify({...c, ...obj}));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ZOOM API — genera meeting real via tu backend proxy
+//  O via Zoom OAuth en el navegador con tu token
+// ═══════════════════════════════════════════════════════════
+async function crearMeetingZoom(titulo, fecha, hora, duracion) {
+  const cfg = getCfg();
+
+  // Modo 1: Server-to-Server OAuth (recomendado, necesita proxy)
+  if (cfg.zoomMode === 'server' && cfg.zoomProxyUrl) {
+    return await crearMeetingViaProxy(cfg.zoomProxyUrl, cfg.zoomProxySecret, titulo, fecha, hora, duracion);
+  }
+
+  // Modo 2: Token personal (JWT o Access Token directo)
+  if (cfg.zoomMode === 'token' && cfg.zoomToken) {
+    return await crearMeetingConToken(cfg.zoomToken, cfg.zoomEmail, titulo, fecha, hora, duracion);
+  }
+
+  // Sin configuración: retorna null (el usuario ingresa link manualmente)
+  return null;
+}
+
+async function crearMeetingConToken(token, email, titulo, fecha, hora, duracion) {
+  const startTime = `${fecha}T${hora}:00`;
+  const payload = {
+    topic: titulo,
+    type: 2,
+    start_time: startTime,
+    duration: parseInt(duracion) || 60,
+    timezone: 'America/Guayaquil',
+    settings: {
+      host_video: true,
+      participant_video: true,
+      join_before_host: false,
+      mute_upon_entry: true,
+      waiting_room: true,
+      auto_recording: 'none',
+    }
+  };
+
+  // CORS proxy para llamadas directas desde el navegador
+  const corsProxy = 'https://corsproxy.io/?';
+  const zoomUrl = `${corsProxy}${encodeURIComponent(`https://api.zoom.us/v2/users/${email||'me'}/meetings`)}`;
+
+  const resp = await fetch(zoomUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err.message || `Error Zoom ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  return {
+    id: data.id,
+    link: data.join_url,
+    password: data.password,
+    start_url: data.start_url,
+  };
+}
+
+async function crearMeetingViaProxy(proxyUrl, secret, titulo, fecha, hora, duracion) {
+  const resp = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-secret': secret || '',
+    },
+    body: JSON.stringify({ titulo, fecha, hora, duracion }),
+  });
+  if (!resp.ok) throw new Error(`Proxy error ${resp.status}`);
+  return await resp.json();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════════════
+const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MESES_F = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const TIPOS = ["Trabajo de Grado","Maquetación de Artículo","Trabajo Académico","Tesis Doctoral","Artículo Científico","Ensayo","Revisión Bibliográfica","Otro"];
+const TIPOS_S = ["Asesoría inicial","Revisión de avance","Correcciones","Asesoría metodológica","Entrega de borradores","Entrega final","Seguimiento","Otro"];
+const E_MAP = {en_proceso:"En proceso",completado:"Completado",pendiente_pago:"Pendiente pago",cancelado:"Cancelado"};
+const Z_MAP = {programada:"Programada",completada:"Completada",cancelada:"Cancelada"};
+
+function loadState() {
+  try { const d = localStorage.getItem('ra_state'); return d ? JSON.parse(d) : null; } catch(e){ return null; }
+}
+function saveState() {
+  try { localStorage.setItem('ra_state', JSON.stringify(S)); } catch(e){}
+}
+
+const DEFAULT_STATE = {
+  page:'dashboard', tabTrabajo:'todos', mesActivo: new Date().getMonth(),
+  nextId:1, nextCId:1, nextZId:1,
+  trabajos:[], contactos:[], sesiones:[],
+};
+
+let S = loadState() || {...DEFAULT_STATE};
+
+// helpers
+const getPagado = t => (t.pagos||[]).reduce((s,p)=>s+p.monto,0);
+const getPendiente = t => t.total - getPagado(t);
+const getPct = t => t.total>0 ? Math.round(getPagado(t)/t.total*100) : 0;
+const initials = n => n.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+const today = () => new Date().toISOString().split('T')[0];
+const fDate = d => { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; };
+const fMoney = n => '$'+(n||0).toLocaleString('es-EC',{minimumFractionDigits:0,maximumFractionDigits:0});
+function gEB(e){const m={en_proceso:'b-blue',completado:'b-green',pendiente_pago:'b-amber',cancelado:'b-red'};return `<span class="badge ${m[e]||'b-gray'}">${E_MAP[e]||e}</span>`;}
+function gZB(e){const m={programada:'b-zoom',completada:'b-green',cancelada:'b-red'};return `<span class="badge ${m[e]||'b-gray'}">${Z_MAP[e]||e}</span>`;}
+function av(n,s=''){return `<div class="av${s?` ${s}`:''}"><span>${initials(n)}</span></div>`;}
+
+// ═══════════════════════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════════════════════
+function nav(page) {
+  S.page=page; saveState();
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-'+page)?.classList.add('active');
+  const titles={dashboard:'Dashboard',trabajos:'Trabajos',pagos:'Pagos & Cobros',agenda:'Agenda',recordatorios:'Recordatorios WhatsApp',zoom:'Sesiones Zoom',config:'Configuración',sheets:'Google Sheets'};
+  document.getElementById('topbar-title').textContent=titles[page]||page;
+  const acts={
+    trabajos:`<button class="btn btn-p" onclick="openNuevoTrabajo()"><span>+</span><span class="t">Nuevo Trabajo</span></button>`,
+    agenda:`<button class="btn btn-p" onclick="openNuevoContacto()"><span>+</span><span class="t">Contacto</span></button>`,
+    zoom:`<button class="btn btn-z" onclick="openNuevaSesion()"><span>🎥</span><span class="t">Nueva Sesión</span></button>`,
+    dashboard:`<button class="btn btn-p" onclick="openNuevoTrabajo()"><span>+</span><span class="t">Nuevo Trabajo</span></button>`,
+    config:'',pagos:'',recordatorios:'',sheets:'',
+  };
+  document.getElementById('topbar-actions').innerHTML=acts[page]||'';
+  updateBadges(); render(); closeSidebar();
+}
+
+function updateBadges(){
+  const n=S.trabajos.filter(t=>t.estado!=='completado'&&t.estado!=='cancelado'&&getPendiente(t)>0).length;
+  const b=document.getElementById('badge-rec');
+  if(b){b.textContent=n;b.style.display=n>0?'inline-flex':'none';}
+}
+function toggleSidebar(){const sb=document.getElementById('sidebar'),bd=document.getElementById('backdrop');sb.classList.toggle('open');bd.style.display=sb.classList.contains('open')?'block':'none';}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('backdrop').style.display='none';}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function render(){
+  const fns={dashboard:rDash,trabajos:rTrabajos,pagos:rPagos,agenda:rAgenda,recordatorios:rRecordatorios,zoom:rZoom,config:rConfig,sheets:rSheets};
+  document.getElementById('content').innerHTML=(fns[S.page]||rDash)();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+function rDash(){
+  const todos=S.trabajos;
+  const cobrado=todos.reduce((s,t)=>s+getPagado(t),0);
+  const pendiente=todos.reduce((s,t)=>s+getPendiente(t),0);
+  const enProceso=todos.filter(t=>t.estado==='en_proceso').length;
+  const mes=new Date().getMonth();
+  const mData=Array.from({length:6},(_,i)=>{const m=(mes-5+i+12)%12;const c=todos.reduce((s,t)=>s+(t.pagos||[]).filter(p=>new Date(p.fecha).getMonth()===m).reduce((a,b)=>a+b.monto,0),0);return{m,c};});
+  const maxB=Math.max(...mData.map(d=>d.c),1);
+  const alertas=todos.filter(t=>{if(t.estado==='completado'||t.estado==='cancelado')return false;if(getPendiente(t)<=0)return false;const d=Math.ceil((new Date(t.fecha_limite)-new Date())/86400000);return d<=30&&d>=0;});
+  const sesHoy=S.sesiones.filter(s=>s.fecha===today()&&s.estado==='programada');
+  const proxS=S.sesiones.filter(s=>s.estado==='programada'&&s.fecha>today()).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3);
+  const cfg=getCfg();
+  const zoomOk=cfg.zoomMode&&(cfg.zoomToken||cfg.zoomProxyUrl);
+
+  return `
+${!zoomOk?`<div class="alert al-amber" style="margin-bottom:16px;">
+  <span>⚙️</span>
+  <div class="al-body"><strong>Zoom no configurado</strong><span>Configura tu cuenta Zoom para generar meetings automáticamente.</span></div>
+  <div class="al-act"><button class="btn btn-sm" onclick="nav('config')">Configurar</button></div>
+</div>`:''}
+<div class="g4">
+  <div class="metric"><div class="ml">Total cobrado</div><div class="mv blue">${fMoney(cobrado)}</div><div class="ms">de ${fMoney(todos.reduce((s,t)=>s+t.total,0))} total</div></div>
+  <div class="metric"><div class="ml">Por cobrar</div><div class="mv amber">${fMoney(pendiente)}</div><div class="ms">${todos.filter(t=>t.estado==='pendiente_pago').length} trabajo(s)</div></div>
+  <div class="metric"><div class="ml">En proceso</div><div class="mv green">${enProceso}</div><div class="ms">trabajos activos</div></div>
+  <div class="metric"><div class="ml">Sesiones Zoom</div><div class="mv zoom">${S.sesiones.filter(s=>s.estado==='programada').length}</div><div class="ms">programadas</div></div>
+</div>
+${alertas.length>0?`<div class="card"><div class="card-title">⚠️ Vencimientos próximos (30 días)</div>${alertas.map(t=>`<div class="alert al-amber"><span>⏰</span><div class="al-body"><strong>${t.cliente}</strong><span>${t.tipo} · Pendiente: ${fMoney(getPendiente(t))} · Vence: ${fDate(t.fecha_limite)}</span></div><div class="al-act"><button class="btn btn-g btn-sm" onclick="enviarWA('${t.tel}','${t.cliente}',${getPendiente(t)},'${t.fecha_limite}','${t.tipo}')">📱</button><button class="btn btn-sm" onclick="openDetalle(${t.id})">Ver</button></div></div>`).join('')}</div>`:''}
+${sesHoy.length>0?`<div class="alert al-blue" style="border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:16px;"><span>🎥</span><div class="al-body"><strong>${sesHoy.length} sesión(es) Zoom hoy</strong><span>${sesHoy.map(s=>`${s.cliente} a las ${s.hora}`).join(' · ')}</span></div><div class="al-act"><button class="btn btn-z btn-sm" onclick="nav('zoom')">Ver</button></div></div>`:''}
+<div class="g2">
+  <div class="card"><div class="card-title">Cobros últimos 6 meses</div>
+    <div class="bar-w">${mData.map(d=>`<div class="bar" style="height:${Math.round(d.c/maxB*100)}%" title="${fMoney(d.c)}"></div>`).join('')}</div>
+    <div class="bls">${mData.map(d=>`<div class="bl">${MESES[d.m]}</div>`).join('')}</div>
+  </div>
+  <div class="card"><div class="card-title">Próximas sesiones <button class="btn btn-sm btn-z" onclick="nav('zoom')">Ver todas</button></div>
+    ${proxS.length===0?`<div class="empty">Sin sesiones próximas</div>`:proxS.map(s=>`<div class="zs"><div class="zdot prox"></div><div class="zt">${fDate(s.fecha)}<br><span style="font-size:10px;">${s.hora}</span></div><div class="zi"><strong>${s.cliente}</strong><span>${s.tipo}</span></div><div class="za"><a href="${s.link}" target="_blank" class="btn btn-z btn-sm">Unirse</a></div></div>`).join('')}
+  </div>
+</div>`;
+}
+
+// ── TRABAJOS ───────────────────────────────────────────────
+function rTrabajos(){
+  const tabs=['todos','en_proceso','pendiente_pago','completado','cancelado'];
+  const lb={todos:'Todos',en_proceso:'En proceso',pendiente_pago:'Pendiente',completado:'Completados',cancelado:'Cancelados'};
+  const tab=S.tabTrabajo||'todos';
+  const filt=tab==='todos'?S.trabajos:S.trabajos.filter(t=>t.estado===tab);
+  return `
+<div class="tabs">${tabs.map(t=>`<div class="tab${tab===t?' active':''}" onclick="S.tabTrabajo='${t}';render();">${lb[t]}</div>`).join('')}</div>
+${S.trabajos.length===0?`<div class="card"><div class="empty" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">📋</div>Aún no tienes trabajos.<br><br><button class="btn btn-p" onclick="openNuevoTrabajo()">+ Crear primer trabajo</button></div></div>`:`
+<div class="card" style="padding:0;overflow:hidden;">
+${filt.length===0?`<div class="empty">Sin trabajos en esta categoría</div>`:`
+<div class="tw"><table>
+<thead><tr><th>Cliente</th><th>Tipo</th><th>Total</th><th>Pagado</th><th>Pendiente</th><th>Avance</th><th>Estado</th><th>Vence</th><th></th></tr></thead>
+<tbody>${filt.map(t=>`<tr>
+<td><div class="ci">${av(t.cliente)}<div><div style="font-weight:600;">${t.cliente}</div><div style="font-size:11px;color:var(--text3);">${t.tel}</div></div></div></td>
+<td style="color:var(--text2);font-size:12px;">${t.tipo}</td>
+<td style="font-weight:600;">${fMoney(t.total)}</td>
+<td style="color:var(--green);font-weight:600;">${fMoney(getPagado(t))}</td>
+<td style="color:${getPendiente(t)>0?'var(--red)':'var(--green)'};font-weight:600;">${fMoney(getPendiente(t))}</td>
+<td style="min-width:76px;"><div style="font-size:11px;margin-bottom:3px;">${getPct(t)}%</div><div class="prog"><div class="pf${getPct(t)>=100?' done':''}" style="width:${getPct(t)}%"></div></div></td>
+<td>${gEB(t.estado)}</td>
+<td style="font-size:12px;color:var(--text2);">${fDate(t.fecha_limite)}</td>
+<td><div style="display:flex;gap:4px;">
+<button class="btn btn-sm" onclick="openDetalle(${t.id})">Ver</button>
+${getPendiente(t)>0?`<button class="btn btn-g btn-sm" onclick="enviarWA('${t.tel}','${t.cliente}',${getPendiente(t)},'${t.fecha_limite}','${t.tipo}')">📱</button>`:''}
+</div></td>
+</tr>`).join('')}</tbody>
+</table></div>`}
+</div>`}`;
+}
+
+// ── PAGOS ──────────────────────────────────────────────────
+function rPagos(){
+  const mes=S.mesActivo;
+  const pm=[];
+  S.trabajos.forEach(t=>(t.pagos||[]).forEach(p=>{if(new Date(p.fecha).getMonth()===mes)pm.push({...p,cliente:t.cliente,tipo:t.tipo,tid:t.id});}));
+  const tot=pm.reduce((s,p)=>s+p.monto,0);
+  const proy=S.trabajos.filter(t=>t.estado!=='completado'&&t.estado!=='cancelado').reduce((s,t)=>s+getPendiente(t),0);
+  const tTotal=S.trabajos.reduce((s,t)=>s+t.total,0);
+  const tCob=S.trabajos.reduce((s,t)=>s+getPagado(t),0);
+  return `
+<div style="display:flex;align-items:center;gap:5px;margin-bottom:14px;flex-wrap:wrap;">
+  <span style="font-size:12px;color:var(--text3);">Mes:</span>
+  ${Array.from({length:12},(_,m)=>`<div class="tab${mes===m?' active':''}" onclick="S.mesActivo=${m};render();">${MESES[m]}</div>`).join('')}
+</div>
+<div class="g3">
+  <div class="metric"><div class="ml">Cobrado en ${MESES[mes]}</div><div class="mv green">${fMoney(tot)}</div><div class="ms">${pm.length} pago(s)</div></div>
+  <div class="metric"><div class="ml">Proyección pendiente</div><div class="mv amber">${fMoney(proy)}</div><div class="ms">total por cobrar</div></div>
+  <div class="metric"><div class="ml">Eficiencia cobro</div><div class="mv blue">${tTotal?Math.round(tCob/tTotal*100):0}%</div><div class="ms">${fMoney(tCob)} de ${fMoney(tTotal)}</div></div>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div class="card-title" style="padding:14px 18px 0;">Pagos de ${MESES_F[mes]}</div>
+${pm.length===0?`<div class="empty">Sin pagos en ${MESES[mes]}</div>`:`
+<div class="tw"><table>
+<thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Monto</th><th>Nota</th><th></th></tr></thead>
+<tbody>${pm.map(p=>`<tr>
+<td style="font-size:12px;">${fDate(p.fecha)}</td>
+<td><div class="ci">${av(p.cliente,'av-sm')}<span>${p.cliente}</span></div></td>
+<td style="font-size:12px;color:var(--text2);">${p.tipo}</td>
+<td style="font-weight:600;color:var(--green);">${fMoney(p.monto)}</td>
+<td style="font-size:12px;color:var(--text2);">${p.nota||'—'}</td>
+<td><button class="btn btn-sm" onclick="openDetalle(${p.tid})">Ver</button></td>
+</tr>`).join('')}</tbody></table></div>`}
+</div>`;
+}
+
+// ── AGENDA ─────────────────────────────────────────────────
+function rAgenda(){
+  return `
+<div class="card" style="padding:0;overflow:hidden;">
+${S.contactos.length===0?`<div class="empty" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">👥</div>Sin contactos aún.<br><br><button class="btn btn-p" onclick="openNuevoContacto()">+ Agregar contacto</button></div>`:`
+<div class="tw"><table>
+<thead><tr><th>Contacto</th><th>Teléfono</th><th>Email</th><th>Notas</th><th></th></tr></thead>
+<tbody>${S.contactos.map(c=>`<tr>
+<td><div class="ci">${av(c.nombre)}<span style="font-weight:600;">${c.nombre}</span></div></td>
+<td>${c.tel}</td>
+<td style="font-size:12px;color:var(--text2);">${c.email||'—'}</td>
+<td style="font-size:12px;color:var(--text2);">${c.notas||'—'}</td>
+<td><div style="display:flex;gap:4px;">
+<button class="btn btn-g btn-sm" onclick="abrirWA('${c.tel}','${c.nombre}')">📱 WA</button>
+<button class="btn btn-z btn-sm" onclick="openNuevaSesionContacto(${c.id})">🎥 Zoom</button>
+<button class="btn btn-sm" onclick="editarContacto(${c.id})">✏️</button>
+<button class="btn btn-sm" style="color:var(--red);" onclick="eliminarContacto(${c.id})">✕</button>
+</div></td>
+</tr>`).join('')}</tbody></table></div>`}
+</div>`;
+}
+
+// ── RECORDATORIOS ──────────────────────────────────────────
+function rRecordatorios(){
+  const pend=S.trabajos.filter(t=>t.estado!=='completado'&&t.estado!=='cancelado'&&getPendiente(t)>0);
+  return `<div class="card">
+<div class="card-title">📱 Recordatorios de pago via WhatsApp</div>
+<p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Al hacer clic se abre WhatsApp con el mensaje listo para enviar al cliente.</p>
+${pend.length===0?`<div class="empty"><div style="font-size:28px;margin-bottom:8px;">✅</div>¡No hay pagos pendientes!</div>`:pend.map(t=>`
+<div style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+  <div class="ci">${av(t.cliente)}<div><div style="font-weight:600;">${t.cliente}</div><div style="font-size:12px;color:var(--text2);">${t.tipo} · ${t.tel}</div></div></div>
+  <div style="text-align:right;"><div style="font-weight:700;color:var(--red);font-size:18px;">${fMoney(getPendiente(t))}</div><div style="font-size:11px;color:var(--text3);">de ${fMoney(t.total)}</div></div>
+</div>
+<div class="wa-bubble">${genMsg(t.cliente,getPendiente(t),t.fecha_limite,t.tipo)}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button class="btn btn-g btn-sm" onclick="enviarWA('${t.tel}','${t.cliente}',${getPendiente(t)},'${t.fecha_limite}','${t.tipo}')">📱 Enviar por WhatsApp</button>
+<button class="btn btn-sm" onclick="personalizarMsg(${t.id})">✏️ Personalizar</button>
+<button class="btn btn-sm" onclick="openDetalle(${t.id})">Ver trabajo</button>
+</div></div>`).join('')}
+</div>`;
+}
+
+// ── ZOOM ───────────────────────────────────────────────────
+function rZoom(){
+  const hoy=today();
+  const sesHoy=S.sesiones.filter(s=>s.fecha===hoy&&s.estado==='programada');
+  const prox=S.sesiones.filter(s=>s.fecha>hoy&&s.estado==='programada').sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const past=S.sesiones.filter(s=>s.fecha<hoy||s.estado==='completada'||s.estado==='cancelada').sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const cfg=getCfg();
+  const zoomOk=cfg.zoomMode&&(cfg.zoomToken||cfg.zoomProxyUrl);
+  return `
+<div class="g3">
+  <div class="metric"><div class="ml">Programadas</div><div class="mv zoom">${S.sesiones.filter(s=>s.estado==='programada').length}</div></div>
+  <div class="metric"><div class="ml">Completadas</div><div class="mv green">${S.sesiones.filter(s=>s.estado==='completada').length}</div></div>
+  <div class="metric"><div class="ml">Hoy</div><div class="mv blue">${sesHoy.length}</div></div>
+</div>
+${!zoomOk?`<div class="alert al-amber" style="margin-bottom:16px;"><span>⚙️</span><div class="al-body"><strong>Zoom no configurado</strong><span>Sin configuración, el link se genera manualmente. Configura Zoom para generación automática.</span></div><div class="al-act"><button class="btn btn-sm" onclick="nav('config')">Configurar</button></div></div>`:`<div class="alert al-green" style="margin-bottom:16px;"><span>✅</span><div class="al-body"><strong>Zoom conectado</strong><span>Los meetings se generan automáticamente al agendar una sesión.</span></div></div>`}
+${sesHoy.length>0?`<div class="card" style="border:2px solid var(--zoom);"><div class="card-title" style="color:var(--zoom);">🎥 Sesiones de hoy</div>${sesHoy.map(s=>zCard(s,'hoy')).join('')}</div>`:''}
+<div class="card"><div class="card-title">📅 Próximas sesiones</div>
+${prox.length===0?`<div class="empty">Sin sesiones próximas</div>`:prox.map(s=>zCard(s,'prox')).join('')}
+</div>
+<div class="card"><div class="card-title">📋 Historial</div>
+${past.length===0?`<div class="empty">Sin historial</div>`:past.map(s=>zCard(s,'past')).join('')}
+</div>`;
+}
+
+function zCard(s, tipo) {
+  const isHoy=tipo==='hoy', isPast=tipo==='past';
+  return `<div class="zs" style="${isPast?'opacity:.65':''}">
+<div class="zdot ${tipo==='hoy'?'hoy':tipo==='prox'?'prox':'past'}"></div>
+<div class="zt">${fDate(s.fecha)}<br><span style="font-size:10px;">${s.hora} · ${s.duracion}min</span></div>
+<div class="zi"><strong>${s.cliente}</strong><span>${s.tipo}${s.notas?` · ${s.notas}`:''}</span></div>
+<div class="za">
+${isHoy?`<a href="${s.link}" target="_blank" class="btn btn-z btn-sm">🎥 Unirse</a>`:`<a href="${s.link}" target="_blank" class="btn btn-z btn-sm">🔗 Link</a>`}
+${!isPast?`<button class="btn btn-g btn-sm" onclick="enviarRdtrZoom(${s.id})">📱</button>`:''}
+${!isPast?`<button class="btn btn-sm" onclick="editarSesion(${s.id})">✏️</button>`:''}
+${!isPast?`<button class="btn btn-sm" onclick="completarSesion(${s.id},'completada')">✓</button>`:`<button class="btn btn-sm" onclick="completarSesion(${s.id},'programada')">↩️</button>`}
+</div></div>`;
+}
+
+// ── CONFIGURACIÓN ──────────────────────────────────────────
+function rConfig(){
+  const cfg=getCfg();
+  const zOk=cfg.zoomMode&&(cfg.zoomToken||cfg.zoomProxyUrl);
+  return `
+<div class="card">
+  <div class="card-title">🎥 Configuración de Zoom API</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Conecta tu cuenta de Zoom para que los meetings se generen automáticamente al agendar una sesión.</p>
+
+  <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;border:1px solid var(--border);border-radius:var(--r);padding:14px;cursor:pointer;${cfg.zoomMode==='token'?'border-color:var(--blue);background:var(--blue-l);':''}" onclick="selectZoomMode('token')">
+      <div style="font-weight:600;font-size:13px;margin-bottom:4px;">🔑 Token de acceso (fácil)</div>
+      <div style="font-size:12px;color:var(--text2);">Usa tu token personal de Zoom. Ideal para uso individual.</div>
+    </div>
+    <div style="flex:1;min-width:200px;border:1px solid var(--border);border-radius:var(--r);padding:14px;cursor:pointer;${cfg.zoomMode==='server'?'border-color:var(--blue);background:var(--blue-l);':''}" onclick="selectZoomMode('server')">
+      <div style="font-weight:600;font-size:13px;margin-bottom:4px;">🖥️ Server-to-Server (avanzado)</div>
+      <div style="font-size:12px;color:var(--text2);">Usa tu propio backend proxy. Mayor seguridad y sin expiración.</div>
+    </div>
+  </div>
+
+  <div id="zoom-token-cfg" style="display:${cfg.zoomMode==='token'||!cfg.zoomMode?'block':'none'};">
+    <div class="fi">
+      <label class="fl">Email de tu cuenta Zoom</label>
+      <input class="fin" id="cfg-email" type="email" placeholder="tucorreo@gmail.com" value="${cfg.zoomEmail||''}">
+    </div>
+    <div class="fi">
+      <label class="fl">Token de acceso Zoom (Access Token)</label>
+      <input class="fin" id="cfg-token" type="password" placeholder="eyJhbGciOiJSUzI1N..." value="${cfg.zoomToken||''}">
+      <div class="tip">Obtén tu token en: <a href="https://marketplace.zoom.us/develop/create" target="_blank" style="color:var(--blue);">marketplace.zoom.us</a> → Crea una app "Server-to-Server OAuth" → copia el Access Token generado.</div>
+    </div>
+    <button class="btn btn-p" onclick="guardarCfgToken()">Guardar configuración</button>
+  </div>
+
+  <div id="zoom-server-cfg" style="display:${cfg.zoomMode==='server'?'block':'none'};">
+    <div class="fi">
+      <label class="fl">URL de tu proxy backend</label>
+      <input class="fin" id="cfg-proxy" type="url" placeholder="https://tu-servidor.com/api/zoom/create" value="${cfg.zoomProxyUrl||''}">
+    </div>
+    <div class="fi">
+      <label class="fl">Secret del proxy (opcional)</label>
+      <input class="fin" id="cfg-psecret" type="password" placeholder="clave-secreta" value="${cfg.zoomProxySecret||''}">
+    </div>
+    <button class="btn btn-p" onclick="guardarCfgProxy()">Guardar configuración</button>
+  </div>
+
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+    Estado Zoom: ${zOk?`<span class="config-badge cfg-ok">✅ Configurado</span>`:`<span class="config-badge cfg-no">❌ No configurado</span>`}
+    ${zOk?`<button class="btn btn-sm" style="margin-left:8px;" onclick="testZoom()">Probar conexión</button>`:''}
+    ${zOk?`<button class="btn btn-sm" style="margin-left:4px;color:var(--red);" onclick="limpiarCfgZoom()">Desconectar</button>`:''}
+  </div>
+
+  <div id="zoom-test-result"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">📋 Cómo obtener tu token de Zoom (paso a paso)</div>
+  <ol style="font-size:13px;color:var(--text2);line-height:2.2;padding-left:18px;">
+    <li>Ve a <a href="https://marketplace.zoom.us/develop/create" target="_blank" style="color:var(--blue);">marketplace.zoom.us/develop/create</a> (inicia sesión con tu cuenta Zoom)</li>
+    <li>Haz clic en <strong>"Server-to-Server OAuth"</strong> → ponle un nombre a tu app (ej: "Research Assesor")</li>
+    <li>Completa la información básica requerida</li>
+    <li>En <strong>"Scopes"</strong>, agrega: <code style="background:var(--gray2);padding:1px 5px;border-radius:4px;">meeting:write:admin</code> y <code style="background:var(--gray2);padding:1px 5px;border-radius:4px;">user:read:admin</code></li>
+    <li>Ve a la sección <strong>"Activation"</strong> → activa la app</li>
+    <li>Ve a <strong>"App Credentials"</strong> → copia el <strong>Account ID, Client ID y Client Secret</strong></li>
+    <li>Genera el Access Token con este comando (o usa Postman): <div class="code" style="margin-top:6px;"><span class="com"># Reemplaza los valores y ejecuta en terminal</span>
+<span class="kw">curl</span> -X POST https://zoom.us/oauth/token \
+  -u <span class="str">"CLIENT_ID:CLIENT_SECRET"</span> \
+  -d <span class="str">"grant_type=account_credentials&account_id=ACCOUNT_ID"</span></div></li>
+    <li>Copia el <strong>access_token</strong> del resultado y pégalo arriba</li>
+  </ol>
+  <div style="margin-top:10px;padding:10px 12px;background:var(--amber-l);border-radius:var(--r);font-size:12px;color:#7a4c0a;">
+    ⚠️ El token expira cada hora. Para producción real, configura un servidor backend que renueve el token automáticamente. El script del servidor está disponible en la sección Google Sheets.
+  </div>
+</div>`;
+}
+
+function selectZoomMode(mode) {
+  saveCfg({zoomMode:mode});
+  document.getElementById('zoom-token-cfg').style.display = mode==='token'?'block':'none';
+  document.getElementById('zoom-server-cfg').style.display = mode==='server'?'block':'none';
+  document.querySelectorAll('[onclick^="selectZoomMode"]').forEach(el=>{
+    el.style.borderColor=''; el.style.background='';
+  });
+}
+function guardarCfgToken() {
+  const email=document.getElementById('cfg-email').value;
+  const token=document.getElementById('cfg-token').value;
+  if(!token){alert('Ingresa el token');return;}
+  saveCfg({zoomMode:'token',zoomEmail:email,zoomToken:token});
+  alert('✅ Configuración guardada');
+  render();
+}
+function guardarCfgProxy() {
+  const url=document.getElementById('cfg-proxy').value;
+  const sec=document.getElementById('cfg-psecret').value;
+  if(!url){alert('Ingresa la URL del proxy');return;}
+  saveCfg({zoomMode:'server',zoomProxyUrl:url,zoomProxySecret:sec});
+  alert('✅ Configuración guardada');
+  render();
+}
+function limpiarCfgZoom() {
+  if(!confirm('¿Desconectar Zoom?'))return;
+  saveCfg({zoomMode:'',zoomToken:'',zoomEmail:'',zoomProxyUrl:'',zoomProxySecret:''});
+  render();
+}
+async function testZoom() {
+  const res = document.getElementById('zoom-test-result');
+  res.className='zoom-status loading'; res.textContent='⏳ Probando conexión con Zoom...';
+  try {
+    const meeting = await crearMeetingZoom('Test Research Assesor', today(), '09:00', 30);
+    if(meeting && meeting.link) {
+      res.className='zoom-status ok';
+      res.innerHTML=`✅ Conexión exitosa. Meeting de prueba generado:<br><a href="${meeting.link}" target="_blank" style="color:var(--green);">${meeting.link}</a>`;
+    } else {
+      res.className='zoom-status err'; res.textContent='⚠️ Zoom no configurado — los links se ingresarán manualmente.';
+    }
+  } catch(e) {
+    res.className='zoom-status err'; res.textContent=`❌ Error: ${e.message}`;
+  }
+}
+
+// ── SHEETS ─────────────────────────────────────────────────
+function rSheets(){
+  return `
+<div class="g2">
+  <div class="card">
+    <div class="card-title">📥 Exportar a CSV</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Copia en CSV y pega directamente en Google Sheets.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-p" onclick="copiarCSV('trabajos')">📋 Copiar Trabajos</button>
+      <button class="btn btn-p" onclick="copiarCSV('pagos')">📋 Copiar Pagos</button>
+      <button class="btn btn-z" onclick="copiarCSV('sesiones')">📋 Copiar Sesiones Zoom</button>
+      <button class="btn btn-p" onclick="copiarCSV('clientes')">📋 Copiar Clientes</button>
+    </div>
+    <div id="copy-ok" style="display:none;margin-top:8px;font-size:12px;color:var(--green);">✅ Copiado al portapapeles</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Resumen actual</div>
+    <table style="font-size:13px;">
+      ${[['Trabajos registrados',S.trabajos.length],['Total facturado',fMoney(S.trabajos.reduce((s,t)=>s+t.total,0))],['Total cobrado',fMoney(S.trabajos.reduce((s,t)=>s+getPagado(t),0))],['Total pendiente',fMoney(S.trabajos.reduce((s,t)=>s+getPendiente(t),0))],['Sesiones Zoom',S.sesiones.length],['Contactos',S.contactos.length]].map(([l,v])=>`<tr><td style="color:var(--text2);padding:5px 0;">${l}</td><td style="font-weight:600;text-align:right;">${v}</td></tr>`).join('')}
+    </table>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">⚙️ Google Apps Script — pegar en Extensiones → Apps Script</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Script limpio sin datos de prueba. Crea las hojas formateadas y agrega el menú "Research Assesor" en tu Google Sheet.</p>
+  <div style="position:relative;">
+    <button class="btn btn-sm" style="position:absolute;top:8px;right:8px;z-index:2;" onclick="copiarAppsScript()">📋 Copiar script</button>
+    <div class="code">
+<span class="com">// Research Assesor — Apps Script</span>
+<span class="com">// Pega este código en: Google Sheets → Extensiones → Apps Script</span>
+<span class="com">// Luego ejecuta: crearHojas()</span>
+
+<span class="kw">function</span> <span class="fn">onOpen</span>() {
+  SpreadsheetApp.getUi()
+    .createMenu(<span class="str">'📋 Research Assesor'</span>)
+    .addItem(<span class="str">'✅ Crear / Resetear hojas'</span>, <span class="str">'crearHojas'</span>)
+    .addItem(<span class="str">'📊 Resumen del mes'</span>, <span class="str">'mostrarResumenMes'</span>)
+    .addItem(<span class="str">'⚠️ Pagos vencidos'</span>, <span class="str">'mostrarPagosVencidos'</span>)
+    .addItem(<span class="str">'🔄 Actualizar estados'</span>, <span class="str">'actualizarEstados'</span>)
+    .addToUi();
+}
+<span class="com">// ... (script completo en el archivo .js descargable)</span>
+    </div>
+  </div>
+  <div style="margin-top:10px;">
+    <button class="btn btn-p" onclick="descargarScript()">⬇️ Descargar script completo (.js)</button>
+  </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CRUD TRABAJOS
+// ═══════════════════════════════════════════════════════════
+function openNuevoTrabajo(){
+  const opts=S.contactos.map(c=>`<option value="${c.nombre}" data-tel="${c.tel}">${c.nombre}</option>`).join('');
+  showModal(`<h3>📋 Nuevo Trabajo</h3>
+<div class="fr">
+<div class="fi"><label class="fl">Cliente</label>
+<select class="fin" id="f-cli" onchange="autoFT(this)">${opts}<option value="__nuevo__">+ Nuevo cliente</option></select></div>
+<div class="fi"><label class="fl">Teléfono</label><input type="tel" class="fin" id="f-tel" placeholder="+593..."></div>
+</div>
+<div class="fi"><label class="fl">Tipo de servicio</label><select class="fin" id="f-tipo">${TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></div>
+<div class="fi"><label class="fl">Título del trabajo</label><input type="text" class="fin" id="f-titulo" placeholder="Describe el trabajo..."></div>
+<div class="fr">
+<div class="fi"><label class="fl">Valor total (USD)</label><input type="number" class="fin" id="f-total" placeholder="350" min="0"></div>
+<div class="fi"><label class="fl">Pago inicial (USD)</label><input type="number" class="fin" id="f-ini" placeholder="0" min="0"></div>
+</div>
+<div class="fr">
+<div class="fi"><label class="fl">Fecha inicio</label><input type="date" class="fin" id="f-desde" value="${today()}"></div>
+<div class="fi"><label class="fl">Fecha límite</label><input type="date" class="fin" id="f-hasta"></div>
+</div>
+<div class="fi"><label class="fl">Notas</label><textarea class="fin" id="f-notas" placeholder="Observaciones..."></textarea></div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-p" onclick="guardarTrabajo()">Guardar</button></div>`);
+  autoFT(document.getElementById('f-cli'));
+}
+function autoFT(sel){const opt=sel.options[sel.selectedIndex];const tf=document.getElementById('f-tel');if(tf&&sel.value!=='__nuevo__')tf.value=opt.getAttribute('data-tel')||'';}
+function guardarTrabajo(){
+  let cli=document.getElementById('f-cli').value;
+  if(cli==='__nuevo__'){cli=prompt('Nombre del nuevo cliente:');if(!cli)return;}
+  const tel=document.getElementById('f-tel').value;
+  const tipo=document.getElementById('f-tipo').value;
+  const titulo=document.getElementById('f-titulo').value;
+  const total=parseFloat(document.getElementById('f-total').value)||0;
+  const ini=parseFloat(document.getElementById('f-ini').value)||0;
+  const desde=document.getElementById('f-desde').value;
+  const hasta=document.getElementById('f-hasta').value;
+  const notas=document.getElementById('f-notas').value;
+  if(!titulo||total<=0)return alert('Ingresa el título y el valor total');
+  const t={id:S.nextId++,cliente:cli,tel,email:'',tipo,titulo,total,pagos:[],estado:'en_proceso',fecha_inicio:desde,fecha_limite:hasta,notas};
+  if(ini>0)t.pagos.push({fecha:desde,monto:ini,nota:'Pago inicial'});
+  if(getPendiente(t)<=0)t.estado='completado';
+  if(!S.contactos.find(c=>c.nombre===cli))S.contactos.push({id:S.nextCId++,nombre:cli,tel,email:'',notas:''});
+  S.trabajos.push(t);
+  saveState();closeModal();render();updateBadges();
+}
+function openDetalle(id){
+  const t=S.trabajos.find(x=>x.id===id);if(!t)return;
+  showModal(`<h3>${t.cliente}</h3>
+<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">${t.tipo} · ${t.titulo}</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+<div class="metric"><div class="ml">Total</div><div class="mv blue" style="font-size:18px;">${fMoney(t.total)}</div></div>
+<div class="metric"><div class="ml">Pagado</div><div class="mv green" style="font-size:18px;">${fMoney(getPagado(t))}</div></div>
+<div class="metric"><div class="ml">Pendiente</div><div class="mv ${getPendiente(t)>0?'red':'green'}" style="font-size:18px;">${fMoney(getPendiente(t))}</div></div>
+<div class="metric"><div class="ml">Avance</div><div class="mv blue" style="font-size:18px;">${getPct(t)}%</div></div>
+</div>
+<div class="fi"><label class="fl">Estado</label>
+<select class="fin" onchange="cambiarEstado(${t.id},this.value)">
+${Object.entries(E_MAP).map(([v,l])=>`<option value="${v}"${t.estado===v?' selected':''}>${l}</option>`).join('')}
+</select></div>
+<div style="font-weight:600;font-size:13px;margin:10px 0 8px;">Historial de pagos</div>
+${t.pagos.length===0?`<p style="font-size:12px;color:var(--text3);">Sin pagos</p>`:t.pagos.map(p=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${fDate(p.fecha)} — ${p.nota||'Pago'}</span><span style="color:var(--green);font-weight:600;">${fMoney(p.monto)}</span></div>`).join('')}
+<div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+<input type="number" class="fin" id="np-m" placeholder="Monto USD" style="flex:1;">
+<input type="text" class="fin" id="np-n" placeholder="Nota" style="flex:2;">
+<button class="btn btn-p btn-sm" onclick="agregarPago(${t.id})">+ Pago</button>
+</div>
+${getPendiente(t)>0?`<div style="margin-top:10px;"><button class="btn btn-g" style="width:100%;" onclick="enviarWA('${t.tel}','${t.cliente}',${getPendiente(t)},'${t.fecha_limite}','${t.tipo}')">📱 Recordatorio WhatsApp</button></div>`:''}
+<div class="mf"><button class="btn" onclick="closeModal()">Cerrar</button></div>`);
+}
+function agregarPago(id){
+  const t=S.trabajos.find(x=>x.id===id);
+  const m=parseFloat(document.getElementById('np-m').value)||0;
+  const n=document.getElementById('np-n').value;
+  if(m<=0)return alert('Monto inválido');
+  t.pagos.push({fecha:today(),monto:m,nota:n});
+  if(getPendiente(t)<=0)t.estado='completado';
+  else if(t.estado==='pendiente_pago')t.estado='en_proceso';
+  saveState();openDetalle(id);render();updateBadges();
+}
+function cambiarEstado(id,e){const t=S.trabajos.find(x=>x.id===id);if(t){t.estado=e;saveState();render();updateBadges();}}
+
+// ═══════════════════════════════════════════════════════════
+//  CRUD CONTACTOS
+// ═══════════════════════════════════════════════════════════
+function openNuevoContacto(){
+  showModal(`<h3>👤 Nuevo Contacto</h3>
+<div class="fi"><label class="fl">Nombre completo</label><input type="text" class="fin" id="c-n"></div>
+<div class="fr">
+<div class="fi"><label class="fl">Teléfono</label><input type="tel" class="fin" id="c-t" placeholder="+593..."></div>
+<div class="fi"><label class="fl">Email</label><input type="email" class="fin" id="c-e"></div>
+</div>
+<div class="fi"><label class="fl">Notas</label><textarea class="fin" id="c-no"></textarea></div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-p" onclick="guardarContacto()">Guardar</button></div>`);
+}
+function editarContacto(id){
+  const c=S.contactos.find(x=>x.id===id);
+  showModal(`<h3>✏️ Editar Contacto</h3>
+<div class="fi"><label class="fl">Nombre</label><input type="text" class="fin" id="c-n" value="${c.nombre}"></div>
+<div class="fr">
+<div class="fi"><label class="fl">Teléfono</label><input type="tel" class="fin" id="c-t" value="${c.tel}"></div>
+<div class="fi"><label class="fl">Email</label><input type="email" class="fin" id="c-e" value="${c.email||''}"></div>
+</div>
+<div class="fi"><label class="fl">Notas</label><textarea class="fin" id="c-no">${c.notas||''}</textarea></div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-p" onclick="guardarContacto(${id})">Guardar</button></div>`);
+}
+function guardarContacto(id){
+  const n=document.getElementById('c-n').value;
+  const t=document.getElementById('c-t').value;
+  const e=document.getElementById('c-e').value;
+  const no=document.getElementById('c-no').value;
+  if(!n)return;
+  if(id){const c=S.contactos.find(x=>x.id===id);Object.assign(c,{nombre:n,tel:t,email:e,notas:no});}
+  else S.contactos.push({id:S.nextCId++,nombre:n,tel:t,email:e,notas:no});
+  saveState();closeModal();render();
+}
+function eliminarContacto(id){if(!confirm('¿Eliminar?'))return;S.contactos=S.contactos.filter(c=>c.id!==id);saveState();render();}
+
+// ═══════════════════════════════════════════════════════════
+//  CRUD SESIONES ZOOM (con generación automática de meeting)
+// ═══════════════════════════════════════════════════════════
+function sesionForm(s){
+  const opts=S.contactos.map(c=>`<option value="${c.nombre}" data-tel="${c.tel}"${s&&s.cliente===c.nombre?' selected':''}>${c.nombre}</option>`).join('');
+  const cfg=getCfg();
+  const zOk=cfg.zoomMode&&(cfg.zoomToken||cfg.zoomProxyUrl);
+  return `
+<div class="fr">
+<div class="fi"><label class="fl">Cliente</label>
+<select class="fin" id="z-cli" onchange="autoZT(this)">${opts}</select></div>
+<div class="fi"><label class="fl">Teléfono</label><input type="tel" class="fin" id="z-tel" value="${s?s.tel:''}" placeholder="+593..."></div>
+</div>
+<div class="fi"><label class="fl">Tipo de sesión</label>
+<select class="fin" id="z-tipo">${TIPOS_S.map(t=>`<option${s&&s.tipo===t?' selected':''}>${t}</option>`).join('')}</select></div>
+<div class="fr">
+<div class="fi"><label class="fl">Fecha</label><input type="date" class="fin" id="z-fecha" value="${s?s.fecha:today()}"></div>
+<div class="fi"><label class="fl">Hora</label><input type="time" class="fin" id="z-hora" value="${s?s.hora:'09:00'}"></div>
+</div>
+<div class="fr">
+<div class="fi"><label class="fl">Duración (min)</label><input type="number" class="fin" id="z-dur" value="${s?s.duracion:60}" min="15" step="15"></div>
+<div class="fi"><label class="fl">Trabajo relacionado</label>
+<select class="fin" id="z-tid"><option value="">— Ninguno —</option>
+${S.trabajos.map(t=>`<option value="${t.id}"${s&&s.tid===t.id?' selected':''}>${t.cliente} — ${t.tipo.slice(0,20)}</option>`).join('')}
+</select></div>
+</div>
+
+<div id="zoom-link-section">
+${zOk?`<div class="alert al-green" style="padding:10px 12px;font-size:13px;">
+  <span>🎥</span>
+  <div>El link de Zoom se generará automáticamente al guardar.</div>
+</div>`:`
+<div class="fi"><label class="fl">Link de Zoom (manual)</label>
+<input type="url" class="fin" id="z-link" placeholder="https://zoom.us/j/..." value="${s?s.link||'':''}">
+<div class="tip">Zoom no está configurado. <a href="#" onclick="closeModal();nav('config');" style="color:var(--blue);">Configurar Zoom</a> para generación automática.</div>
+</div>`}
+</div>
+
+<div class="fi"><label class="fl">Notas</label><textarea class="fin" id="z-notas" placeholder="Temas a tratar...">${s?s.notas||'':''}</textarea></div>`;
+}
+
+function autoZT(sel){const opt=sel.options[sel.selectedIndex];const tf=document.getElementById('z-tel');if(tf)tf.value=opt.getAttribute('data-tel')||'';}
+
+function openNuevaSesion(){
+  showModal(`<h3>🎥 Nueva Sesión Zoom</h3>${sesionForm(null)}
+<div id="zoom-saving" style="display:none;" class="zoom-status loading">⏳ Generando meeting en Zoom...</div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-z" id="btn-guardar-sesion" onclick="guardarSesion()">🎥 Agendar Sesión</button></div>`);
+  autoZT(document.getElementById('z-cli'));
+}
+function openNuevaSesionContacto(cid){
+  const c=S.contactos.find(x=>x.id===cid);
+  showModal(`<h3>🎥 Sesión con ${c.nombre}</h3>${sesionForm({cliente:c.nombre,tel:c.tel})}
+<div id="zoom-saving" style="display:none;" class="zoom-status loading">⏳ Generando meeting en Zoom...</div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-z" id="btn-guardar-sesion" onclick="guardarSesion()">🎥 Agendar Sesión</button></div>`);
+}
+function editarSesion(id){
+  const s=S.sesiones.find(x=>x.id===id);
+  showModal(`<h3>✏️ Editar Sesión</h3>${sesionForm(s)}
+<div id="zoom-saving" style="display:none;" class="zoom-status loading">⏳ Regenerando meeting...</div>
+<div class="mf">
+<button class="btn btn-danger btn-sm" onclick="eliminarSesion(${id});closeModal();">Eliminar</button>
+<button class="btn" onclick="closeModal()">Cancelar</button>
+<button class="btn btn-z" id="btn-guardar-sesion" onclick="guardarSesion(${id})">Guardar</button></div>`);
+}
+
+async function guardarSesion(id) {
+  const cli=document.getElementById('z-cli').value;
+  const tel=document.getElementById('z-tel').value;
+  const tipo=document.getElementById('z-tipo').value;
+  const fecha=document.getElementById('z-fecha').value;
+  const hora=document.getElementById('z-hora').value;
+  const dur=parseInt(document.getElementById('z-dur').value)||60;
+  const notas=document.getElementById('z-notas').value;
+  const tid=parseInt(document.getElementById('z-tid').value)||null;
+  if(!fecha||!hora)return alert('Ingresa fecha y hora');
+
+  // Obtener link manual si existe y Zoom no está configurado
+  const linkManualEl=document.getElementById('z-link');
+  let linkManual=linkManualEl?linkManualEl.value:'';
+
+  const btn=document.getElementById('btn-guardar-sesion');
+  const savingDiv=document.getElementById('zoom-saving');
+
+  // Intentar generar meeting Zoom automáticamente
+  let zoomData=null;
+  const cfg=getCfg();
+  if(cfg.zoomMode&&(cfg.zoomToken||cfg.zoomProxyUrl)){
+    btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generando...';
+    if(savingDiv)savingDiv.style.display='block';
+    try{
+      const tituloMeeting=`${tipo} — ${cli}`;
+      zoomData=await crearMeetingZoom(tituloMeeting,fecha,hora,dur);
+    }catch(e){
+      console.warn('Zoom API error:',e.message);
+      if(savingDiv){savingDiv.textContent=`⚠️ No se pudo generar el meeting Zoom: ${e.message}. Guardando sin link.`;savingDiv.className='zoom-status err';}
+    }
+    btn.disabled=false;btn.innerHTML='🎥 Guardar';
+  }
+
+  const data={
+    cliente:cli,tel,tipo,fecha,hora,duracion:dur,notas,tid,estado:'programada',
+    link: zoomData?.link || linkManual || 'https://zoom.us/j/000000000',
+    zoomId: zoomData?.id || null,
+    zoomPassword: zoomData?.password || null,
+    zoomStartUrl: zoomData?.start_url || null,
+  };
+
+  if(id){const s=S.sesiones.find(x=>x.id===id);Object.assign(s,data);}
+  else S.sesiones.push({id:S.nextZId++,...data});
+
+  saveState();closeModal();render();
+}
+
+function eliminarSesion(id){if(!confirm('¿Eliminar sesión?'))return;S.sesiones=S.sesiones.filter(s=>s.id!==id);saveState();render();}
+function completarSesion(id,e){const s=S.sesiones.find(x=>x.id===id);if(s){s.estado=e;saveState();render();}}
+
+// ═══════════════════════════════════════════════════════════
+//  WHATSAPP
+// ═══════════════════════════════════════════════════════════
+function genMsg(nombre,monto,fecha,tipo){
+  return `Hola ${nombre} 👋\n\nTe recordamos de parte de *Research Assesor* que tienes un saldo pendiente de *$${monto} USD* por el servicio de *${tipo}*.\n\nFecha límite: *${fDate(fecha)}*\n\nPor favor contáctanos para coordinar tu pago. ¡Gracias! 🙏\n\n_Research Assesor_\n📱 +593 098 681 0281`;
+}
+function genMsgZoom(s){
+  return `Hola ${s.cliente} 👋\n\nTe recordamos tu sesión de tutoría:\n\n📅 *Fecha:* ${fDate(s.fecha)}\n⏰ *Hora:* ${s.hora} (Ecuador)\n⏱️ *Duración:* ${s.duracion} minutos\n📝 *Tipo:* ${s.tipo}\n\n🔗 *Enlace Zoom:*\n${s.link}${s.zoomPassword?`\n🔑 *Contraseña:* ${s.zoomPassword}`:''}\n\n¡Te esperamos!\n\n_Research Assesor_\n📱 +593 098 681 0281`;
+}
+function enviarWA(tel,nombre,monto,fecha,tipo){window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(genMsg(nombre,monto,fecha,tipo))}`,'_blank');}
+function abrirWA(tel,nombre){window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${nombre}! 👋 Te contactamos desde *Research Assesor*.`)}`,'_blank');}
+function enviarRdtrZoom(id){const s=S.sesiones.find(x=>x.id===id);if(!s)return;window.open(`https://wa.me/${s.tel.replace(/\D/g,'')}?text=${encodeURIComponent(genMsgZoom(s))}`,'_blank');}
+function personalizarMsg(id){
+  const t=S.trabajos.find(x=>x.id===id);
+  showModal(`<h3>✏️ Personalizar mensaje</h3>
+<div class="fi"><label class="fl">Mensaje WhatsApp</label><textarea class="fin" id="msg-c" style="height:180px;">${genMsg(t.cliente,getPendiente(t),t.fecha_limite,t.tipo)}</textarea></div>
+<div class="mf"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-g" onclick="enviarWACustom('${t.tel}')">📱 Enviar</button></div>`);
+}
+function enviarWACustom(tel){window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(document.getElementById('msg-c').value)}`,'_blank');closeModal();}
+
+// ═══════════════════════════════════════════════════════════
+//  CSV + SCRIPT
+// ═══════════════════════════════════════════════════════════
+function copiarCSV(tipo){
+  const csvs={
+    trabajos:()=>{let r='Cliente,Teléfono,Email,Tipo,Título,Total,Pagado,Pendiente,Estado,Fecha Inicio,Fecha Límite,Notas\n';S.trabajos.forEach(t=>{r+=`"${t.cliente}","${t.tel}","${t.email||''}","${t.tipo}","${t.titulo}",${t.total},${getPagado(t)},${getPendiente(t)},"${E_MAP[t.estado]}","${t.fecha_inicio}","${t.fecha_limite}","${t.notas||''}"\n`;});return r;},
+    pagos:()=>{let r='Fecha,Cliente,Tipo,Monto,Nota\n';S.trabajos.forEach(t=>(t.pagos||[]).forEach(p=>{r+=`"${p.fecha}","${t.cliente}","${t.tipo}",${p.monto},"${p.nota||''}"\n`;}));return r;},
+    sesiones:()=>{let r='Fecha,Hora,Cliente,Tipo,Duración,Link Zoom,Estado,Notas\n';S.sesiones.forEach(s=>{r+=`"${s.fecha}","${s.hora}","${s.cliente}","${s.tipo}",${s.duracion},"${s.link}","${Z_MAP[s.estado]}","${s.notas||''}"\n`;});return r;},
+    clientes:()=>{let r='Nombre,Teléfono,Email,Notas\n';S.contactos.forEach(c=>{r+=`"${c.nombre}","${c.tel}","${c.email||''}","${c.notas||''}"\n`;});return r;},
+  };
+  navigator.clipboard.writeText(csvs[tipo]()).then(()=>{const el=document.getElementById('copy-ok');if(el){el.style.display='block';setTimeout(()=>el.style.display='none',2500);}}).catch(()=>alert('Error al copiar'));
+}
+
+function copiarAppsScript(){
+  fetch('apps_script_research_assesor.js').then(r=>r.text()).then(t=>navigator.clipboard.writeText(t).then(()=>alert('✅ Script copiado'))).catch(()=>alert('Descarga el archivo .js adjunto y copia su contenido'));
+}
+function descargarScript(){
+  alert('El archivo apps_script_research_assesor.js está incluido en el ZIP descargado junto con la app.');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════
+function showModal(html){document.getElementById('modal-root').innerHTML=`<div class="m-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+
+// ── INIT ───────────────────────────────────────────────────
+updateBadges();
+render();
+</script>
+</body>
+</html>
