@@ -209,7 +209,7 @@ window._demoData = {
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API='https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
+const API='https://script.google.com/macros/s/AKfycbzqeby9GceuHt8ep8X2QqVUV_U4PUztJUvMRsLipduxQoxY0lqU0sz7Is8nZ3WB929Pjg/exec'
 const USERS=[
   {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
   {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
@@ -219,6 +219,35 @@ const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_FULL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS=['D','L','M','X','J','V','S']
+const INSTITUCIONES=[
+  'Universidad de Otavalo (UNO)',
+  'Universidad Central del Ecuador (UCE)',
+  'Pontificia Universidad Católica del Ecuador (PUCE)',
+  'Universidad Politécnica Salesiana (UPS)',
+  'Universidad Técnica del Norte (UTN)',
+  'Universidad Técnica de Ambato (UTA)',
+  'Escuela Politécnica Nacional (EPN)',
+  'ESPE — Universidad de las Fuerzas Armadas',
+  'FLACSO Ecuador',
+  'Universidad Andina Simón Bolívar (UASB)',
+  'Universidad de Cuenca',
+  'Universidad Nacional de Loja (UNL)',
+  'Universidad Técnica de Manabí (UTM)',
+  'Universidad Estatal de Milagro (UNEMI)',
+  'Universidad de Guayaquil',
+  'ESPOL — Escuela Superior Politécnica del Litoral',
+  'Universidad Casa Grande',
+  'Universidad del Azuay',
+  'Instituto Superior Tecnológico',
+  'Institución privada / empresa',
+  'Otra',
+]
+const CIUDADES=[
+  'Quito','Guayaquil','Cuenca','Ambato','Riobamba','Ibarra','Otavalo',
+  'Latacunga','Santo Domingo','Portoviejo','Manta','Machala','Loja',
+  'Esmeraldas','Tulcán','Babahoyo','Milagro','Sangolquí','Salinas',
+  'Otra',
+]
 const WA_TPLS=[
   {id:'reminder',msg:'Hola {{nombre}} 👋\n\nTe recuerdo que tienes un pago pendiente:\n\n💼 Trabajo: *"{{trabajo}}"*\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Vence: *{{fecha}}*\n\nPor favor realiza la transferencia.\n\n🙏 Gracias\n— Research Assesor'},
   {id:'overdue', msg:'Hola {{nombre}}, espero que estés bien.\n\nEl pago del trabajo *"{{trabajo}}"* está vencido:\n\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Venció el: *{{fecha}}*\n\n— Research Assesor'},
@@ -231,8 +260,11 @@ async function apiGet(action){
   catch(e){return{error:e.message}}
 }
 async function apiPost(body){
-  try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});return await r.json()}
-  catch(e){return{error:e.message}}
+  try{
+    const payload=encodeURIComponent(JSON.stringify(body))
+    const r=await fetch(API+'?action=write&payload='+payload+'&t='+Date.now())
+    return await r.json()
+  }catch(e){return{error:e.message}}
 }
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
@@ -980,19 +1012,39 @@ function htmlModal(){
 
 function mCliente(d){
   const e=!!d.id
+  const instOpts=INSTITUCIONES.map(function(i){return'<option value="'+esc(i)+'"'+(d.institucion===i?' selected':'')+'>'+esc(i)+'</option>'}).join('')
+  const ciudOpts=CIUDADES.map(function(c){return'<option value="'+esc(c)+'"'+(d.ciudad===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')
+  const hasOtraInst=!!(d.institucion&&INSTITUCIONES.indexOf(d.institucion)===-1)
+  const hasOtraCiud=!!(d.ciudad&&CIUDADES.indexOf(d.ciudad)===-1)
   return'<h3>'+(e?'Editar':'Nuevo')+' cliente</h3><div class="fg">'
-    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'"/></div>'
+    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'" placeholder="Nombre completo del asesorado"/></div>'
     +'<div><label>Teléfono / WhatsApp</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
-    +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'"/></div>'
-    +'<div><label>Institución</label><input id="f3" value="'+esc(d.institucion||'')+'"/></div>'
-    +'<div><label>Ciudad</label><input id="f4" value="'+esc(d.ciudad||'')+'"/></div>'
-    +'<div class="full"><label>Notas</label><textarea id="f5">'+esc(d.notas||'')+'</textarea></div>'
+    +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@dominio.com"/></div>'
+    +'<div class="full"><label>Institución</label>'
+    +'<select id="f3" onchange="toggleOtraInst()"><option value="">Seleccionar...</option>'+instOpts+'</select>'
+    +'<input id="f3b" placeholder="Especificar institución..." style="margin-top:6px;display:'+(hasOtraInst?'block':'none')+'" value="'+esc(hasOtraInst?d.institucion:'')+'"/></div>'
+    +'<div class="full"><label>Ciudad</label>'
+    +'<select id="f4" onchange="toggleOtraCiud()"><option value="">Seleccionar...</option>'+ciudOpts+'</select>'
+    +'<input id="f4b" placeholder="Especificar ciudad..." style="margin-top:6px;display:'+(hasOtraCiud?'block':'none')+'" value="'+esc(hasOtraCiud?d.ciudad:'')+'"/></div>'
+    +'<div class="full"><label>Notas</label><textarea id="f5" rows="2">'+esc(d.notas||'')+'</textarea></div>'
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')">'+(e?'Actualizar':'Registrar')+'</button></div>'
 }
+function toggleOtraInst(){
+  var s=document.getElementById('f3'),i=document.getElementById('f3b')
+  if(s&&i){i.style.display=s.value==='Otra'?'block':'none';if(s.value!=='Otra')i.value=''}
+}
+function toggleOtraCiud(){
+  var s=document.getElementById('f4'),i=document.getElementById('f4b')
+  if(s&&i){i.style.display=s.value==='Otra'?'block':'none';if(s.value!=='Otra')i.value=''}
+}
 function submitCliente(id){
   const nombre=v('f0');if(!nombre){alert('Nombre obligatorio');return}
-  const rec={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion:v('f3'),ciudad:v('f4'),notas:v('f5'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  const selInst=document.getElementById('f3'),inpInst=document.getElementById('f3b')
+  const selCiud=document.getElementById('f4'),inpCiud=document.getElementById('f4b')
+  const institucion=selInst&&selInst.value==='Otra'?(inpInst&&inpInst.value||'Otra'):selInst&&selInst.value||''
+  const ciudad=selCiud&&selCiud.value==='Otra'?(inpCiud&&inpCiud.value||'Otra'):selCiud&&selCiud.value||''
+  const rec={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion,ciudad,notas:v('f5'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
   saveRec('Clientes',rec,!id)
 }
 
