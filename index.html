@@ -260,11 +260,24 @@ async function apiGet(action){
   catch(e){return{error:e.message}}
 }
 async function apiPost(body){
-  try{
+  // Usar JSONP para escrituras — mismo patron que funciona para GET
+  // Evita completamente el problema de CORS/redirect de Apps Script
+  return new Promise(function(resolve){
+    const cb='_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)
+    const s=document.createElement('script')
+    const to=setTimeout(function(){
+      cleanup();resolve({error:'Timeout — verifica que el Apps Script esté desplegado'})
+    },20000)
+    function cleanup(){
+      clearTimeout(to);delete window[cb]
+      if(s.parentNode)s.parentNode.removeChild(s)
+    }
+    window[cb]=function(data){cleanup();resolve(data)}
     const payload=encodeURIComponent(JSON.stringify(body))
-    const r=await fetch(API+'?action=write&payload='+payload+'&t='+Date.now())
-    return await r.json()
-  }catch(e){return{error:e.message}}
+    s.src=API+'?action=write&payload='+payload+'&callback='+cb+'&t='+Date.now()
+    s.onerror=function(){cleanup();resolve({error:'Error de red — no se pudo conectar'})}
+    document.head.appendChild(s)
+  })
 }
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
