@@ -8,62 +8,99 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
 .app{display:flex;min-height:100vh}
-aside{width:210px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+aside{width:215px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .logo{padding:16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}
-.logo-sq{width:32px;height:32px;background:#1d4ed8;border-radius:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
-.logo-name{font-size:14px;font-weight:800;color:#1d4ed8}
+.logo-sq{width:34px;height:34px;background:#1d4ed8;border-radius:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.logo-name{font-size:14px;font-weight:800;color:#1d4ed8;line-height:1.1}
+.logo-sub{font-size:10px;color:#94a3b8;letter-spacing:.3px}
 nav{padding:8px;flex:1}
-.ni{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#475569;margin-bottom:1px;border:none;background:none;width:100%;text-align:left}
+.ni{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#475569;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;transition:all .1s}
 .ni:hover{background:#eff6ff;color:#1d4ed8}
 .ni.on{background:#dbeafe;color:#1d4ed8;font-weight:700}
-.foot{padding:12px;border-top:1px solid #e2e8f0;font-size:12px}
-.fn{font-weight:700;color:#1e293b}.fr{color:#94a3b8;margin-bottom:8px}
-main{flex:1;display:flex;flex-direction:column}
+.foot{padding:12px;border-top:1px solid #e2e8f0}
+.fn{font-size:13px;font-weight:700;color:#1e293b}
+.fr{font-size:11px;color:#94a3b8;margin-bottom:8px}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
 .topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
 .topbar h2{font-size:15px;font-weight:700;flex:1}
 .page{padding:20px;flex:1}
-.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:20px}
 .kpi{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px}
-.kpi-i{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.kpi-n{font-size:24px;font-weight:800;line-height:1}.kpi-l{font-size:11px;color:#94a3b8;margin-top:2px}
+.kpi-i{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kpi-n{font-size:24px;font-weight:800;line-height:1}
+.kpi-l{font-size:11px;color:#94a3b8;margin-top:2px}
+/* Card/Table */
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px}
 .card-hd{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9}
 .card-hd h3{font-size:13px;font-weight:700}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:9px 14px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #f1f5f9;background:#f8faff}
-td{padding:10px 14px;border-bottom:1px solid #f8fafc}
+td{padding:10px 14px;border-bottom:1px solid #f8fafc;vertical-align:top}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#f8faff}
 .empty{text-align:center;padding:32px;color:#94a3b8;font-size:13px}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .1s;white-space:nowrap}
 .btn:active{opacity:.8}
-.btn-p{background:#1d4ed8;color:#fff}
+.btn-p{background:#1d4ed8;color:#fff}.btn-p:hover{background:#1e40af}
+.btn-green{background:#059669;color:#fff}.btn-green:hover{background:#047857}
 .btn-sm{padding:4px 9px;font-size:12px;border-radius:7px}
-.btn-g{background:transparent;color:#475569;border:1px solid #e2e8f0}
-.btn-g:hover{background:#f0f6ff;color:#1d4ed8}
-.btn-r{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
-.b{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.btn-g{background:transparent;color:#475569;border:1px solid #e2e8f0}.btn-g:hover{background:#f0f6ff;color:#1d4ed8}
+.btn-r{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}.btn-r:hover{background:#fecaca}
+.btn-wa{background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0}
+.btn-amber{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+/* Badge */
+.b{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .bg{background:#dcfce7;color:#15803d}.bb{background:#dbeafe;color:#1d4ed8}
-.ba{background:#fef3c7;color:#b45309}.br{background:#fee2e2;color:#dc2626}.bx{background:#f1f5f9;color:#475569}
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
-.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.ba{background:#fef3c7;color:#b45309}.br{background:#fee2e2;color:#dc2626}
+.bx{background:#f1f5f9;color:#475569}.bv{background:#ede9fe;color:#7c3aed}
+/* Modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
 .modal h3{font-size:15px;font-weight:800;color:#1d4ed8;margin-bottom:18px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg .full{grid-column:1/-1}
-label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:3px;text-transform:uppercase}
-input,select,textarea{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
+input,select,textarea{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;color:#1e293b;background:#fff;outline:none;transition:border .1s}
 input:focus,select:focus,textarea:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.1)}
 textarea{resize:vertical;min-height:64px}
 .ma{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;border-top:1px solid #f1f5f9;padding-top:14px}
+/* Login */
 .lw{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e3a8a,#1d4ed8)}
 .lb{background:#fff;border-radius:18px;padding:32px;width:340px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
-.lb h1{font-size:20px;font-weight:800;color:#1d4ed8;margin-bottom:3px}
-.lb p{font-size:12px;color:#94a3b8;margin-bottom:22px}
+.lb h1{font-size:22px;font-weight:800;color:#1d4ed8;margin-bottom:3px}
+/* Sync */
 .sp{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600}
 .sp-ok{background:#dcfce7;color:#15803d}.sp-ld{background:#fef3c7;color:#b45309}.sp-er{background:#fee2e2;color:#dc2626}
-.toast{position:fixed;bottom:18px;right:18px;z-index:200;padding:11px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+/* Toast */
+.toast{position:fixed;bottom:18px;right:18px;z-index:200;padding:11px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.2);animation:tin .2s ease}
+@keyframes tin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
 .tb{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.tb input{max-width:240px}
+/* Work cards */
+.wcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.wcard-hd{padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap}
+.wcard-hd:hover{background:#f8faff}
+.progbar{height:5px;border-radius:100px;background:#f1f5f9;overflow:hidden;flex:1;min-width:60px}
+.progbar-fill{height:100%;border-radius:100px;transition:width .3s}
+/* Meeting cards */
+.mcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;padding:16px;display:flex;gap:14px;align-items:flex-start}
+.datebox{flex-shrink:0;width:50px;text-align:center;background:#f8faff;border:1px solid #dbeafe;border-radius:10px;padding:8px 4px}
+.datebox .mo{font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase}
+.datebox .dy{font-size:22px;font-weight:800;color:#1e293b;line-height:1}
+/* Cuota rows */
+.crow{border-radius:10px;margin-bottom:6px;overflow:hidden;border:1px solid}
+.crow-hd{padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* Section header */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.sec-hd h2{font-size:20px;font-weight:800}
+.sec-hd p{font-size:13px;color:#64748b;margin-top:2px}
+/* Alerts */
+.alert{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px}
+.alert-red{background:#fee2e2;border:1px solid #fecaca;color:#dc2626}
+.alert-amber{background:#fef3c7;border:1px solid #fde68a;color:#b45309}
+.alert-green{background:#dcfce7;border:1px solid #bbf7d0;color:#15803d}
+.alert-blue{background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;animation:spin .8s linear infinite}
 @media(max-width:700px){aside{display:none}.fg{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.page{padding:12px}}
@@ -72,15 +109,32 @@ textarea{resize:vertical;min-height:64px}
 <body>
 <div id="R"></div>
 <script>
-const API='https://script.google.com/macros/s/AKfycbzqeby9GceuHt8ep8X2QqVUV_U4PUztJUvMRsLipduxQoxY0lqU0sz7Is8nZ3WB929Pjg/exec'
-const USERS=[
+// ═══════════════════════════════════════════════
+// CONFIGURACIÓN
+// ═══════════════════════════════════════════════
+const API = 'https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
+
+const USERS = [
   {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
   {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
 ]
 
-// API — idéntico a PubTracker que funciona
+const SERVICE_TYPES = ['Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
+const WORK_STATUSES = ['Nuevo','En progreso','Revisión','Completado','Cancelado']
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const DAYS_S = ['D','L','M','X','J','V','S']
+const WA_TPLS = [
+  {id:'reminder',name:'Recordatorio de pago',msg:'Hola {{nombre}} 👋\n\nTe recuerdo que tienes un pago pendiente del trabajo *"{{trabajo}}"*:\n\n💰 Monto: *${{monto}}*\n📅 Vence: *{{fecha_vencimiento}}*\n\nPor favor realiza la transferencia y envía el comprobante.\n\n🙏 Gracias\n— Research Assesor'},
+  {id:'overdue', name:'Pago vencido',         msg:'Hola {{nombre}}, espero que estés bien.\n\nEl pago del trabajo *"{{trabajo}}"* está vencido:\n\n💰 Monto: *${{monto}}*\n📅 Venció el: *{{fecha_vencimiento}}*\n\nPor favor comunícate para coordinar el pago.\n\n— Research Assesor'},
+  {id:'received',name:'Pago recibido',         msg:'Hola {{nombre}} ✅\n\nHemos recibido tu pago de *${{monto}}* para el trabajo *"{{trabajo}}"*.\n\n💳 Saldo pendiente: *${{saldo}}*\n\n¡Gracias!\n— Research Assesor'},
+  {id:'meeting', name:'Confirmación reunión',  msg:'Hola {{nombre}} 👋\n\nTe confirmo nuestra reunión:\n\n📅 Fecha: *{{fecha_reunion}}*\n🕐 Hora: *{{hora_reunion}}*\n💻 Plataforma: *{{plataforma}}*\n🔗 Enlace: {{enlace}}\n\n¡Nos vemos pronto!\n— Research Assesor'},
+]
+
+// ═══════════════════════════════════════════════
+// API — DIRECTO A SHEETS
+// ═══════════════════════════════════════════════
 async function apiGet(action){
-  try{const r=await fetch(API+'?action='+action+'&t='+Date.now());return await r.json()}
+  try{const r=await fetch(API+'?action='+(action||'getData')+'&t='+Date.now());return await r.json()}
   catch(e){return{error:e.message}}
 }
 async function apiPost(body){
@@ -88,33 +142,83 @@ async function apiPost(body){
   catch(e){return{error:e.message}}
 }
 
-// Estado global
-let user=null,page='dashboard',modal=null
+// ═══════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════
+let user=null, page='dashboard', modal=null
 let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[]}
-let loading=false,syncing=false,syncMsg='',syncErr=false,search=''
+let loading=false, syncing=false, syncMsg='', syncErr=false
+let search='', expandedWork=null, calMonth=new Date().getMonth(), calYear=new Date().getFullYear()
+let meetView='upcoming'
 
 function draw(){document.getElementById('R').innerHTML=user?htmlApp():htmlLogin()}
 
-// LOGIN
-function htmlLogin(){
-  return '<div class="lw"><div class="lb">'
-    +'<h1>Research Assesor</h1><p>Coordinación de Investigación · UNO</p>'
-    +'<div id="lerr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px;background:#fee2e2;padding:8px;border-radius:6px"></div>'
-    +'<div style="margin-bottom:10px"><label>Usuario</label><input id="lu" value="admin"/></div>'
-    +'<div style="margin-bottom:18px"><label>Contraseña</label><input id="lp" type="password" value="research2024"/></div>'
-    +'<button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">Ingresar</button>'
-    +'<p style="font-size:11px;color:#94a3b8;margin-top:12px;text-align:center">admin/research2024 · edison/asesor2024</p>'
-    +'</div></div>'
-}
-function doLogin(){
-  const u=document.getElementById('lu').value.trim()
-  const p=document.getElementById('lp').value.trim()
-  const found=USERS.find(x=>x.u===u&&x.p===p)
-  if(!found){const e=document.getElementById('lerr');e.textContent='Credenciales incorrectas';e.style.display='block';return}
-  user=found;loadData()
+// ═══════════════════════════════════════════════
+// HELPERS CORE
+// ═══════════════════════════════════════════════
+const v   = id=>(document.getElementById(id)||{}).value?.trim()||''
+const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
+const fmt = n=>{const x=parseFloat(n)||0;return Number.isInteger(x)||x%1===0?String(Math.round(x)):x.toFixed(2)}
+const jss = o=>esc(JSON.stringify(o))
+
+function cuotaStatus(c){
+  if(parseFloat(c.pagado||0)>=parseFloat(c.acordado||0)&&parseFloat(c.acordado||0)>0)return'pagado'
+  if(parseFloat(c.pagado||0)>0)return'parcial'
+  if(c.fechaVencimiento&&new Date(c.fechaVencimiento)<new Date())return'vencido'
+  return'pendiente'
 }
 
-// CARGAR — llama apiGet igual que PubTracker
+function workBal(t){
+  const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
+  const paid=cuotas.reduce((s,c)=>s+parseFloat(c.pagado||0),0)
+  const total=parseFloat(t.total||0)
+  return{total,paid,bal:total-paid,pct:total>0?Math.round(paid/total*100):0}
+}
+
+function bdg(text,cls='x'){return'<span class="b b'+cls+'">'+esc(text)+'</span>'}
+
+function statusColor(s){return s==='Completado'?'g':s==='En progreso'||s==='Revisión'?'b':s==='Cancelado'?'x':'a'}
+function cuotaColor(s){return{pagado:'g',parcial:'b',vencido:'r',pendiente:'a'}[s]||'x'}
+
+function waUrl(phone,msg){
+  const c=String(phone||'').replace(/\D/g,'')
+  const ec=c.startsWith('0')?'593'+c.slice(1):c.startsWith('593')?c:'593'+c
+  return'https://wa.me/'+ec+'?text='+encodeURIComponent(msg)
+}
+
+function interpolate(tpl,vars){
+  return tpl.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?vars[k]:'')
+}
+
+function buildMeetingMsg(m,client){
+  const tpl=WA_TPLS.find(t=>t.id==='meeting')
+  return interpolate(tpl.msg,{
+    nombre:client?.nombre||'',fecha_reunion:m.fecha||'',hora_reunion:m.hora||'',
+    plataforma:m.plataforma||'',enlace:m.link||''
+  })
+}
+
+function buildCuotaMsg(tplId,cuota,trabajo,cliente){
+  const tpl=WA_TPLS.find(t=>t.id===tplId)||WA_TPLS[0]
+  const saldo=parseFloat(cuota.acordado||0)-parseFloat(cuota.pagado||0)
+  return interpolate(tpl.msg,{
+    nombre:cliente?.nombre||'',trabajo:trabajo?.titulo||'',
+    monto:fmt(cuota.acordado),saldo:fmt(saldo),
+    fecha_vencimiento:cuota.fechaVencimiento||''
+  })
+}
+
+function toast(msg,err=false){
+  const d=document.createElement('div')
+  d.className='toast';d.style.background=err?'#dc2626':'#059669'
+  d.textContent=(err?'✗ ':'✓ ')+msg
+  document.body.appendChild(d);setTimeout(()=>d.remove(),3000)
+}
+
+// ═══════════════════════════════════════════════
+// CARGA Y MUTACIONES — DIRECTO A SHEETS
+// ═══════════════════════════════════════════════
 async function loadData(){
   loading=true;syncMsg='Cargando...';syncErr=false;draw()
   const r=await apiGet('getData')
@@ -126,92 +230,132 @@ async function loadData(){
       abonos:    r.abonos    ||[],
       reuniones: r.reuniones ||[],
     }
-    syncMsg='Actualizado '+new Date().toLocaleTimeString('es-EC');syncErr=false
+    syncMsg='✓ '+new Date().toLocaleTimeString('es-EC');syncErr=false
   }else{syncMsg='Error: '+(r&&r.error||'Sin conexión');syncErr=true}
   loading=false;draw()
 }
 
-// GUARDAR — patrón PubTracker: actualiza UI, llama API, recarga
-async function saveRec(tabla,rec,isNew){
-  const key=tabla.toLowerCase()
-  if(isNew) data[key]=[...data[key],rec]
-  else      data[key]=data[key].map(x=>x.id===rec.id?rec:x)
-  modal=null;draw()
+// Patrón PubTracker: actualiza UI → llama API → recarga
+async function mutate(tabla,action,id,fila){
   syncing=true;syncMsg='Guardando...';draw()
-  const action=isNew?'insertar':'actualizar'
-  const r=await apiPost({action,tabla,fila:rec,id:rec.id})
+  let r
+  if(action==='insert') r=await apiPost({action:'insertar',tabla,fila})
+  if(action==='update') r=await apiPost({action:'actualizar',tabla,id,fila})
+  if(action==='delete') r=await apiPost({action:'eliminar',tabla,id})
   syncing=false
-  if(r&&r.ok){toast('Guardado ✓');await loadData()}
-  else{toast('Error: '+(r&&r.error||'Fallo'),'err');await loadData()}
-}
-
-async function delRec(tabla,id,msg){
-  if(!confirm(msg||'¿Eliminar?'))return
-  data[tabla.toLowerCase()]=data[tabla.toLowerCase()].filter(x=>x.id!==id);draw()
-  const r=await apiPost({action:'eliminar',tabla,id})
-  if(r&&r.ok){toast('Eliminado ✓');await loadData()}
+  if(r&&r.ok){modal=null;toast(action==='delete'?'Eliminado ✓':'Guardado ✓');await loadData()}
   else{toast('Error: '+(r&&r.error||''),'err');await loadData()}
 }
 
-function toast(msg,type){
-  const d=document.createElement('div')
-  d.className='toast';d.style.background=type==='err'?'#dc2626':'#15803d'
-  d.textContent=(type==='err'?'✗ ':'✓ ')+msg
-  document.body.appendChild(d);setTimeout(()=>d.remove(),3000)
+// ═══════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════
+function htmlLogin(){
+  return'<div class="lw"><div class="lb">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="logo-sq">R</div><div><div style="font-size:18px;font-weight:800;color:#1d4ed8">Research Assesor</div><div style="font-size:11px;color:#94a3b8">Coordinación de Investigación · UNO</div></div></div>'
+    +'<div id="lerr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px;background:#fee2e2;padding:8px;border-radius:6px"></div>'
+    +'<div style="margin-bottom:10px"><label>Usuario</label><input id="lu" value="admin" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
+    +'<div style="margin-bottom:18px"><label>Contraseña</label><input id="lp" type="password" value="research2024" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
+    +'<button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">Ingresar</button>'
+    +'<p style="font-size:11px;color:#94a3b8;margin-top:12px;text-align:center">admin/research2024 · edison/asesor2024</p>'
+    +'</div></div>'
+}
+function doLogin(){
+  const u=v('lu'),p=v('lp')
+  const found=USERS.find(x=>x.u===u&&x.p===p)
+  if(!found){const e=document.getElementById('lerr');e.textContent='Credenciales incorrectas';e.style.display='block';return}
+  user=found;loadData()
 }
 
-// HELPERS
-const v=id=>(document.getElementById(id)||{}).value||''
-const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-const jss=o=>esc(JSON.stringify(o))
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
-function bdg(t,c){const m={green:'bg',blue:'bb',amber:'ba',red:'br'};return'<span class="b '+(m[c]||'bx')+'">'+esc(t)+'</span>'}
-
-// APP
-const NAV=[{id:'dashboard',l:'Dashboard',ic:'📊'},{id:'clientes',l:'Clientes',ic:'👥'},{id:'trabajos',l:'Trabajos',ic:'💼'},{id:'cobros',l:'Cobros',ic:'💰'},{id:'reuniones',l:'Reuniones',ic:'📅'}]
-const TITLES={dashboard:'Panel principal',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros',reuniones:'Reuniones'}
+// ═══════════════════════════════════════════════
+// APP PRINCIPAL
+// ═══════════════════════════════════════════════
+const NAV=[
+  {id:'dashboard',l:'Dashboard',   ic:'📊'},
+  {id:'clientes', l:'Clientes',    ic:'👥'},
+  {id:'trabajos', l:'Trabajos',    ic:'💼'},
+  {id:'cobros',   l:'Cobros',      ic:'💰'},
+  {id:'reuniones',l:'Reuniones',   ic:'📅'},
+]
+const TITLES={dashboard:'Panel principal',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones'}
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
-  return '<div class="app">'
-    +'<aside><div class="logo"><div class="logo-sq">R</div><span class="logo-name">Research</span></div>'
-    +'<nav>'+NAV.map(n=>'<button class="ni'+(page===n.id?' on':'')+'" onclick="goto(\''+n.id+'\')">'+n.ic+' '+n.l+'</button>').join('')+'</nav>'
+  const totalVencidas=data.cuotas.filter(c=>cuotaStatus(c)==='vencido').length
+  return'<div class="app">'
+    +'<aside>'
+    +'<div class="logo"><div class="logo-sq">R</div><div><div class="logo-name">Research</div><div class="logo-sub">Assesor · UNO</div></div></div>'
+    +'<nav>'
+    +NAV.map(n=>{
+      const alert=n.id==='cobros'&&totalVencidas>0?'<span style="margin-left:auto;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px">'+totalVencidas+'</span>':''
+      return'<button class="ni'+(page===n.id?' on':'')+'" onclick="goto(\''+n.id+'\')">'+n.ic+' '+n.l+alert+'</button>'
+    }).join('')
+    +'</nav>'
     +'<div class="foot"><div class="fn">'+esc(user.name)+'</div><div class="fr">'+esc(user.role)+'</div>'
-    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Salir</button></div></aside>'
-    +'<main><div class="topbar"><h2>'+TITLES[page]+'</h2>'
+    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Salir</button></div>'
+    +'</aside>'
+    +'<main>'
+    +'<div class="topbar"><h2>'+TITLES[page]+'</h2>'
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
-    +'<button class="btn btn-g btn-sm" onclick="loadData()" title="Recargar">⟳</button></div>'
-    +'<div class="page">'+htmlPage()+'</div></main>'
+    +'<button class="btn btn-g btn-sm" onclick="loadData()" title="Recargar">⟳</button>'
+    +'</div>'
+    +'<div class="page">'+htmlPage()+'</div>'
+    +'</main>'
     +(modal?htmlModal():'')
     +'</div>'
 }
 
-function goto(p){page=p;search='';draw()}
+function goto(p){page=p;search='';expandedWork=null;draw()}
 function htmlPage(){
   if(page==='dashboard')return htmlDash()
   if(page==='clientes') return htmlClientes()
   if(page==='trabajos') return htmlTrabajos()
   if(page==='cobros')   return htmlCobros()
   if(page==='reuniones')return htmlReuniones()
-  return ''
+  return''
 }
 
+// ═══════════════════════════════════════════════
 // DASHBOARD
+// ═══════════════════════════════════════════════
 function htmlDash(){
   const {clientes,trabajos,cuotas,abonos}=data
   const cobrado  =abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
-  const pendiente=cuotas.filter(c=>c.estado!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const pendiente=cuotas.filter(c=>cuotaStatus(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
   const activos  =trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').length
-  const vencidas =cuotas.filter(c=>c.estado==='vencido').length
+  const vencidas =cuotas.filter(c=>cuotaStatus(c)==='vencido').length
+  const hoy      =new Date().toISOString().split('T')[0]
+  const proxReuniones=data.reuniones.filter(r=>r.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3)
+
   let html='<div class="kpis">'
     +'<div class="kpi"><div class="kpi-i" style="background:#dbeafe">👥</div><div><div class="kpi-n">'+clientes.length+'</div><div class="kpi-l">Clientes</div></div></div>'
     +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">💼</div><div><div class="kpi-n">'+activos+'</div><div class="kpi-l">Trabajos activos</div></div></div>'
-    +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">💰</div><div><div class="kpi-n" style="color:#15803d">$'+cobrado.toFixed(0)+'</div><div class="kpi-l">Cobrado</div></div></div>'
-    +'<div class="kpi"><div class="kpi-i" style="background:#fef3c7">⏰</div><div><div class="kpi-n" style="color:#b45309">$'+pendiente.toFixed(0)+'</div><div class="kpi-l">Por cobrar</div></div></div>'
+    +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">💰</div><div><div class="kpi-n" style="color:#059669">$'+fmt(cobrado)+'</div><div class="kpi-l">Cobrado</div></div></div>'
+    +'<div class="kpi"><div class="kpi-i" style="background:#fef3c7">⏰</div><div><div class="kpi-n" style="color:#b45309">$'+fmt(pendiente)+'</div><div class="kpi-l">Por cobrar</div></div></div>'
     +(vencidas?'<div class="kpi"><div class="kpi-i" style="background:#fee2e2">⚠️</div><div><div class="kpi-n" style="color:#dc2626">'+vencidas+'</div><div class="kpi-l">Vencidas</div></div></div>':'')
     +'</div>'
-  html+='<div class="card"><div class="card-hd"><h3>Clientes recientes</h3></div>'
-    +'<table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th></tr></thead><tbody>'
+
+  // Alert vencidas
+  if(vencidas){html+='<div class="alert alert-red" style="margin-bottom:16px">⚠️ Tienes <strong>'+vencidas+' cuota'+(vencidas>1?'s':'')+' vencida'+(vencidas>1?'s':'')+'</strong> — <button class="btn btn-r btn-sm" onclick="goto(\'cobros\')">Ver cobros</button></div>'}
+
+  // Próximas reuniones
+  if(proxReuniones.length){
+    html+='<div class="card"><div class="card-hd"><h3>Próximas reuniones</h3><button class="btn btn-g btn-sm" onclick="goto(\'reuniones\')">Ver todas</button></div>'
+    proxReuniones.forEach(r=>{
+      const cl=clientes.find(c=>c.id===r.clienteId)
+      const dObj=new Date(r.fecha+'T12:00:00')
+      html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f8fafc">'
+        +'<div class="datebox"><div class="mo">'+MONTHS[dObj.getMonth()].slice(0,3)+'</div><div class="dy">'+dObj.getDate()+'</div></div>'
+        +'<div style="flex:1"><strong style="font-size:13px">'+esc(r.titulo)+'</strong><div style="font-size:12px;color:#64748b">'+esc(cl&&cl.nombre||'—')+' · '+esc(r.hora||'')+'</div></div>'
+        +(r.link?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm">Unirse</a>':'')
+        +'</div>'
+    })
+    html+='</div>'
+  }
+
+  // Clientes recientes
+  html+='<div class="card"><div class="card-hd"><h3>Clientes recientes</h3><button class="btn btn-g btn-sm" onclick="goto(\'clientes\')">Ver todos</button></div>'
+    +'<table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Tel.</th></tr></thead><tbody>'
   const recent=[...clientes].reverse().slice(0,5)
   if(recent.length){recent.forEach(c=>{html+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td>'+esc(c.institucion||'—')+'</td><td>'+esc(c.ciudad||'—')+'</td><td>'+esc(c.telefono||'—')+'</td></tr>'})}
   else html+='<tr><td colspan="4" class="empty">Sin clientes aún</td></tr>'
@@ -219,76 +363,382 @@ function htmlDash(){
   return html
 }
 
+// ═══════════════════════════════════════════════
 // CLIENTES
+// ═══════════════════════════════════════════════
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
-  let html='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
-    +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
-  html+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th></th></tr></thead><tbody>'
-  if(list.length){list.forEach(c=>{
-    html+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td>'+esc(c.institucion||'—')+'</td><td>'+esc(c.ciudad||'—')+'</td><td>'+esc(c.telefono||'—')+'</td><td>'+esc(c.email||'—')+'</td>'
-    +'<td><span style="display:flex;gap:5px"><button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>✏️</button>'
-    +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar cliente?\')">🗑</button></span></td></tr>'
-  })}else html+='<tr><td colspan="6" class="empty">Sin clientes registrados</td></tr>'
+  let html='<div class="tb">'
+    +'<input placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button>'
+    +'</div>'
+  html+='<div class="card"><table>'
+    +'<thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
+  if(list.length){
+    list.forEach(c=>{
+      const nTrab=data.trabajos.filter(t=>t.clienteId===c.id).length
+      html+='<tr>'
+        +'<td><strong>'+esc(c.nombre)+'</strong></td>'
+        +'<td>'+esc(c.institucion||'—')+'</td>'
+        +'<td>'+esc(c.ciudad||'—')+'</td>'
+        +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" style="color:#16a34a;font-weight:600">📱 '+esc(c.telefono)+'</a>':'—')+'</td>'
+        +'<td>'+esc(c.email||'—')+'</td>'
+        +'<td>'+bdg(nTrab+' trabajo'+(nTrab!==1?'s':''),'b')+'</td>'
+        +'<td><span style="display:flex;gap:4px">'
+        +'<button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>✏️</button>'
+        +'<button class="btn btn-r btn-sm" onclick="confirmDel(\'Clientes\',\''+c.id+'\',\'¿Eliminar cliente '+esc(c.nombre)+'?\')">🗑</button>'
+        +'</span></td></tr>'
+    })
+  }else html+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
   html+='</tbody></table></div>'
   return html
 }
 
-// TRABAJOS
+// ═══════════════════════════════════════════════
+// TRABAJOS — con cuotas expandibles
+// ═══════════════════════════════════════════════
 function htmlTrabajos(){
-  const {trabajos,clientes}=data
-  const SC={Completado:'green','En progreso':'blue','Revisión':'blue',Cancelado:'red'}
-  let html='<div class="tb"><button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
-  html+='<div class="card"><table><thead><tr><th>Título</th><th>Cliente</th><th>Tipo</th><th>Estado</th><th>Total</th><th></th></tr></thead><tbody>'
-  if(trabajos.length){trabajos.forEach(t=>{
-    const cl=clientes.find(c=>c.id===t.clienteId)
-    html+='<tr><td><strong>'+esc(t.titulo)+'</strong></td><td>'+esc(cl&&cl.nombre||t.clienteNombre||'—')+'</td><td style="font-size:12px">'+esc(t.tipo||'—')+'</td>'
-    +'<td>'+bdg(t.estado||'Nuevo',SC[t.estado]||'amber')+'</td><td><strong>$'+esc(t.total||0)+'</strong></td>'
-    +'<td><span style="display:flex;gap:5px"><button class="btn btn-g btn-sm" onclick=\'openModal("trabajo",'+jss(t)+')\'>✏️</button>'
-    +'<button class="btn btn-r btn-sm" onclick="delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button></span></td></tr>'
-  })}else html+='<tr><td colspan="6" class="empty">Sin trabajos registrados</td></tr>'
-  html+='</tbody></table></div>'
+  const q=search.toLowerCase()
+  const fStatus=window._wStatus||'Todos'
+  const list=data.trabajos.filter(t=>{
+    const cl=data.clientes.find(c=>c.id===t.clienteId)
+    return(!q||(t.titulo+' '+(cl&&cl.nombre||'')+' '+t.tipo).toLowerCase().includes(q))
+      &&(fStatus==='Todos'||t.estado===fStatus)
+  })
+
+  let html='<div class="sec-hd"><div><h2>Trabajos</h2><p>'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</p></div>'
+    +'<button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
+
+  html+='<div class="tb">'
+    +'<input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +['Todos',...WORK_STATUSES].map(s=>'<button class="btn btn-sm '+(fStatus===s?'btn-p':'btn-g')+'" onclick="window._wStatus=\''+s+'\';draw()">'+s+'</button>').join('')
+    +'</div>'
+
+  if(!list.length){html+='<div class="card"><p class="empty">Sin trabajos encontrados</p></div>';return html}
+
+  list.forEach(t=>{
+    const cl=data.clientes.find(c=>c.id===t.clienteId)
+    const bal=workBal(t)
+    const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
+    const hasVenc=cuotas.some(c=>cuotaStatus(c)==='vencido')
+    const isExp=expandedWork===t.id
+
+    html+='<div class="wcard" style="border-color:'+(hasVenc?'#fecaca':'#e2e8f0')+'">'
+      +'<div class="wcard-hd" onclick="expandedWork=expandedWork===\''+t.id+'\'?null:\''+t.id+'\';draw()">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
+      +'<strong style="font-size:14px">'+esc(t.titulo)+'</strong>'
+      +bdg(t.estado||'Nuevo',statusColor(t.estado))
+      +(hasVenc?'<span style="font-size:11px;color:#dc2626;font-weight:600">⚠ Vencido</span>':'')
+      +'</div>'
+      +'<div style="font-size:12px;color:#64748b">'+esc(cl&&cl.nombre||'—')+' · '+esc(t.tipo||'—')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-shrink:0">'
+      +'<div style="text-align:right"><div style="font-size:13px;font-weight:700">$'+fmt(bal.total)+'</div><div style="font-size:11px;color:#059669">$'+fmt(bal.paid)+' cobrado</div></div>'
+      +'<div><div class="progbar" style="width:80px"><div class="progbar-fill" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'#059669':'#1d4ed8')+'"></div></div><div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px">'+bal.pct+'%</div></div>'
+      +'<div style="display:flex;gap:4px">'
+      +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();confirmDel(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button>'
+      +'</div>'
+      +'<span style="font-size:18px;color:#94a3b8">'+(isExp?'▲':'▼')+'</span>'
+      +'</div></div>'
+
+    // Expandido — cuotas
+    if(isExp){
+      html+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
+      if(t.notas){html+='<p style="font-size:12px;color:#64748b;margin-bottom:12px">📝 '+esc(t.notas)+'</p>'}
+      if(t.progreso){html+='<div style="margin-bottom:12px;font-size:12px;color:#475569">Progreso: <strong>'+t.progreso+'%</strong> · Inicio: '+esc(t.fechaInicio||'—')+' · Entrega: '+esc(t.fechaFin||'—')+'</div>'}
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<strong style="font-size:12px;color:#475569">Plan de pagos ('+cuotas.length+' cuota'+(cuotas.length!==1?'s':'')+')</strong>'
+        +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',trabajoTitulo:\''+esc(t.titulo)+'\',clienteId:\''+t.clienteId+'\'})">+ Agregar cuota</button>'
+        +'</div>'
+      if(cuotas.length){
+        cuotas.forEach(c=>{
+          const st=cuotaStatus(c)
+          const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+          const cc={'pagado':'#dcfce7','parcial':'#dbeafe','vencido':'#fee2e2','pendiente':'#fef3c7'}[st]||'#f1f5f9'
+          const bc={'pagado':'#bbf7d0','parcial':'#bfdbfe','vencido':'#fecaca','pendiente':'#fde68a'}[st]||'#e2e8f0'
+          html+='<div class="crow" style="background:'+cc+';border-color:'+bc+'">'
+            +'<div class="crow-hd">'
+            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:#64748b">Vence: '+esc(c.fechaVencimiento||'—')+'</div></div>'
+            +'<div style="text-align:center;min-width:70px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
+            +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:#059669">+$'+fmt(c.pagado)+' pagado</div>':'')
+            +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:#b45309">Saldo: $'+fmt(saldo)+'</div>':'')
+            +'</div>'
+            +bdg(st,cuotaColor(st))
+            +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+t.id+'\',label:\''+esc(c.label)+'\',acordado:\''+c.acordado+'\',pagado:\''+c.pagado+'\'})">💵 Pago</button>':'')
+            +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="sendCuotaWa(\''+c.id+'\',\''+t.id+'\',\''+esc(cl.telefono)+'\',\''+( st==='vencido'?'overdue':'reminder')+'\')" title="WhatsApp">💬</button>':'')
+            +'</div>'
+          // Historial abonos
+          const abonosCuota=data.abonos.filter(a=>a.cuotaId===c.id)
+          if(abonosCuota.length){
+            html+='<div style="border-top:1px solid '+bc+';padding:6px 14px;display:flex;gap:10px;flex-wrap:wrap">'
+            abonosCuota.forEach(a=>{html+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
+            html+='</div>'
+          }
+          html+='</div>'
+        })
+      }else{
+        html+='<p style="font-size:12px;color:#94a3b8;text-align:center;padding:12px">Sin cuotas — usa el botón + para agregar</p>'
+      }
+      html+='</div>'
+    }
+    html+='</div>'
+  })
   return html
 }
 
-// COBROS
+// ═══════════════════════════════════════════════
+// COBROS — vista global de cuotas
+// ═══════════════════════════════════════════════
 function htmlCobros(){
-  const {cuotas,trabajos}=data
-  const SC={pagado:'green',vencido:'red',parcial:'amber',pendiente:'gray'}
-  const pend=cuotas.filter(c=>c.estado!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
-  const venc=cuotas.filter(c=>c.estado==='vencido')
-  let html=''
-  if(venc.length) html+='<div style="background:#fee2e2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#dc2626">⚠️ <strong>'+venc.length+' cuota'+(venc.length>1?'s':'')+' vencida'+(venc.length>1?'s':'')+'</strong></div>'
-  html+='<div class="kpis" style="margin-bottom:14px"><div class="kpi"><div class="kpi-i" style="background:#fef3c7">💰</div><div><div class="kpi-n" style="color:#b45309">$'+pend.toFixed(0)+'</div><div class="kpi-l">Por cobrar</div></div></div></div>'
-  html+='<div class="card"><table><thead><tr><th>Trabajo</th><th>Cuota</th><th>Vence</th><th>Acordado</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>'
-  if(cuotas.length){cuotas.forEach(c=>{
-    const t=trabajos.find(x=>x.id===c.trabajoId)
+  const fStatus=window._cStatus||'Todos'
+  const q=search.toLowerCase()
+  const cuotas=data.cuotas.filter(c=>{
+    const t=data.trabajos.find(x=>x.id===c.trabajoId)
+    const cl=data.clientes.find(x=>x.id===t?.clienteId)
+    const st=cuotaStatus(c)
+    return(fStatus==='Todos'||fStatus===st)
+      &&(!q||((cl?.nombre||'')+(t?.titulo||'')).toLowerCase().includes(q))
+  }).map(c=>{
+    const t=data.trabajos.find(x=>x.id===c.trabajoId)
+    const cl=data.clientes.find(x=>x.id===t?.clienteId)
+    return{...c,_t:t,_cl:cl,_st:cuotaStatus(c)}
+  }).sort((a,b)=>{
+    const ord={vencido:0,parcial:1,pendiente:2,pagado:3}
+    return ord[a._st]-ord[b._st]||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)
+  })
+
+  const cobrado=data.abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
+  const pendiente=data.cuotas.filter(c=>cuotaStatus(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const vencido=data.cuotas.filter(c=>cuotaStatus(c)==='vencido').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const total=data.cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
+
+  let html='<div class="kpis">'
+    +'<div class="kpi"><div class="kpi-i" style="background:#f8faff">📋</div><div><div class="kpi-n">$'+fmt(total)+'</div><div class="kpi-l">Total facturado</div></div></div>'
+    +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">✅</div><div><div class="kpi-n" style="color:#059669">$'+fmt(cobrado)+'</div><div class="kpi-l">Cobrado</div></div></div>'
+    +'<div class="kpi"><div class="kpi-i" style="background:#fef3c7">⏰</div><div><div class="kpi-n" style="color:#b45309">$'+fmt(pendiente)+'</div><div class="kpi-l">Por cobrar</div></div></div>'
+    +(vencido>0?'<div class="kpi"><div class="kpi-i" style="background:#fee2e2">⚠️</div><div><div class="kpi-n" style="color:#dc2626">$'+fmt(vencido)+'</div><div class="kpi-l">Vencido</div></div></div>':'')
+    +'</div>'
+
+  html+='<div class="tb">'
+    +'<input placeholder="Buscar cliente o trabajo..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(fStatus===s?'btn-p':'btn-g')+'" onclick="window._cStatus=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
+    +'<button class="btn btn-g btn-sm" onclick="exportCobrosCSV()" style="margin-left:auto">⬇ CSV</button>'
+    +'</div>'
+
+  if(!cuotas.length){html+='<div class="card"><p class="empty">Sin resultados</p></div>';return html}
+
+  cuotas.forEach(c=>{
+    const st=c._st
     const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-    html+='<tr><td>'+esc(t&&t.titulo||'—')+'</td><td>'+esc(c.label||'—')+'</td><td>'+esc(c.fechaVencimiento||'—')+'</td>'
-    +'<td>$'+esc(c.acordado||0)+'</td><td style="color:#15803d">$'+esc(c.pagado||0)+'</td>'
-    +'<td style="font-weight:600;color:'+(saldo>0?'#b45309':'#15803d')+'">$'+saldo.toFixed(2)+'</td>'
-    +'<td>'+bdg(c.estado||'pendiente',SC[c.estado]||'gray')+'</td></tr>'
-  })}else html+='<tr><td colspan="7" class="empty">Sin cuotas</td></tr>'
-  html+='</tbody></table></div>'
+    const today=new Date(),dueDate=new Date(c.fechaVencimiento)
+    const daysUntil=Math.ceil((dueDate-today)/86400000)
+    const cc={'pagado':'#dcfce7','parcial':'#dbeafe','vencido':'#fee2e2','pendiente':'#fef3c7'}[st]||'#f9fafb'
+    const bc={'pagado':'#bbf7d0','parcial':'#bfdbfe','vencido':'#fecaca','pendiente':'#fde68a'}[st]||'#e2e8f0'
+    const phone=c._cl?.telefono
+
+    html+='<div style="background:'+cc+';border:1px solid '+bc+';border-radius:10px;margin-bottom:8px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:160px">'
+      +'<strong style="font-size:13px">'+esc(c._cl&&c._cl.nombre||'—')+'</strong>'
+      +'<div style="font-size:11px;color:#64748b">'+esc(c._t&&c._t.titulo||'—')+' — '+esc(c.label||'—')+'</div>'
+      +'</div>'
+      +'<div style="text-align:center;min-width:90px"><div style="font-weight:700;font-size:15px">$'+fmt(c.acordado)+'</div>'
+      +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:#059669">+$'+fmt(c.pagado)+' pagado</div>':'')
+      +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;font-weight:600;color:#b45309">Saldo: $'+fmt(saldo)+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:center;min-width:90px"><div style="font-size:12px">'+esc(c.fechaVencimiento||'—')+'</div>'
+      +(st!=='pagado'?'<div style="font-size:11px;color:'+(daysUntil<0?'#dc2626':daysUntil<=3?'#b45309':'#94a3b8')+'">'+(daysUntil<0?Math.abs(daysUntil)+'d vencido':daysUntil===0?'Hoy':'en '+daysUntil+'d')+'</div>':'')
+      +'</div>'
+      +bdg(st,cuotaColor(st))
+      +'<div style="display:flex;gap:5px">'
+      +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+c.acordado+'\',pagado:\''+c.pagado+'\'})">💵 Pago</button>':'')
+      +(phone?'<button class="btn btn-wa btn-sm" onclick="sendCuotaWa(\''+c.id+'\',\''+c.trabajoId+'\',\''+esc(phone)+'\',\''+(st==='vencido'?'overdue':'reminder')+'\')">💬 WA</button>':'')
+      +'</div>'
+      +'</div>'
+    // Abonos
+    const abs=data.abonos.filter(a=>a.cuotaId===c.id)
+    if(abs.length){
+      html+='<div style="border-top:1px solid '+bc+';padding:6px 16px;display:flex;gap:10px;flex-wrap:wrap">'
+      abs.forEach(a=>{html+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
+      html+='</div>'
+    }
+    html+='</div>'
+  })
   return html
 }
 
-// REUNIONES
+function exportCobrosCSV(){
+  let csv='Cliente,Trabajo,Cuota,Acordado,Pagado,Saldo,Vencimiento,Estado\n'
+  data.cuotas.forEach(c=>{
+    const t=data.trabajos.find(x=>x.id===c.trabajoId)
+    const cl=data.clientes.find(x=>x.id===t?.clienteId)
+    const st=cuotaStatus(c)
+    const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+    csv+='"'+[cl&&cl.nombre||'',t&&t.titulo||'',c.label||'',c.acordado||0,c.pagado||0,saldo.toFixed(2),c.fechaVencimiento||'',st].join('","')+'"\n'
+  })
+  const a=document.createElement('a')
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFF'+csv)
+  a.download='cobros_'+new Date().toISOString().slice(0,10)+'.csv';a.click()
+}
+
+// ═══════════════════════════════════════════════
+// REUNIONES — con Google Meet y calendario
+// ═══════════════════════════════════════════════
 function htmlReuniones(){
-  const {reuniones,clientes}=data
-  let html='<div class="tb"><button class="btn btn-p" onclick="openModal(\'reunion\',null)">+ Nueva reunión</button></div>'
-  html+='<div class="card"><table><thead><tr><th>Título</th><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Plataforma</th><th>Enlace</th></tr></thead><tbody>'
-  if(reuniones.length){reuniones.forEach(r=>{
-    const cl=clientes.find(c=>c.id===r.clienteId)
-    html+='<tr><td><strong>'+esc(r.titulo)+'</strong></td><td>'+esc(cl&&cl.nombre||'—')+'</td><td>'+esc(r.fecha||'—')+'</td><td>'+esc(r.hora||'—')+'</td><td>'+esc(r.plataforma||'—')+'</td>'
-    +'<td>'+(r.link?'<a href="'+esc(r.link)+'" target="_blank" style="color:#1d4ed8;font-weight:600">Unirse</a>':'—')+'</td></tr>'
-  })}else html+='<tr><td colspan="6" class="empty">Sin reuniones</td></tr>'
-  html+='</tbody></table></div>'
+  const hoy=new Date().toISOString().split('T')[0]
+  const today=new Date()
+  const list=data.reuniones.filter(r=>{
+    if(meetView==='upcoming')return r.fecha>=hoy
+    if(meetView==='past')return r.fecha<hoy
+    return true
+  }).sort((a,b)=>a.fecha.localeCompare(b.fecha))
+
+  const calDays={}
+  data.reuniones.forEach(r=>{
+    const d=new Date(r.fecha+'T12:00:00')
+    if(d.getMonth()===calMonth&&d.getFullYear()===calYear)
+      calDays[d.getDate()]=(calDays[d.getDate()]||[]).concat(r)
+  })
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate()
+  const firstDay=new Date(calYear,calMonth,1).getDay()
+
+  let html='<div style="display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start">'
+    +'<div>'
+
+  html+='<div class="sec-hd"><div><h2>Reuniones</h2><p>Agenda con Google Meet integrado</p></div>'
+    +'<button class="btn btn-p" onclick="openModal(\'reunion\',null)">+ Nueva reunión</button></div>'
+
+  html+='<div class="tb">'
+    +['upcoming','past','all'].map((v,i)=>'<button class="btn btn-sm '+(meetView===v?'btn-p':'btn-g')+'" onclick="meetView=\''+v+'\';draw()">'+['Próximas','Pasadas','Todas'][i]+'</button>').join('')
+    +'</div>'
+
+  if(!list.length){html+='<div class="card"><p class="empty">Sin reuniones en esta vista</p></div>'}
+  else{
+    list.forEach(r=>{
+      const cl=data.clientes.find(c=>c.id===r.clienteId)
+      const tr=data.trabajos.find(t=>t.id===r.trabajoId)
+      const dObj=new Date(r.fecha+'T12:00:00')
+      const isToday=r.fecha===hoy
+      const isPast=r.fecha<hoy
+      const hasLink=!!r.link
+
+      html+='<div class="mcard" style="opacity:'+(isPast?.65:1)+';border-color:'+(isToday?'#bfdbfe':'#e2e8f0')+'">'
+        +'<div class="datebox" style="'+(isToday?'background:#dbeafe;border-color:#bfdbfe':'background:#f8faff')+'">'
+        +'<div class="mo" style="'+(isToday?'color:#1d4ed8':'')+'">'+MONTHS[dObj.getMonth()].slice(0,3)+'</div>'
+        +'<div class="dy" style="'+(isToday?'color:#1d4ed8':'')+'">'+dObj.getDate()+'</div>'
+        +'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
+        +'<strong style="font-size:14px">'+esc(r.titulo)+'</strong>'
+        +(isToday?'<span class="b bb">HOY</span>':'')
+        +(!hasLink&&!isPast?'<span class="b ba">Sin link</span>':'')
+        +'</div>'
+        +'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'+esc(cl&&cl.nombre||'—')+(tr?' · '+esc(tr.titulo.slice(0,25)):'')+'</div>'
+        +'<div style="font-size:12px;color:#475569">🕐 '+esc(r.hora||'—')+' · 💻 '+esc(r.plataforma||'—')+'</div>'
+        +(r.notas?'<div style="font-size:11px;color:#94a3b8;margin-top:3px">📝 '+esc(r.notas)+'</div>':'')
+        +(hasLink?'<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;background:#f0f9ff;border-radius:7px;border:1px solid #bae6fd">'
+          +'<span style="font-size:11px;color:#0369a1;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.link)+'</span>'
+          +'<button class="btn btn-g btn-sm" onclick="navigator.clipboard.writeText(\''+esc(r.link)+'\');this.textContent=\'✓ Copiado\';setTimeout(()=>this.textContent=\'Copiar\',2000)">Copiar</button>'
+          +'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">'
+        +(hasLink?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none;justify-content:center">🎥 Unirse</a>'
+          :'<a href="'+esc(buildCalUrl(r,cl&&cl.nombre||''))+'" target="_blank" class="btn btn-amber btn-sm" style="text-decoration:none;justify-content:center">📅 Google Cal</a>')
+        +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="sendMeetWa(\''+r.id+'\')">💬 Confirmar</button>':'')
+        +'<div style="display:flex;gap:4px">'
+        +'<button class="btn btn-g btn-sm" onclick=\'openModal("reunion",'+jss(r)+')\'>✏️</button>'
+        +'<button class="btn btn-r btn-sm" onclick="confirmDel(\'Reuniones\',\''+r.id+'\',\'¿Eliminar reunión?\')">🗑</button>'
+        +'</div>'
+        +'</div>'
+        +'</div>'
+    })
+  }
+
+  html+='</div>'
+
+  // Mini calendario
+  html+='<div style="position:sticky;top:70px">'
+    +'<div class="card" style="padding:16px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +'<button class="btn btn-g btn-sm" onclick="calMonth===0?(calMonth=11,calYear--):(calMonth--);draw()">‹</button>'
+    +'<strong style="font-size:14px">'+MONTHS[calMonth]+' '+calYear+'</strong>'
+    +'<button class="btn btn-g btn-sm" onclick="calMonth===11?(calMonth=0,calYear++):(calMonth++);draw()">›</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">'
+    +DAYS_S.map(d=>'<div style="font-size:10px;font-weight:700;color:#94a3b8;padding:2px">' +d+'</div>').join('')
+    +Array(firstDay).fill('<div></div>').join('')
+    +Array(daysInMonth).fill(0).map((_,i)=>{
+      const day=i+1,hasMeet=!!calDays[day]
+      const isNow=day===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear()
+      return'<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:'+(hasMeet?600:400)+';background:'+(isNow?'#1d4ed8':hasMeet?'#dbeafe':'transparent')+';color:'+(isNow?'#fff':hasMeet?'#1d4ed8':'#475569')+'">'
+        +day+'</div>'
+    }).join('')
+    +'</div>'
+    +'</div>'
+
+    // Plataformas
+    +'<div class="card" style="padding:14px;margin-top:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px">PLATAFORMAS</div>'
+    +[{n:'Google Meet',u:'https://meet.google.com',c:'#4285f4'},
+      {n:'Zoom',u:'https://zoom.us/start/videomeeting',c:'#2d8cff'},
+      {n:'Whereby',u:'https://whereby.com',c:'#5c5bd4'}].map(p=>
+      '<a href="'+p.u+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:5px;background:#f8faff;text-decoration:none;border:1px solid #e2e8f0">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:'+p.c+';flex-shrink:0"></div>'
+      +'<span style="font-size:12px;font-weight:600;color:#1e293b">'+p.n+'</span>'
+      +'<span style="margin-left:auto;font-size:11px;color:#94a3b8">↗</span>'
+      +'</a>'
+    ).join('')
+    +'</div>'
+    +'</div>'
+
+  html+='</div>'
   return html
 }
 
+function buildCalUrl(r,clientName){
+  const title=encodeURIComponent((r.titulo||'Reunión')+(clientName?' — '+clientName:''))
+  const date=(r.fecha||'').replace(/-/g,'')
+  const [h,m]=(r.hora||'10:00').split(':')
+  const endH=String(parseInt(h)+1).padStart(2,'0')
+  return'https://calendar.google.com/calendar/r/eventedit?text='+title+'&dates='+date+'T'+h+m+'00/'+date+'T'+endH+m+'00&location='+encodeURIComponent(r.link||'')+'&details='+encodeURIComponent('Research Assesor\n'+(r.link||''))
+}
+
+async function createGoogleMeet(titulo,fecha,hora){
+  return new Promise((resolve,reject)=>{
+    const cb='_mc_'+Date.now()
+    const s=document.createElement('script')
+    const to=setTimeout(()=>{cleanup();reject(new Error('Timeout'))},15000)
+    function cleanup(){clearTimeout(to);delete window[cb];if(s.parentNode)s.parentNode.removeChild(s)}
+    window[cb]=function(d){cleanup();d.error?reject(new Error(d.error)):d.meetLink?resolve(d.meetLink):reject(new Error('Sin link'))}
+    s.src=API+'?action=createMeet&title='+encodeURIComponent(titulo)+'&date='+encodeURIComponent(fecha)+'&time='+encodeURIComponent(hora||'10:00')+'&duration=60&callback='+cb
+    s.onerror=()=>{cleanup();reject(new Error('Error de red'))}
+    document.head.appendChild(s)
+  })
+}
+
+function sendMeetWa(reunionId){
+  const r=data.reuniones.find(x=>x.id===reunionId)
+  const cl=data.clientes.find(x=>x.id===r?.clienteId)
+  if(!r||!cl?.telefono)return
+  const msg=buildMeetingMsg(r,cl)
+  window.open(waUrl(cl.telefono,msg),'_blank')
+}
+
+function sendCuotaWa(cuotaId,trabajoId,phone,tplId){
+  const c=data.cuotas.find(x=>x.id===cuotaId)
+  const t=data.trabajos.find(x=>x.id===trabajoId)
+  const cl=data.clientes.find(x=>x.id===t?.clienteId)
+  if(!c||!phone)return
+  const msg=buildCuotaMsg(tplId,c,t,cl)
+  window.open(waUrl(phone,msg),'_blank')
+}
+
+// ═══════════════════════════════════════════════
 // MODALES
+// ═══════════════════════════════════════════════
 function openModal(type,rec){modal={type,rec:rec||{}};draw()}
 function closeModal(){modal=null;draw()}
 
@@ -297,83 +747,266 @@ function htmlModal(){
   let c=''
   if(modal.type==='cliente') c=mCliente(modal.rec)
   if(modal.type==='trabajo') c=mTrabajo(modal.rec)
+  if(modal.type==='cuota')   c=mCuota(modal.rec)
+  if(modal.type==='abono')   c=mAbono(modal.rec)
   if(modal.type==='reunion') c=mReunion(modal.rec)
+  if(!c)return''
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
 
+// MODAL CLIENTE
 function mCliente(d){
   const isE=!!d.id
   return'<h3>'+(isE?'Editar':'Nuevo')+' cliente</h3>'
     +'<div class="fg">'
     +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'"/></div>'
-    +'<div><label>Teléfono</label><input id="f1" value="'+esc(d.telefono||'')+'"/></div>'
+    +'<div><label>Teléfono (WhatsApp)</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
     +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'"/></div>'
-    +'<div><label>Institución</label><input id="f3" value="'+esc(d.institucion||'')+'"/></div>'
+    +'<div><label>Institución / Universidad</label><input id="f3" value="'+esc(d.institucion||'')+'"/></div>'
     +'<div><label>Ciudad</label><input id="f4" value="'+esc(d.ciudad||'')+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f5">'+esc(d.notas||'')+'</textarea></div>'
-    +'</div><div class="ma">'
-    +'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button>'
     +'</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button></div>'
 }
 function submitCliente(id){
-  const nombre=v('f0').trim()
+  const nombre=v('f0')
   if(!nombre){alert('El nombre es obligatorio');return}
-  const rec={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion:v('f3'),ciudad:v('f4'),notas:v('f5'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
-  saveRec('Clientes',rec,!id)
+  const fila={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion:v('f3'),ciudad:v('f4'),notas:v('f5'),createdAt:id?undefined:new Date().toISOString()}
+  mutate('Clientes',id?'update':'insert',id||null,fila)
 }
 
+// MODAL TRABAJO
 function mTrabajo(d){
   const isE=!!d.id
-  const TIPOS=['Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
-  const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
-  let s='<h3>'+(isE?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
-    +'<div class="full"><label>Título *</label><input id="f0" value="'+esc(d.titulo||'')+'"/></div>'
-    +'<div class="full"><label>Cliente *</label><select id="f1"><option value="">Seleccionar cliente...</option>'
+  const hoy=new Date().toISOString().split('T')[0]
+  let html='<h3>'+(isE?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
+    +'<div class="full"><label>Título del trabajo *</label><input id="t0" value="'+esc(d.titulo||'')+'"/></div>'
+    +'<div class="full"><label>Cliente *</label><select id="t1"><option value="">Seleccionar cliente...</option>'
     +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
     +'</select></div>'
-    +'<div><label>Tipo</label><select id="f2">'+TIPOS.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
-    +'<div><label>Estado</label><select id="f3">'+ESTADOS.map(e=>'<option'+(d.estado===e?' selected':'')+'>'+esc(e)+'</option>').join('')+'</select></div>'
-    +'<div><label>Total ($)</label><input id="f4" type="number" min="0" value="'+esc(d.total||'')+'"/></div>'
-    +'<div><label>Progreso (%)</label><input id="f5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
-    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(d.fechaInicio||'')+'"/></div>'
-    +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
-    +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div>'
-    +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitTrabajo(\''+esc(d.id||'')+'\')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button></div>'
-  return s
+    +'<div><label>Tipo de servicio</label><select id="t2">'+SERVICE_TYPES.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
+    +'<div><label>Estado</label><select id="t3">'+WORK_STATUSES.map(e=>'<option'+(d.estado===e?' selected':'')+'>'+esc(e)+'</option>').join('')+'</select></div>'
+    +'<div><label>Valor total ($)</label><input id="t4" type="number" min="0" step="0.01" value="'+esc(d.total||'')+'"/></div>'
+    +'<div><label>Progreso (%)</label><input id="t5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
+    +'<div><label>Fecha inicio</label><input id="t6" type="date" value="'+esc(d.fechaInicio||hoy)+'"/></div>'
+    +'<div><label>Fecha entrega</label><input id="t7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
+    +'<div class="full"><label>Notas / descripción</label><textarea id="t8">'+esc(d.notas||'')+'</textarea></div>'
+    +'</div>'
+
+  // Plan de pagos (solo nuevos)
+  if(!isE){
+    html+='<div style="margin-top:14px;padding:14px;background:#f8faff;border-radius:10px;border:1px solid #dbeafe">'
+      +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:10px">💰 PLAN DE PAGOS AUTOMÁTICO</div>'
+      +'<div class="fg">'
+      +'<div><label>Número de cuotas</label><input id="tp_n" type="number" min="1" max="24" value="2" onchange="updatePlanPreview()"/></div>'
+      +'<div><label>Primera cuota</label><input id="tp_d" type="date" value="'+new Date().toISOString().split('T')[0]+'" onchange="updatePlanPreview()"/></div>'
+      +'</div>'
+      +'<div id="plan-preview" style="margin-top:8px;font-size:12px;color:#64748b"></div>'
+      +'</div>'
+  }
+
+  html+='<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitTrabajo(\''+esc(d.id||'')+'\','+isE+')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button></div>'
+  return html
 }
-function submitTrabajo(id){
-  const titulo=v('f0'),clienteId=v('f1')
+
+function updatePlanPreview(){
+  const total=parseFloat(document.getElementById('t4')?.value||0)
+  const n=parseInt(document.getElementById('tp_n')?.value||1)
+  const d=document.getElementById('tp_d')?.value
+  const prev=document.getElementById('plan-preview')
+  if(!prev)return
+  if(!total||!n){prev.innerHTML='<span style="color:#94a3b8">Ingresa el valor total para ver el plan</span>';return}
+  const perCuota=Math.floor(total*100/n)/100
+  const lastCuota=Math.round((total-(perCuota*(n-1)))*100)/100
+  let html='Plan: '
+  for(let i=0;i<Math.min(n,4);i++){
+    const date=new Date(d||new Date())
+    date.setMonth(date.getMonth()+i)
+    const label=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
+    const amt=i===n-1?lastCuota:perCuota
+    html+='<span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px;display:inline-block">'+label+' $'+fmt(amt)+' · '+date.toISOString().split('T')[0]+'</span>'
+  }
+  if(n>4)html+='<span style="color:#94a3b8">...+${n-4} más</span>'
+  prev.innerHTML=html
+}
+
+async function submitTrabajo(id,isEdit){
+  const titulo=v('t0'),clienteId=v('t1')
   if(!titulo){alert('El título es obligatorio');return}
   if(!clienteId){alert('Selecciona un cliente');return}
   const cl=data.clientes.find(c=>c.id===clienteId)
-  const rec={id:id||uid(),clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo:v('f2'),estado:v('f3'),total:v('f4'),progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
-  saveRec('Trabajos',rec,!id)
+  const total=parseFloat(v('t4'))||0
+  const fila={
+    id:id||uid(),clienteId,clienteNombre:cl&&cl.nombre||'',titulo,
+    tipo:v('t2'),estado:v('t3'),total,progreso:v('t5'),
+    fechaInicio:v('t6'),fechaFin:v('t7'),notas:v('t8'),
+    createdAt:id?undefined:new Date().toISOString()
+  }
+  await mutate('Trabajos',id?'update':'insert',id||null,fila)
+
+  // Crear cuotas automáticas para trabajos nuevos
+  if(!isEdit&&total>0){
+    const n=parseInt(v('tp_n'))||1
+    const d=v('tp_d')||new Date().toISOString().split('T')[0]
+    const perCents=Math.floor(total*100/n)
+    const lastCents=Math.round(total*100)-(perCents*(n-1))
+    const workId=fila.id
+    for(let i=0;i<n;i++){
+      const date=new Date(d)
+      date.setMonth(date.getMonth()+i)
+      const label=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
+      const amt=i===n-1?lastCents/100:perCents/100
+      const cuota={id:uid(),trabajoId:workId,label,fechaVencimiento:date.toISOString().split('T')[0],acordado:amt,pagado:0,estado:'pendiente'}
+      await apiPost({action:'insertar',tabla:'Cuotas',fila:cuota})
+    }
+    await loadData()
+  }
 }
 
+// MODAL CUOTA (agregar cuota manual)
+function mCuota(d){
+  return'<h3>Agregar cuota — '+esc(d.trabajoTitulo||'Trabajo')+'</h3>'
+    +'<div class="fg">'
+    +'<div class="full"><label>Descripción / label</label><input id="q0" value="'+esc(d.label||'Cuota '+(data.cuotas.filter(c=>c.trabajoId===d.trabajoId).length+1))+'"/></div>'
+    +'<div><label>Monto acordado ($)</label><input id="q1" type="number" min="0" step="0.01" value=""/></div>'
+    +'<div><label>Fecha de vencimiento</label><input id="q2" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
+    +'</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitCuota(\''+esc(d.trabajoId)+'\')">Agregar cuota</button></div>'
+}
+function submitCuota(trabajoId){
+  const monto=parseFloat(v('q1'))
+  if(!monto){alert('El monto es obligatorio');return}
+  const fila={id:uid(),trabajoId,label:v('q0'),fechaVencimiento:v('q2'),acordado:monto,pagado:0,estado:'pendiente'}
+  mutate('Cuotas','insert',null,fila)
+}
+
+// MODAL ABONO
+function mAbono(d){
+  const saldo=parseFloat(d.acordado||0)-parseFloat(d.pagado||0)
+  return'<h3>Registrar pago — '+esc(d.label||'Cuota')+'</h3>'
+    +'<div style="background:#f8faff;border:1px solid #dbeafe;border-radius:10px;padding:12px;margin-bottom:14px">'
+    +'<div style="display:flex;gap:16px;font-size:13px">'
+    +'<span>Acordado: <strong style="color:#1d4ed8">$'+fmt(d.acordado)+'</strong></span>'
+    +'<span>Pagado: <strong style="color:#059669">$'+fmt(d.pagado)+'</strong></span>'
+    +'<span>Saldo: <strong style="color:#b45309">$'+fmt(saldo)+'</strong></span>'
+    +'</div></div>'
+    +'<div class="fg">'
+    +'<div class="full"><label>Monto recibido ($) *</label><input id="a0" type="number" min="0.01" step="0.01" max="'+saldo+'" placeholder="Hasta $'+fmt(saldo)+'"/></div>'
+    +'</div>'
+    +'<button type="button" style="width:100%;margin-bottom:10px;padding:9px;border-radius:8px;background:#dcfce7;color:#059669;border:1px solid #bbf7d0;font-weight:700;cursor:pointer;font-size:13px" onclick="document.getElementById(\'a0\').value=\''+saldo.toFixed(2)+'\'">✓ Pago completo — $'+fmt(saldo)+'</button>'
+    +'<div class="fg">'
+    +'<div><label>Fecha de pago</label><input id="a1" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
+    +'<div><label>Ref. comprobante</label><input id="a2" placeholder="TRF-001, No. transacción..."/></div>'
+    +'<div class="full"><label>Nota</label><input id="a3" placeholder="Ej: Transferencia Banco Pichincha"/></div>'
+    +'</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-green" onclick="submitAbono(\''+esc(d.cuotaId)+'\',\''+esc(d.trabajoId)+'\',\''+esc(d.acordado)+'\',\''+esc(d.pagado)+'\')">Registrar pago</button></div>'
+}
+async function submitAbono(cuotaId,trabajoId,acordado,pagadoPrev){
+  const monto=parseFloat(v('a0'))
+  if(!monto||monto<=0){alert('Ingresa un monto válido');return}
+  const newPagado=parseFloat(pagadoPrev||0)+monto
+  const newAcordado=parseFloat(acordado||0)
+  const newSt=newPagado>=newAcordado?'pagado':newPagado>0?'parcial':'pendiente'
+  // Insertar abono
+  const abono={id:uid(),cuotaId,trabajoId,fecha:v('a1'),monto,nota:v('a3'),comprobante:v('a2')}
+  // Actualizar cuota
+  const cuota=data.cuotas.find(c=>c.id===cuotaId)
+  const cuotaUpd={...cuota,pagado:newPagado,estado:newSt}
+  modal=null;syncing=true;syncMsg='Guardando...';draw()
+  await apiPost({action:'insertar',tabla:'Abonos',fila:abono})
+  await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:cuotaUpd})
+  syncing=false
+  toast('Pago registrado ✓')
+  await loadData()
+}
+
+// MODAL REUNIÓN — con generación de Google Meet
 function mReunion(d){
-  const today=new Date().toISOString().slice(0,10)
-  return'<h3>Nueva reunión</h3><div class="fg">'
-    +'<div class="full"><label>Título *</label><input id="f0" value="'+esc(d.titulo||'')+'"/></div>'
-    +'<div class="full"><label>Cliente</label><select id="f1"><option value="">Seleccionar...</option>'
+  const hoy=new Date()
+  hoy.setDate(hoy.getDate()+1)
+  const def=hoy.toISOString().split('T')[0]
+  return'<h3>'+(d.id?'Editar':'Nueva')+' reunión</h3>'
+    +'<div class="fg">'
+    +'<div class="full"><label>Título de la reunión *</label><input id="r0" value="'+esc(d.titulo||'')+'" placeholder="Ej: Revisión Cap. 2 tesis"/></div>'
+    +'<div class="full"><label>Cliente</label><select id="r1"><option value="">Seleccionar...</option>'
     +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
     +'</select></div>'
-    +'<div><label>Fecha</label><input id="f2" type="date" value="'+esc(d.fecha||today)+'"/></div>'
-    +'<div><label>Hora</label><input id="f3" type="time" value="'+esc(d.hora||'09:00')+'"/></div>'
-    +'<div><label>Plataforma</label><input id="f4" value="'+esc(d.plataforma||'Google Meet')+'"/></div>'
-    +'<div><label>Enlace</label><input id="f5" value="'+esc(d.link||'')+'"/></div>'
-    +'<div class="full"><label>Notas</label><textarea id="f6">'+esc(d.notas||'')+'</textarea></div>'
-    +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitReunion(\''+esc(d.id||'')+'\')"><strong>Guardar</strong></button></div>'
-}
-function submitReunion(id){
-  const titulo=v('f0')
-  if(!titulo){alert('El título es obligatorio');return}
-  const rec={id:id||uid(),titulo,clienteId:v('f1'),fecha:v('f2'),hora:v('f3'),plataforma:v('f4'),link:v('f5'),notas:v('f6')}
-  saveRec('Reuniones',rec,!id)
+    +'<div class="full"><label>Trabajo relacionado</label><select id="r2"><option value="">Ninguno</option>'
+    +data.trabajos.map(t=>'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo.slice(0,40))+'</option>').join('')
+    +'</select></div>'
+    +'<div><label>Fecha *</label><input id="r3" type="date" value="'+esc(d.fecha||def)+'"/></div>'
+    +'<div><label>Hora</label><input id="r4" type="time" value="'+esc(d.hora||'10:00')+'"/></div>'
+    +'<div><label>Plataforma</label><select id="r5">'
+    +['Google Meet','Zoom','Microsoft Teams','Whereby','Otra'].map(p=>'<option'+(d.plataforma===p?' selected':'')+'>'+p+'</option>').join('')
+    +'</select></div>'
+    +'</div>'
+    +'<div style="margin-top:10px">'
+    +'<label>Enlace de reunión</label>'
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +'<input id="r6" value="'+esc(d.link||'')+'" placeholder="Se generará al hacer clic → o pega el link directamente"/>'
+    +'<button type="button" class="btn btn-p" style="flex-shrink:0" id="btn-meet" onclick="handleGenMeet()">🎥 Generar Meet</button>'
+    +'</div>'
+    +(d.link?'<div style="margin-top:6px;padding:6px 10px;background:#dcfce7;border-radius:8px;border:1px solid #bbf7d0;font-size:12px;color:#15803d">✓ Link configurado: '+esc(d.link)+'</div>':'')
+    +'<div id="meet-status" style="margin-top:6px;font-size:12px"></div>'
+    +'<div style="margin-top:6px;padding:10px 12px;background:#f0f6ff;border-radius:8px;font-size:12px;color:#1d4ed8;line-height:1.6">'
+    +'<strong>Cómo obtener el link:</strong><br>'
+    +'<strong>Opción A (auto):</strong> Clic en "Generar Meet" — crea el evento directamente en tu Calendar.<br>'
+    +'<strong>Opción B (manual):</strong> Clic en "Generar Meet" → se abre Google Calendar → crea el evento → copia el link <code style="background:#dbeafe;padding:0 4px;border-radius:3px">meet.google.com/xxx-yyy</code> → pégalo arriba.'
+    +'</div></div>'
+    +'<div style="margin-top:10px"><label>Notas / agenda</label><textarea id="r7" rows="2">'+esc(d.notas||'')+'</textarea></div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitReunion(\''+esc(d.id||'')+'\')">Guardar reunión</button></div>'
 }
 
+async function handleGenMeet(){
+  const btn=document.getElementById('btn-meet')
+  const status=document.getElementById('meet-status')
+  const titulo=v('r0')||'Reunión Research Assesor'
+  const fecha=v('r3')
+  const hora=v('r4')
+  btn.textContent='⟳ Creando...'
+  btn.disabled=true
+  status.innerHTML='<span style="color:#b45309">Creando Google Meet...</span>'
+  try{
+    const link=await createGoogleMeet(titulo,fecha,hora)
+    document.getElementById('r6').value=link
+    status.innerHTML='<span style="color:#059669">✓ Meet creado: '+esc(link)+'</span>'
+  }catch(e){
+    // Fallback: open Google Calendar
+    const calUrl=buildCalUrl({titulo,fecha,hora,link:''},'')
+    window.open(calUrl,'_blank')
+    status.innerHTML='<span style="color:#b45309">⚠ No se pudo crear automáticamente. Se abrió Google Calendar — crea el evento y copia el link meet.google.com/xxx-yyy-zzz aquí arriba.</span>'
+  }finally{
+    btn.textContent='🎥 Generar Meet'
+    btn.disabled=false
+  }
+}
+
+function submitReunion(id){
+  const titulo=v('r0')
+  if(!titulo){alert('El título es obligatorio');return}
+  const fila={
+    id:id||uid(),titulo,clienteId:v('r1'),trabajoId:v('r2'),
+    fecha:v('r3'),hora:v('r4'),plataforma:v('r5'),link:v('r6'),notas:v('r7')
+  }
+  mutate('Reuniones',id?'update':'insert',id||null,fila)
+}
+
+// Confirmar eliminación
+function confirmDel(tabla,id,msg){
+  if(!confirm(msg||'¿Eliminar este registro? No se puede deshacer.'))return
+  mutate(tabla,'delete',id,null)
+}
+
+// ═══════════════════════════════════════════════
+// INICIO
+// ═══════════════════════════════════════════════
+window._wStatus='Todos'
+window._cStatus='Todos'
 draw()
 </script>
 </body>
