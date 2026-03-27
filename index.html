@@ -285,10 +285,7 @@ function toast(msg,err){
 async function loadData(){
   loading=true;syncMsg='Cargando...';syncErr=false;draw()
   const r=await apiGet('getData')
-  // Debug: show what API returned in sync bar
-  if(r&&r.error){syncMsg='API Error: '+r.error;syncErr=true;loading=false;draw();return}
-  if(!r){syncMsg='Sin respuesta del servidor';syncErr=true;loading=false;draw();return}
-  if(r&&r.ok===true&&Array.isArray(r.clientes)){
+  if(r&&!r.error){
     data={
       clientes:  r.clientes  ||[],
       trabajos:  r.trabajos  ||[],
@@ -299,13 +296,11 @@ async function loadData(){
     syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
     syncErr=false
   }else{
-    // Cargar datos de demo si falla la conexión
-    if(window._demoData){
+    syncMsg='Error conexión'+(r&&r.error?' — '+r.error:'');syncErr=true
+    // Demo solo si hay error de red total
+    if(window._demoData&&(!r||r.error==='Failed to fetch'||r.error==='NetworkError')){
       data=window._demoData
       syncMsg='⚡ Modo demo — sin conexión al Sheets'
-      syncErr=true
-    }else{
-      syncMsg='Error: '+(r&&r.error||'Sin conexión');syncErr=true
     }
   }
   loading=false;draw()
