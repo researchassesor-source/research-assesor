@@ -285,7 +285,10 @@ function toast(msg,err){
 async function loadData(){
   loading=true;syncMsg='Cargando...';syncErr=false;draw()
   const r=await apiGet('getData')
-  if(r&&!r.error&&(r.clientes||r.trabajos)){
+  // Debug: show what API returned in sync bar
+  if(r&&r.error){syncMsg='API Error: '+r.error;syncErr=true;loading=false;draw();return}
+  if(!r){syncMsg='Sin respuesta del servidor';syncErr=true;loading=false;draw();return}
+  if(r&&r.ok===true&&Array.isArray(r.clientes)){
     data={
       clientes:  r.clientes  ||[],
       trabajos:  r.trabajos  ||[],
