@@ -209,7 +209,7 @@ window._demoData = {
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API='https://script.google.com/macros/s/AKfycbzqeby9GceuHt8ep8X2QqVUV_U4PUztJUvMRsLipduxQoxY0lqU0sz7Is8nZ3WB929Pjg/exec'
+const API='https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
 const USERS=[
   {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
   {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
@@ -267,7 +267,7 @@ async function apiPost(body){
     const s=document.createElement('script')
     const to=setTimeout(function(){
       cleanup();resolve({error:'Timeout — verifica que el Apps Script esté desplegado'})
-    },20000)
+    },10000)
     function cleanup(){
       clearTimeout(to);delete window[cb]
       if(s.parentNode)s.parentNode.removeChild(s)
@@ -355,18 +355,33 @@ async function saveRec(tabla,rec,isNew){
   const key=tabla.toLowerCase()
   data[key]=isNew?[...data[key],rec]:data[key].map(x=>x.id===rec.id?rec:x)
   modal=null;draw()
-  syncing=true;syncMsg='Guardando...';draw()
+  syncing=true;syncMsg='Guardando en Sheets...';draw()
   const r=await apiPost({action:isNew?'insertar':'actualizar',tabla,fila:rec,id:rec.id})
   syncing=false
-  if(r&&r.ok){toast('Guardado ✓');await loadData()}
-  else{toast('Error: '+(r&&r.error||''),'err');await loadData()}
+  if(r&&r.ok){
+    syncMsg='✓ Guardado';toast('Guardado en Sheets ✓')
+    await loadData()
+  }else{
+    const msg=r&&r.error?r.error:'Sin respuesta del servidor'
+    syncMsg='Error: '+msg;syncErr=true;draw()
+    toast('Error al guardar: '+msg,'err')
+    await loadData()
+  }
 }
 async function delRec(tabla,id,msg){
-  if(!confirm(msg||'¿Eliminar?'))return
-  data[tabla.toLowerCase()]=data[tabla.toLowerCase()].filter(x=>x.id!==id);draw()
+  if(!confirm(msg||'¿Eliminar este registro?'))return
+  syncing=true;syncMsg='Eliminando...';draw()
   const r=await apiPost({action:'eliminar',tabla,id})
-  if(r&&r.ok){toast('Eliminado ✓');await loadData()}
-  else{toast('Error: '+(r&&r.error||''),'err');await loadData()}
+  syncing=false
+  if(r&&r.ok){
+    data[tabla.toLowerCase()]=data[tabla.toLowerCase()].filter(x=>x.id!==id)
+    toast('Eliminado ✓');syncMsg='✓ Eliminado'
+    await loadData()
+  }else{
+    const msg2=r&&r.error?r.error:'Sin respuesta'
+    syncMsg='Error: '+msg2;syncErr=true;draw()
+    toast('Error al eliminar: '+msg2,'err')
+  }
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
