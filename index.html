@@ -11,96 +11,72 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#1e
 aside{width:215px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .logo{padding:16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}
 .logo-sq{width:34px;height:34px;background:#1d4ed8;border-radius:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
-.logo-name{font-size:14px;font-weight:800;color:#1d4ed8;line-height:1.1}
-.logo-sub{font-size:10px;color:#94a3b8;letter-spacing:.3px}
+.logo-tx{font-size:13px;font-weight:800;color:#1d4ed8;line-height:1.2}
+.logo-sub{font-size:10px;color:#94a3b8}
 nav{padding:8px;flex:1}
 .ni{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#475569;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;transition:all .1s}
 .ni:hover{background:#eff6ff;color:#1d4ed8}
 .ni.on{background:#dbeafe;color:#1d4ed8;font-weight:700}
 .foot{padding:12px;border-top:1px solid #e2e8f0}
-.fn{font-size:13px;font-weight:700;color:#1e293b}
-.fr{font-size:11px;color:#94a3b8;margin-bottom:8px}
+.fn{font-size:13px;font-weight:700;color:#1e293b}.fr{font-size:11px;color:#94a3b8;margin-bottom:8px}
 main{flex:1;display:flex;flex-direction:column;min-width:0}
 .topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
 .topbar h2{font-size:15px;font-weight:700;flex:1}
 .page{padding:20px;flex:1}
-/* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:20px}
 .kpi{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px}
 .kpi-i{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.kpi-n{font-size:24px;font-weight:800;line-height:1}
-.kpi-l{font-size:11px;color:#94a3b8;margin-top:2px}
-/* Card/Table */
+.kpi-n{font-size:24px;font-weight:800;line-height:1}.kpi-l{font-size:11px;color:#94a3b8;margin-top:2px}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px}
 .card-hd{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9}
 .card-hd h3{font-size:13px;font-weight:700}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:9px 14px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #f1f5f9;background:#f8faff}
-td{padding:10px 14px;border-bottom:1px solid #f8fafc;vertical-align:top}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #f1f5f9;background:#f8faff}
+td{padding:10px 14px;border-bottom:1px solid #f8fafc;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#f8faff}
 .empty{text-align:center;padding:32px;color:#94a3b8;font-size:13px}
-/* Buttons */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .1s;white-space:nowrap}
 .btn:active{opacity:.8}
 .btn-p{background:#1d4ed8;color:#fff}.btn-p:hover{background:#1e40af}
-.btn-green{background:#059669;color:#fff}.btn-green:hover{background:#047857}
+.btn-green{background:#059669;color:#fff}
 .btn-sm{padding:4px 9px;font-size:12px;border-radius:7px}
 .btn-g{background:transparent;color:#475569;border:1px solid #e2e8f0}.btn-g:hover{background:#f0f6ff;color:#1d4ed8}
-.btn-r{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}.btn-r:hover{background:#fecaca}
+.btn-r{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
 .btn-wa{background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0}
 .btn-amber{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
-/* Badge */
 .b{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .bg{background:#dcfce7;color:#15803d}.bb{background:#dbeafe;color:#1d4ed8}
-.ba{background:#fef3c7;color:#b45309}.br{background:#fee2e2;color:#dc2626}
-.bx{background:#f1f5f9;color:#475569}.bv{background:#ede9fe;color:#7c3aed}
-/* Modal */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
-.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
+.ba{background:#fef3c7;color:#b45309}.br{background:#fee2e2;color:#dc2626}.bx{background:#f1f5f9;color:#475569}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .modal h3{font-size:15px;font-weight:800;color:#1d4ed8;margin-bottom:18px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg .full{grid-column:1/-1}
 label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
-input,select,textarea{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;color:#1e293b;background:#fff;outline:none;transition:border .1s}
+input,select,textarea{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;color:#1e293b;outline:none;transition:border .1s}
 input:focus,select:focus,textarea:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.1)}
-textarea{resize:vertical;min-height:64px}
+textarea{resize:vertical;min-height:60px}
 .ma{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;border-top:1px solid #f1f5f9;padding-top:14px}
-/* Login */
 .lw{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e3a8a,#1d4ed8)}
 .lb{background:#fff;border-radius:18px;padding:32px;width:340px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .lb h1{font-size:22px;font-weight:800;color:#1d4ed8;margin-bottom:3px}
-/* Sync */
 .sp{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600}
 .sp-ok{background:#dcfce7;color:#15803d}.sp-ld{background:#fef3c7;color:#b45309}.sp-er{background:#fee2e2;color:#dc2626}
-/* Toast */
-.toast{position:fixed;bottom:18px;right:18px;z-index:200;padding:11px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.2);animation:tin .2s ease}
-@keyframes tin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.toast{position:fixed;bottom:18px;right:18px;z-index:200;padding:11px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.2)}
 .tb{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-/* Work cards */
+/* Work expand */
 .wcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
 .wcard-hd{padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap}
 .wcard-hd:hover{background:#f8faff}
-.progbar{height:5px;border-radius:100px;background:#f1f5f9;overflow:hidden;flex:1;min-width:60px}
-.progbar-fill{height:100%;border-radius:100px;transition:width .3s}
-/* Meeting cards */
-.mcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;padding:16px;display:flex;gap:14px;align-items:flex-start}
-.datebox{flex-shrink:0;width:50px;text-align:center;background:#f8faff;border:1px solid #dbeafe;border-radius:10px;padding:8px 4px}
-.datebox .mo{font-size:10px;font-weight:700;color:#1d4ed8;text-transform:uppercase}
-.datebox .dy{font-size:22px;font-weight:800;color:#1e293b;line-height:1}
-/* Cuota rows */
-.crow{border-radius:10px;margin-bottom:6px;overflow:hidden;border:1px solid}
-.crow-hd{padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-/* Section header */
-.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
-.sec-hd h2{font-size:20px;font-weight:800}
-.sec-hd p{font-size:13px;color:#64748b;margin-top:2px}
-/* Alerts */
-.alert{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px}
-.alert-red{background:#fee2e2;border:1px solid #fecaca;color:#dc2626}
-.alert-amber{background:#fef3c7;border:1px solid #fde68a;color:#b45309}
-.alert-green{background:#dcfce7;border:1px solid #bbf7d0;color:#15803d}
-.alert-blue{background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8}
+.pbar{height:5px;border-radius:100px;background:#f1f5f9;overflow:hidden;flex:1;min-width:60px}
+.pbar-f{height:100%;border-radius:100px;transition:width .3s}
+/* Meeting card */
+.mcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;padding:16px;display:flex;gap:14px}
+.datebox{flex-shrink:0;width:50px;text-align:center;border-radius:10px;padding:8px 4px}
+/* Cuota */
+.crow{border-radius:9px;margin-bottom:5px;border:1px solid}
+.crow-hd{padding:9px 13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;animation:spin .8s linear infinite}
 @media(max-width:700px){aside{display:none}.fg{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.page{padding:12px}}
@@ -109,30 +85,23 @@ textarea{resize:vertical;min-height:64px}
 <body>
 <div id="R"></div>
 <script>
-// ═══════════════════════════════════════════════
-// CONFIGURACIÓN
-// ═══════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
-
-const USERS = [
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API='https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
+const USERS=[
   {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
   {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
 ]
-
-const SERVICE_TYPES = ['Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
-const WORK_STATUSES = ['Nuevo','En progreso','Revisión','Completado','Cancelado']
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-const DAYS_S = ['D','L','M','X','J','V','S']
-const WA_TPLS = [
-  {id:'reminder',name:'Recordatorio de pago',msg:'Hola {{nombre}} 👋\n\nTe recuerdo que tienes un pago pendiente del trabajo *"{{trabajo}}"*:\n\n💰 Monto: *${{monto}}*\n📅 Vence: *{{fecha_vencimiento}}*\n\nPor favor realiza la transferencia y envía el comprobante.\n\n🙏 Gracias\n— Research Assesor'},
-  {id:'overdue', name:'Pago vencido',         msg:'Hola {{nombre}}, espero que estés bien.\n\nEl pago del trabajo *"{{trabajo}}"* está vencido:\n\n💰 Monto: *${{monto}}*\n📅 Venció el: *{{fecha_vencimiento}}*\n\nPor favor comunícate para coordinar el pago.\n\n— Research Assesor'},
-  {id:'received',name:'Pago recibido',         msg:'Hola {{nombre}} ✅\n\nHemos recibido tu pago de *${{monto}}* para el trabajo *"{{trabajo}}"*.\n\n💳 Saldo pendiente: *${{saldo}}*\n\n¡Gracias!\n— Research Assesor'},
-  {id:'meeting', name:'Confirmación reunión',  msg:'Hola {{nombre}} 👋\n\nTe confirmo nuestra reunión:\n\n📅 Fecha: *{{fecha_reunion}}*\n🕐 Hora: *{{hora_reunion}}*\n💻 Plataforma: *{{plataforma}}*\n🔗 Enlace: {{enlace}}\n\n¡Nos vemos pronto!\n— Research Assesor'},
+const TIPOS=['Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
+const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const DIAS=['D','L','M','X','J','V','S']
+const WA_TPLS=[
+  {id:'reminder',msg:'Hola {{nombre}} 👋\n\nTe recuerdo que tienes un pago pendiente:\n\n💼 Trabajo: *"{{trabajo}}"*\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Vence: *{{fecha}}*\n\nPor favor realiza la transferencia y envía el comprobante.\n\n🙏 Gracias\n— Research Assesor'},
+  {id:'overdue', msg:'Hola {{nombre}}, espero que estés bien.\n\nEl pago del trabajo *"{{trabajo}}"* está vencido:\n\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Venció el: *{{fecha}}*\n\nPor favor comunícate para coordinar el pago.\n\n— Research Assesor'},
+  {id:'meeting', msg:'Hola {{nombre}} 👋\n\nTe confirmo nuestra reunión:\n\n📅 Fecha: *{{fecha}}*\n🕐 Hora: *{{hora}}*\n💻 Plataforma: *{{plat}}*\n🔗 Enlace: {{link}}\n\n¡Nos vemos pronto!\n— Research Assesor'},
 ]
 
-// ═══════════════════════════════════════════════
-// API — DIRECTO A SHEETS
-// ═══════════════════════════════════════════════
+// ── API — directo a Sheets ────────────────────────────────────────────────────
 async function apiGet(action){
   try{const r=await fetch(API+'?action='+(action||'getData')+'&t='+Date.now());return await r.json()}
   catch(e){return{error:e.message}}
@@ -142,83 +111,53 @@ async function apiPost(body){
   catch(e){return{error:e.message}}
 }
 
-// ═══════════════════════════════════════════════
-// ESTADO
-// ═══════════════════════════════════════════════
-let user=null, page='dashboard', modal=null
+// ── ESTADO ────────────────────────────────────────────────────────────────────
+let user=null,page='dashboard',modal=null
 let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[]}
-let loading=false, syncing=false, syncMsg='', syncErr=false
-let search='', expandedWork=null, calMonth=new Date().getMonth(), calYear=new Date().getFullYear()
-let meetView='upcoming'
+let loading=false,syncing=false,syncMsg='',syncErr=false
+let search='',wExp=null,wSt='Todos',cSt='Todos',mvw='upcoming'
+let calM=new Date().getMonth(),calY=new Date().getFullYear()
 
 function draw(){document.getElementById('R').innerHTML=user?htmlApp():htmlLogin()}
 
-// ═══════════════════════════════════════════════
-// HELPERS CORE
-// ═══════════════════════════════════════════════
-const v   = id=>(document.getElementById(id)||{}).value?.trim()||''
-const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
-const fmt = n=>{const x=parseFloat(n)||0;return Number.isInteger(x)||x%1===0?String(Math.round(x)):x.toFixed(2)}
-const jss = o=>esc(JSON.stringify(o))
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const v=id=>(document.getElementById(id)||{}).value||''
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+const jss=o=>esc(JSON.stringify(o))
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
+const fmt=n=>{const x=parseFloat(n)||0;return x%1===0?String(Math.round(x)):x.toFixed(2)}
 
-function cuotaStatus(c){
+function bdg(t,c){const m={green:'bg',blue:'bb',amber:'ba',red:'br'};return'<span class="b '+(m[c]||'bx')+'">'+esc(t)+'</span>'}
+function cStat(c){
   if(parseFloat(c.pagado||0)>=parseFloat(c.acordado||0)&&parseFloat(c.acordado||0)>0)return'pagado'
   if(parseFloat(c.pagado||0)>0)return'parcial'
   if(c.fechaVencimiento&&new Date(c.fechaVencimiento)<new Date())return'vencido'
   return'pendiente'
 }
-
-function workBal(t){
-  const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
-  const paid=cuotas.reduce((s,c)=>s+parseFloat(c.pagado||0),0)
+function cColor(s){return{pagado:'green',parcial:'blue',vencido:'red',pendiente:'amber'}[s]||'gray'}
+function wBal(t){
+  const cs=data.cuotas.filter(c=>c.trabajoId===t.id)
+  const paid=cs.reduce((s,c)=>s+parseFloat(c.pagado||0),0)
   const total=parseFloat(t.total||0)
   return{total,paid,bal:total-paid,pct:total>0?Math.round(paid/total*100):0}
 }
-
-function bdg(text,cls='x'){return'<span class="b b'+cls+'">'+esc(text)+'</span>'}
-
-function statusColor(s){return s==='Completado'?'g':s==='En progreso'||s==='Revisión'?'b':s==='Cancelado'?'x':'a'}
-function cuotaColor(s){return{pagado:'g',parcial:'b',vencido:'r',pendiente:'a'}[s]||'x'}
-
 function waUrl(phone,msg){
   const c=String(phone||'').replace(/\D/g,'')
   const ec=c.startsWith('0')?'593'+c.slice(1):c.startsWith('593')?c:'593'+c
   return'https://wa.me/'+ec+'?text='+encodeURIComponent(msg)
 }
-
-function interpolate(tpl,vars){
-  return tpl.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?vars[k]:'')
+function waTpl(id,vars){
+  const t=WA_TPLS.find(x=>x.id===id)||WA_TPLS[0]
+  return t.msg.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?String(vars[k]):'')
 }
-
-function buildMeetingMsg(m,client){
-  const tpl=WA_TPLS.find(t=>t.id==='meeting')
-  return interpolate(tpl.msg,{
-    nombre:client?.nombre||'',fecha_reunion:m.fecha||'',hora_reunion:m.hora||'',
-    plataforma:m.plataforma||'',enlace:m.link||''
-  })
-}
-
-function buildCuotaMsg(tplId,cuota,trabajo,cliente){
-  const tpl=WA_TPLS.find(t=>t.id===tplId)||WA_TPLS[0]
-  const saldo=parseFloat(cuota.acordado||0)-parseFloat(cuota.pagado||0)
-  return interpolate(tpl.msg,{
-    nombre:cliente?.nombre||'',trabajo:trabajo?.titulo||'',
-    monto:fmt(cuota.acordado),saldo:fmt(saldo),
-    fecha_vencimiento:cuota.fechaVencimiento||''
-  })
-}
-
-function toast(msg,err=false){
+function toast(msg,err){
   const d=document.createElement('div')
   d.className='toast';d.style.background=err?'#dc2626':'#059669'
   d.textContent=(err?'✗ ':'✓ ')+msg
   document.body.appendChild(d);setTimeout(()=>d.remove(),3000)
 }
 
-// ═══════════════════════════════════════════════
-// CARGA Y MUTACIONES — DIRECTO A SHEETS
-// ═══════════════════════════════════════════════
+// ── CARGA / MUTACIÓN ──────────────────────────────────────────────────────────
 async function loadData(){
   loading=true;syncMsg='Cargando...';syncErr=false;draw()
   const r=await apiGet('getData')
@@ -235,24 +174,33 @@ async function loadData(){
   loading=false;draw()
 }
 
-// Patrón PubTracker: actualiza UI → llama API → recarga
-async function mutate(tabla,action,id,fila){
+// PubTracker pattern: update UI → call API → reload
+async function saveRec(tabla,rec,isNew){
+  const key=tabla.toLowerCase()
+  data[key]=isNew?[...data[key],rec]:data[key].map(x=>x.id===rec.id?rec:x)
+  modal=null;draw()
   syncing=true;syncMsg='Guardando...';draw()
-  let r
-  if(action==='insert') r=await apiPost({action:'insertar',tabla,fila})
-  if(action==='update') r=await apiPost({action:'actualizar',tabla,id,fila})
-  if(action==='delete') r=await apiPost({action:'eliminar',tabla,id})
+  const r=await apiPost({action:isNew?'insertar':'actualizar',tabla,fila:rec,id:rec.id})
   syncing=false
-  if(r&&r.ok){modal=null;toast(action==='delete'?'Eliminado ✓':'Guardado ✓');await loadData()}
+  if(r&&r.ok){toast('Guardado ✓');await loadData()}
+  else{toast('Error: '+(r&&r.error||'Fallo'),'err');await loadData()}
+}
+
+async function delRec(tabla,id,msg){
+  if(!confirm(msg||'¿Eliminar?'))return
+  data[tabla.toLowerCase()]=data[tabla.toLowerCase()].filter(x=>x.id!==id);draw()
+  const r=await apiPost({action:'eliminar',tabla,id})
+  if(r&&r.ok){toast('Eliminado ✓');await loadData()}
   else{toast('Error: '+(r&&r.error||''),'err');await loadData()}
 }
 
-// ═══════════════════════════════════════════════
-// LOGIN
-// ═══════════════════════════════════════════════
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
 function htmlLogin(){
   return'<div class="lw"><div class="lb">'
-    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="logo-sq">R</div><div><div style="font-size:18px;font-weight:800;color:#1d4ed8">Research Assesor</div><div style="font-size:11px;color:#94a3b8">Coordinación de Investigación · UNO</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    +'<div class="logo-sq">R</div>'
+    +'<div><div style="font-size:18px;font-weight:800;color:#1d4ed8">Research Assesor</div>'
+    +'<div style="font-size:11px;color:#94a3b8">Coordinación de Investigación · UNO</div></div></div>'
     +'<div id="lerr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px;background:#fee2e2;padding:8px;border-radius:6px"></div>'
     +'<div style="margin-bottom:10px"><label>Usuario</label><input id="lu" value="admin" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
     +'<div style="margin-bottom:18px"><label>Contraseña</label><input id="lp" type="password" value="research2024" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
@@ -267,45 +215,43 @@ function doLogin(){
   user=found;loadData()
 }
 
-// ═══════════════════════════════════════════════
-// APP PRINCIPAL
-// ═══════════════════════════════════════════════
+// ── APP ───────────────────────────────────────────────────────────────────────
 const NAV=[
-  {id:'dashboard',l:'Dashboard',   ic:'📊'},
-  {id:'clientes', l:'Clientes',    ic:'👥'},
-  {id:'trabajos', l:'Trabajos',    ic:'💼'},
-  {id:'cobros',   l:'Cobros',      ic:'💰'},
-  {id:'reuniones',l:'Reuniones',   ic:'📅'},
+  {id:'dashboard',l:'Dashboard',ic:'📊'},
+  {id:'clientes', l:'Clientes', ic:'👥'},
+  {id:'trabajos', l:'Trabajos', ic:'💼'},
+  {id:'cobros',   l:'Cobros',   ic:'💰'},
+  {id:'reuniones',l:'Reuniones',ic:'📅'},
 ]
 const TITLES={dashboard:'Panel principal',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones'}
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
-  const totalVencidas=data.cuotas.filter(c=>cuotaStatus(c)==='vencido').length
-  return'<div class="app">'
-    +'<aside>'
-    +'<div class="logo"><div class="logo-sq">R</div><div><div class="logo-name">Research</div><div class="logo-sub">Assesor · UNO</div></div></div>'
+  const nVenc=data.cuotas.filter(c=>cStat(c)==='vencido').length
+  let aside='<aside>'
+    +'<div class="logo"><div class="logo-sq">R</div><div><div class="logo-tx">Research</div><div class="logo-sub">Assesor · UNO</div></div></div>'
     +'<nav>'
     +NAV.map(n=>{
-      const alert=n.id==='cobros'&&totalVencidas>0?'<span style="margin-left:auto;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px">'+totalVencidas+'</span>':''
-      return'<button class="ni'+(page===n.id?' on':'')+'" onclick="goto(\''+n.id+'\')">'+n.ic+' '+n.l+alert+'</button>'
+      const badge=n.id==='cobros'&&nVenc>0?'<span style="margin-left:auto;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px">'+nVenc+'</span>':''
+      return'<button class="ni'+(page===n.id?' on':'')+'" onclick="goTo(\''+n.id+'\')">'+n.ic+' '+n.l+badge+'</button>'
     }).join('')
     +'</nav>'
     +'<div class="foot"><div class="fn">'+esc(user.name)+'</div><div class="fr">'+esc(user.role)+'</div>'
-    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Salir</button></div>'
-    +'</aside>'
+    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Salir</button>'
+    +'</div></aside>'
+
+  return aside
     +'<main>'
     +'<div class="topbar"><h2>'+TITLES[page]+'</h2>'
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
-    +'<button class="btn btn-g btn-sm" onclick="loadData()" title="Recargar">⟳</button>'
+    +'<button class="btn btn-g btn-sm" onclick="loadData()">⟳</button>'
     +'</div>'
     +'<div class="page">'+htmlPage()+'</div>'
     +'</main>'
     +(modal?htmlModal():'')
-    +'</div>'
 }
 
-function goto(p){page=p;search='';expandedWork=null;draw()}
+function goTo(p){page=p;search='';wExp=null;draw()}
 function htmlPage(){
   if(page==='dashboard')return htmlDash()
   if(page==='clientes') return htmlClientes()
@@ -315,19 +261,17 @@ function htmlPage(){
   return''
 }
 
-// ═══════════════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════════════
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function htmlDash(){
-  const {clientes,trabajos,cuotas,abonos}=data
+  const {clientes,trabajos,cuotas,abonos,reuniones}=data
   const cobrado  =abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
-  const pendiente=cuotas.filter(c=>cuotaStatus(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const pendiente=cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
   const activos  =trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').length
-  const vencidas =cuotas.filter(c=>cuotaStatus(c)==='vencido').length
-  const hoy      =new Date().toISOString().split('T')[0]
-  const proxReuniones=data.reuniones.filter(r=>r.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3)
+  const vencidas =cuotas.filter(c=>cStat(c)==='vencido').length
+  const hoy=new Date().toISOString().split('T')[0]
+  const proxR=reuniones.filter(r=>r.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3)
 
-  let html='<div class="kpis">'
+  let h='<div class="kpis">'
     +'<div class="kpi"><div class="kpi-i" style="background:#dbeafe">👥</div><div><div class="kpi-n">'+clientes.length+'</div><div class="kpi-l">Clientes</div></div></div>'
     +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">💼</div><div><div class="kpi-n">'+activos+'</div><div class="kpi-l">Trabajos activos</div></div></div>'
     +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">💰</div><div><div class="kpi-n" style="color:#059669">$'+fmt(cobrado)+'</div><div class="kpi-l">Cobrado</div></div></div>'
@@ -335,410 +279,394 @@ function htmlDash(){
     +(vencidas?'<div class="kpi"><div class="kpi-i" style="background:#fee2e2">⚠️</div><div><div class="kpi-n" style="color:#dc2626">'+vencidas+'</div><div class="kpi-l">Vencidas</div></div></div>':'')
     +'</div>'
 
-  // Alert vencidas
-  if(vencidas){html+='<div class="alert alert-red" style="margin-bottom:16px">⚠️ Tienes <strong>'+vencidas+' cuota'+(vencidas>1?'s':'')+' vencida'+(vencidas>1?'s':'')+'</strong> — <button class="btn btn-r btn-sm" onclick="goto(\'cobros\')">Ver cobros</button></div>'}
+  if(vencidas) h+='<div style="background:#fee2e2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#dc2626;display:flex;align-items:center;justify-content:space-between">⚠️ <strong>'+vencidas+' cuota'+(vencidas>1?'s':'')+' vencida'+(vencidas>1?'s':'')+'</strong><button class="btn btn-r btn-sm" onclick="goTo(\'cobros\')">Ver →</button></div>'
 
-  // Próximas reuniones
-  if(proxReuniones.length){
-    html+='<div class="card"><div class="card-hd"><h3>Próximas reuniones</h3><button class="btn btn-g btn-sm" onclick="goto(\'reuniones\')">Ver todas</button></div>'
-    proxReuniones.forEach(r=>{
+  if(proxR.length){
+    h+='<div class="card"><div class="card-hd"><h3>📅 Próximas reuniones</h3><button class="btn btn-g btn-sm" onclick="goTo(\'reuniones\')">Ver todas</button></div>'
+    proxR.forEach(r=>{
       const cl=clientes.find(c=>c.id===r.clienteId)
       const dObj=new Date(r.fecha+'T12:00:00')
-      html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f8fafc">'
-        +'<div class="datebox"><div class="mo">'+MONTHS[dObj.getMonth()].slice(0,3)+'</div><div class="dy">'+dObj.getDate()+'</div></div>'
-        +'<div style="flex:1"><strong style="font-size:13px">'+esc(r.titulo)+'</strong><div style="font-size:12px;color:#64748b">'+esc(cl&&cl.nombre||'—')+' · '+esc(r.hora||'')+'</div></div>'
-        +(r.link?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm">Unirse</a>':'')
+      h+='<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #f8fafc">'
+        +'<div style="width:44px;text-align:center;background:#f0f6ff;border:1px solid #dbeafe;border-radius:9px;padding:6px 3px;flex-shrink:0">'
+        +'<div style="font-size:10px;font-weight:700;color:#1d4ed8">'+MESES[dObj.getMonth()].slice(0,3).toUpperCase()+'</div>'
+        +'<div style="font-size:20px;font-weight:800;color:#1e293b;line-height:1">'+dObj.getDate()+'</div></div>'
+        +'<div style="flex:1"><strong>'+esc(r.titulo)+'</strong><div style="font-size:12px;color:#64748b">'+esc(cl&&cl.nombre||'—')+' · '+esc(r.hora||'')+'</div></div>'
+        +(r.link?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">Unirse</a>':'')
         +'</div>'
     })
-    html+='</div>'
+    h+='</div>'
   }
 
-  // Clientes recientes
-  html+='<div class="card"><div class="card-hd"><h3>Clientes recientes</h3><button class="btn btn-g btn-sm" onclick="goto(\'clientes\')">Ver todos</button></div>'
-    +'<table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Tel.</th></tr></thead><tbody>'
-  const recent=[...clientes].reverse().slice(0,5)
-  if(recent.length){recent.forEach(c=>{html+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td>'+esc(c.institucion||'—')+'</td><td>'+esc(c.ciudad||'—')+'</td><td>'+esc(c.telefono||'—')+'</td></tr>'})}
-  else html+='<tr><td colspan="4" class="empty">Sin clientes aún</td></tr>'
-  html+='</tbody></table></div>'
-  return html
+  h+='<div class="card"><div class="card-hd"><h3>Clientes recientes</h3><button class="btn btn-g btn-sm" onclick="goTo(\'clientes\')">Ver todos</button></div>'
+    +'<table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th></tr></thead><tbody>'
+  const rec=[...clientes].reverse().slice(0,5)
+  if(rec.length){rec.forEach(c=>{h+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td>'+esc(c.institucion||'—')+'</td><td>'+esc(c.ciudad||'—')+'</td><td>'+esc(c.telefono||'—')+'</td></tr>'})}
+  else h+='<tr><td colspan="4" class="empty">Sin clientes aún</td></tr>'
+  h+='</tbody></table></div>'
+  return h
 }
 
-// ═══════════════════════════════════════════════
-// CLIENTES
-// ═══════════════════════════════════════════════
+// ── CLIENTES ──────────────────────────────────────────────────────────────────
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
-  let html='<div class="tb">'
-    +'<input placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
-    +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button>'
-    +'</div>'
-  html+='<div class="card"><table>'
-    +'<thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
-  if(list.length){
-    list.forEach(c=>{
-      const nTrab=data.trabajos.filter(t=>t.clienteId===c.id).length
-      html+='<tr>'
-        +'<td><strong>'+esc(c.nombre)+'</strong></td>'
-        +'<td>'+esc(c.institucion||'—')+'</td>'
-        +'<td>'+esc(c.ciudad||'—')+'</td>'
-        +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" style="color:#16a34a;font-weight:600">📱 '+esc(c.telefono)+'</a>':'—')+'</td>'
-        +'<td>'+esc(c.email||'—')+'</td>'
-        +'<td>'+bdg(nTrab+' trabajo'+(nTrab!==1?'s':''),'b')+'</td>'
-        +'<td><span style="display:flex;gap:4px">'
-        +'<button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>✏️</button>'
-        +'<button class="btn btn-r btn-sm" onclick="confirmDel(\'Clientes\',\''+c.id+'\',\'¿Eliminar cliente '+esc(c.nombre)+'?\')">🗑</button>'
-        +'</span></td></tr>'
-    })
-  }else html+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
-  html+='</tbody></table></div>'
-  return html
+  let h='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
+  h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
+  if(list.length){list.forEach(c=>{
+    const nT=data.trabajos.filter(t=>t.clienteId===c.id).length
+    h+='<tr><td><strong>'+esc(c.nombre)+'</strong></td>'
+      +'<td>'+esc(c.institucion||'—')+'</td><td>'+esc(c.ciudad||'—')+'</td>'
+      +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none">💬 '+esc(c.telefono)+'</a>':'—')+'</td>'
+      +'<td>'+esc(c.email||'—')+'</td>'
+      +'<td>'+bdg(nT,'blue')+'</td>'
+      +'<td><span style="display:flex;gap:4px"><button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar cliente?\')">🗑</button></span></td></tr>'
+  })}else h+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
+  h+='</tbody></table></div>'
+  return h
 }
 
-// ═══════════════════════════════════════════════
-// TRABAJOS — con cuotas expandibles
-// ═══════════════════════════════════════════════
+// ── TRABAJOS — expandibles con cuotas ─────────────────────────────────────────
 function htmlTrabajos(){
   const q=search.toLowerCase()
-  const fStatus=window._wStatus||'Todos'
   const list=data.trabajos.filter(t=>{
     const cl=data.clientes.find(c=>c.id===t.clienteId)
     return(!q||(t.titulo+' '+(cl&&cl.nombre||'')+' '+t.tipo).toLowerCase().includes(q))
-      &&(fStatus==='Todos'||t.estado===fStatus)
+      &&(wSt==='Todos'||t.estado===wSt)
   })
-
-  let html='<div class="sec-hd"><div><h2>Trabajos</h2><p>'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</p></div>'
+  let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
+    +'<div><strong style="font-size:16px">Trabajos</strong><span style="font-size:12px;color:#64748b;margin-left:8px">'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</span></div>'
     +'<button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
-
-  html+='<div class="tb">'
-    +'<input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
-    +['Todos',...WORK_STATUSES].map(s=>'<button class="btn btn-sm '+(fStatus===s?'btn-p':'btn-g')+'" onclick="window._wStatus=\''+s+'\';draw()">'+s+'</button>').join('')
+  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +['Todos',...ESTADOS].map(s=>'<button class="btn btn-sm '+(wSt===s?'btn-p':'btn-g')+'" onclick="wSt=\''+s+'\';draw()">'+s+'</button>').join('')
     +'</div>'
 
-  if(!list.length){html+='<div class="card"><p class="empty">Sin trabajos encontrados</p></div>';return html}
+  if(!list.length)return h+'<div class="card"><p class="empty">Sin trabajos</p></div>'
 
   list.forEach(t=>{
     const cl=data.clientes.find(c=>c.id===t.clienteId)
-    const bal=workBal(t)
+    const bal=wBal(t)
     const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
-    const hasVenc=cuotas.some(c=>cuotaStatus(c)==='vencido')
-    const isExp=expandedWork===t.id
+    const hasVenc=cuotas.some(c=>cStat(c)==='vencido')
+    const isExp=wExp===t.id
+    const SC={Completado:'green','En progreso':'blue',Revisión:'blue',Cancelado:'gray'}
 
-    html+='<div class="wcard" style="border-color:'+(hasVenc?'#fecaca':'#e2e8f0')+'">'
-      +'<div class="wcard-hd" onclick="expandedWork=expandedWork===\''+t.id+'\'?null:\''+t.id+'\';draw()">'
+    h+='<div class="wcard" style="border-color:'+(hasVenc?'#fecaca':'#e2e8f0')+'">'
+      +'<div class="wcard-hd" onclick="wExp=wExp===\''+t.id+'\'?null:\''+t.id+'\';draw()">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
       +'<strong style="font-size:14px">'+esc(t.titulo)+'</strong>'
-      +bdg(t.estado||'Nuevo',statusColor(t.estado))
-      +(hasVenc?'<span style="font-size:11px;color:#dc2626;font-weight:600">⚠ Vencido</span>':'')
+      +bdg(t.estado||'Nuevo',SC[t.estado]||'amber')
+      +(hasVenc?'<span class="b br">⚠ vencido</span>':'')
       +'</div>'
       +'<div style="font-size:12px;color:#64748b">'+esc(cl&&cl.nombre||'—')+' · '+esc(t.tipo||'—')+'</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:12px;flex-shrink:0">'
-      +'<div style="text-align:right"><div style="font-size:13px;font-weight:700">$'+fmt(bal.total)+'</div><div style="font-size:11px;color:#059669">$'+fmt(bal.paid)+' cobrado</div></div>'
-      +'<div><div class="progbar" style="width:80px"><div class="progbar-fill" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'#059669':'#1d4ed8')+'"></div></div><div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px">'+bal.pct+'%</div></div>'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+      +'<div style="text-align:right;font-size:12px"><div style="font-weight:700">$'+fmt(bal.total)+'</div><div style="color:#059669">$'+fmt(bal.paid)+' cobrado</div></div>'
+      +'<div><div class="pbar" style="width:72px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'#059669':'#1d4ed8')+'"></div></div><div style="font-size:10px;color:#94a3b8;text-align:center">'+bal.pct+'%</div></div>'
       +'<div style="display:flex;gap:4px">'
       +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>✏️</button>'
-      +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();confirmDel(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button>'
+      +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button>'
       +'</div>'
-      +'<span style="font-size:18px;color:#94a3b8">'+(isExp?'▲':'▼')+'</span>'
+      +'<span style="color:#94a3b8;font-size:16px">'+(isExp?'▲':'▼')+'</span>'
       +'</div></div>'
 
-    // Expandido — cuotas
     if(isExp){
-      html+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
-      if(t.notas){html+='<p style="font-size:12px;color:#64748b;margin-bottom:12px">📝 '+esc(t.notas)+'</p>'}
-      if(t.progreso){html+='<div style="margin-bottom:12px;font-size:12px;color:#475569">Progreso: <strong>'+t.progreso+'%</strong> · Inicio: '+esc(t.fechaInicio||'—')+' · Entrega: '+esc(t.fechaFin||'—')+'</div>'}
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        +'<strong style="font-size:12px;color:#475569">Plan de pagos ('+cuotas.length+' cuota'+(cuotas.length!==1?'s':'')+')</strong>'
-        +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',trabajoTitulo:\''+esc(t.titulo)+'\',clienteId:\''+t.clienteId+'\'})">+ Agregar cuota</button>'
+      h+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
+      if(t.notas) h+='<p style="font-size:12px;color:#64748b;margin-bottom:10px">📝 '+esc(t.notas)+'</p>'
+      if(t.progreso||t.fechaInicio) h+='<div style="font-size:12px;color:#475569;margin-bottom:10px">Progreso: <strong>'+esc(t.progreso||0)+'%</strong>'+(t.fechaInicio?' · Inicio: '+esc(t.fechaInicio):'')+(t.fechaFin?' · Entrega: '+esc(t.fechaFin):'')+'</div>'
+
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<strong style="font-size:12px;color:#475569">Plan de pagos ('+cuotas.length+')</strong>'
+        +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',nro:'+(cuotas.length+1)+'})">+ Cuota</button>'
         +'</div>'
+
       if(cuotas.length){
         cuotas.forEach(c=>{
-          const st=cuotaStatus(c)
+          const st=cStat(c)
           const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-          const cc={'pagado':'#dcfce7','parcial':'#dbeafe','vencido':'#fee2e2','pendiente':'#fef3c7'}[st]||'#f1f5f9'
-          const bc={'pagado':'#bbf7d0','parcial':'#bfdbfe','vencido':'#fecaca','pendiente':'#fde68a'}[st]||'#e2e8f0'
-          html+='<div class="crow" style="background:'+cc+';border-color:'+bc+'">'
+          const bgc={pagado:'#dcfce7',parcial:'#dbeafe',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
+          const bdc={pagado:'#bbf7d0',parcial:'#bfdbfe',vencido:'#fecaca',pendiente:'#fde68a'}[st]||'#e2e8f0'
+          const phone=cl&&cl.telefono
+          h+='<div class="crow" style="background:'+bgc+';border-color:'+bdc+'">'
             +'<div class="crow-hd">'
-            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:#64748b">Vence: '+esc(c.fechaVencimiento||'—')+'</div></div>'
-            +'<div style="text-align:center;min-width:70px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
+            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong>'
+            +'<div style="font-size:11px;color:#64748b">Vence: '+esc(c.fechaVencimiento||'—')+'</div></div>'
+            +'<div style="text-align:right;min-width:80px">'
+            +'<div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
             +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:#059669">+$'+fmt(c.pagado)+' pagado</div>':'')
-            +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:#b45309">Saldo: $'+fmt(saldo)+'</div>':'')
+            +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:#b45309">Saldo $'+fmt(saldo)+'</div>':'')
             +'</div>'
-            +bdg(st,cuotaColor(st))
-            +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+t.id+'\',label:\''+esc(c.label)+'\',acordado:\''+c.acordado+'\',pagado:\''+c.pagado+'\'})">💵 Pago</button>':'')
-            +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="sendCuotaWa(\''+c.id+'\',\''+t.id+'\',\''+esc(cl.telefono)+'\',\''+( st==='vencido'?'overdue':'reminder')+'\')" title="WhatsApp">💬</button>':'')
+            +bdg(st,cColor(st))
+            +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+t.id+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})">💵 Pago</button>':'')
+            +(phone?'<button class="btn btn-wa btn-sm" onclick="waRec(\''+c.id+'\',\''+t.id+'\',\''+esc(phone)+'\','+(st==='vencido'?'\'overdue\'':'\'reminder\'')+')">💬</button>':'')
             +'</div>'
-          // Historial abonos
-          const abonosCuota=data.abonos.filter(a=>a.cuotaId===c.id)
-          if(abonosCuota.length){
-            html+='<div style="border-top:1px solid '+bc+';padding:6px 14px;display:flex;gap:10px;flex-wrap:wrap">'
-            abonosCuota.forEach(a=>{html+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
-            html+='</div>'
+          // historial abonos
+          const abs=data.abonos.filter(a=>a.cuotaId===c.id)
+          if(abs.length){
+            h+='<div style="border-top:1px solid '+bdc+';padding:5px 13px;display:flex;gap:10px;flex-wrap:wrap">'
+            abs.forEach(a=>{h+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
+            h+='</div>'
           }
-          html+='</div>'
+          h+='</div>'
         })
       }else{
-        html+='<p style="font-size:12px;color:#94a3b8;text-align:center;padding:12px">Sin cuotas — usa el botón + para agregar</p>'
+        h+='<p style="font-size:12px;color:#94a3b8;text-align:center;padding:10px">Sin cuotas — usa "+ Cuota" para agregar</p>'
       }
-      html+='</div>'
+      h+='</div>'
     }
-    html+='</div>'
+    h+='</div>'
   })
-  return html
+  return h
 }
 
-// ═══════════════════════════════════════════════
-// COBROS — vista global de cuotas
-// ═══════════════════════════════════════════════
+// ── COBROS ────────────────────────────────────────────────────────────────────
 function htmlCobros(){
-  const fStatus=window._cStatus||'Todos'
   const q=search.toLowerCase()
-  const cuotas=data.cuotas.filter(c=>{
+  const rows=data.cuotas.map(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
-    const cl=data.clientes.find(x=>x.id===t?.clienteId)
-    const st=cuotaStatus(c)
-    return(fStatus==='Todos'||fStatus===st)
-      &&(!q||((cl?.nombre||'')+(t?.titulo||'')).toLowerCase().includes(q))
-  }).map(c=>{
-    const t=data.trabajos.find(x=>x.id===c.trabajoId)
-    const cl=data.clientes.find(x=>x.id===t?.clienteId)
-    return{...c,_t:t,_cl:cl,_st:cuotaStatus(c)}
+    const cl=data.clientes.find(x=>x.id===t&&t.clienteId)
+    const st=cStat(c)
+    return{...c,_t:t,_cl:cl,_st:st}
+  }).filter(c=>{
+    return(cSt==='Todos'||cSt===c._st)
+      &&(!q||((c._cl&&c._cl.nombre||'')+(c._t&&c._t.titulo||'')).toLowerCase().includes(q))
   }).sort((a,b)=>{
-    const ord={vencido:0,parcial:1,pendiente:2,pagado:3}
-    return ord[a._st]-ord[b._st]||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)
+    const o={vencido:0,parcial:1,pendiente:2,pagado:3}
+    return o[a._st]-o[b._st]||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)
   })
 
   const cobrado=data.abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
-  const pendiente=data.cuotas.filter(c=>cuotaStatus(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
-  const vencido=data.cuotas.filter(c=>cuotaStatus(c)==='vencido').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const pendiente=data.cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const vencido=data.cuotas.filter(c=>cStat(c)==='vencido').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
   const total=data.cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
 
-  let html='<div class="kpis">'
+  let h='<div class="kpis">'
     +'<div class="kpi"><div class="kpi-i" style="background:#f8faff">📋</div><div><div class="kpi-n">$'+fmt(total)+'</div><div class="kpi-l">Total facturado</div></div></div>'
     +'<div class="kpi"><div class="kpi-i" style="background:#dcfce7">✅</div><div><div class="kpi-n" style="color:#059669">$'+fmt(cobrado)+'</div><div class="kpi-l">Cobrado</div></div></div>'
     +'<div class="kpi"><div class="kpi-i" style="background:#fef3c7">⏰</div><div><div class="kpi-n" style="color:#b45309">$'+fmt(pendiente)+'</div><div class="kpi-l">Por cobrar</div></div></div>'
     +(vencido>0?'<div class="kpi"><div class="kpi-i" style="background:#fee2e2">⚠️</div><div><div class="kpi-n" style="color:#dc2626">$'+fmt(vencido)+'</div><div class="kpi-l">Vencido</div></div></div>':'')
     +'</div>'
 
-  html+='<div class="tb">'
-    +'<input placeholder="Buscar cliente o trabajo..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
-    +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(fStatus===s?'btn-p':'btn-g')+'" onclick="window._cStatus=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
-    +'<button class="btn btn-g btn-sm" onclick="exportCobrosCSV()" style="margin-left:auto">⬇ CSV</button>'
+  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'"/>'
+    +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
+    +'<button class="btn btn-g btn-sm" style="margin-left:auto" onclick="exportCobros()">⬇ CSV</button>'
     +'</div>'
 
-  if(!cuotas.length){html+='<div class="card"><p class="empty">Sin resultados</p></div>';return html}
+  if(!rows.length)return h+'<div class="card"><p class="empty">Sin resultados</p></div>'
 
-  cuotas.forEach(c=>{
-    const st=c._st
-    const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-    const today=new Date(),dueDate=new Date(c.fechaVencimiento)
-    const daysUntil=Math.ceil((dueDate-today)/86400000)
-    const cc={'pagado':'#dcfce7','parcial':'#dbeafe','vencido':'#fee2e2','pendiente':'#fef3c7'}[st]||'#f9fafb'
-    const bc={'pagado':'#bbf7d0','parcial':'#bfdbfe','vencido':'#fecaca','pendiente':'#fde68a'}[st]||'#e2e8f0'
-    const phone=c._cl?.telefono
+  rows.forEach(c=>{
+    const st=c._st,saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+    const today=new Date(),due=new Date(c.fechaVencimiento)
+    const days=Math.ceil((due-today)/86400000)
+    const bgc={pagado:'#dcfce7',parcial:'#dbeafe',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
+    const bdc={pagado:'#bbf7d0',parcial:'#bfdbfe',vencido:'#fecaca',pendiente:'#fde68a'}[st]||'#e2e8f0'
+    const phone=c._cl&&c._cl.telefono
 
-    html+='<div style="background:'+cc+';border:1px solid '+bc+';border-radius:10px;margin-bottom:8px;overflow:hidden">'
-      +'<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;flex-wrap:wrap">'
-      +'<div style="flex:1;min-width:160px">'
-      +'<strong style="font-size:13px">'+esc(c._cl&&c._cl.nombre||'—')+'</strong>'
-      +'<div style="font-size:11px;color:#64748b">'+esc(c._t&&c._t.titulo||'—')+' — '+esc(c.label||'—')+'</div>'
+    h+='<div style="background:'+bgc+';border:1px solid '+bdc+';border-radius:10px;margin-bottom:8px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;gap:10px;padding:11px 15px;flex-wrap:wrap">'
+      +'<div style="flex:1;min-width:150px"><strong style="font-size:13px">'+esc(c._cl&&c._cl.nombre||'—')+'</strong>'
+      +'<div style="font-size:11px;color:#64748b">'+esc(c._t&&c._t.titulo||'—')+' — '+esc(c.label||'—')+'</div></div>'
+      +'<div style="text-align:center;min-width:80px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
+      +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:#059669">+$'+fmt(c.pagado)+'</div>':'')
+      +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;font-weight:600;color:#b45309">Saldo $'+fmt(saldo)+'</div>':'')
       +'</div>'
-      +'<div style="text-align:center;min-width:90px"><div style="font-weight:700;font-size:15px">$'+fmt(c.acordado)+'</div>'
-      +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:#059669">+$'+fmt(c.pagado)+' pagado</div>':'')
-      +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;font-weight:600;color:#b45309">Saldo: $'+fmt(saldo)+'</div>':'')
+      +'<div style="text-align:center;min-width:85px"><div style="font-size:12px">'+esc(c.fechaVencimiento||'—')+'</div>'
+      +(st!=='pagado'?'<div style="font-size:11px;color:'+(days<0?'#dc2626':days<=3?'#b45309':'#94a3b8')+'">'+(days<0?Math.abs(days)+'d vencido':days===0?'Hoy':'en '+days+'d')+'</div>':'')
       +'</div>'
-      +'<div style="text-align:center;min-width:90px"><div style="font-size:12px">'+esc(c.fechaVencimiento||'—')+'</div>'
-      +(st!=='pagado'?'<div style="font-size:11px;color:'+(daysUntil<0?'#dc2626':daysUntil<=3?'#b45309':'#94a3b8')+'">'+(daysUntil<0?Math.abs(daysUntil)+'d vencido':daysUntil===0?'Hoy':'en '+daysUntil+'d')+'</div>':'')
-      +'</div>'
-      +bdg(st,cuotaColor(st))
+      +bdg(st,cColor(st))
       +'<div style="display:flex;gap:5px">'
-      +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+c.acordado+'\',pagado:\''+c.pagado+'\'})">💵 Pago</button>':'')
-      +(phone?'<button class="btn btn-wa btn-sm" onclick="sendCuotaWa(\''+c.id+'\',\''+c.trabajoId+'\',\''+esc(phone)+'\',\''+(st==='vencido'?'overdue':'reminder')+'\')">💬 WA</button>':'')
-      +'</div>'
-      +'</div>'
+      +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})">💵 Pago</button>':'')
+      +(phone?'<button class="btn btn-wa btn-sm" onclick="waRec(\''+c.id+'\',\''+c.trabajoId+'\',\''+esc(phone)+'\','+(st==='vencido'?'\'overdue\'':'\'reminder\'')+')">💬 WA</button>':'')
+      +'</div></div>'
     // Abonos
     const abs=data.abonos.filter(a=>a.cuotaId===c.id)
     if(abs.length){
-      html+='<div style="border-top:1px solid '+bc+';padding:6px 16px;display:flex;gap:10px;flex-wrap:wrap">'
-      abs.forEach(a=>{html+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
-      html+='</div>'
+      h+='<div style="border-top:1px solid '+bdc+';padding:5px 15px;display:flex;gap:10px;flex-wrap:wrap">'
+      abs.forEach(a=>{h+='<span style="font-size:11px;color:#059669">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
+      h+='</div>'
     }
-    html+='</div>'
+    h+='</div>'
   })
-  return html
+  return h
 }
 
-function exportCobrosCSV(){
-  let csv='Cliente,Trabajo,Cuota,Acordado,Pagado,Saldo,Vencimiento,Estado\n'
+function waRec(cuotaId,trabajoId,phone,tplId){
+  const c=data.cuotas.find(x=>x.id===cuotaId)
+  const t=data.trabajos.find(x=>x.id===trabajoId)
+  const cl=data.clientes.find(x=>x.id===t&&t.clienteId)
+  if(!c||!phone)return
+  const msg=waTpl(tplId,{nombre:cl&&cl.nombre||'',trabajo:t&&t.titulo||'',cuota:c.label||'',monto:fmt(c.acordado),fecha:c.fechaVencimiento||''})
+  window.open(waUrl(phone,msg),'_blank')
+}
+
+function exportCobros(){
+  let csv='\uFEFFCliente,Trabajo,Cuota,Acordado,Pagado,Saldo,Vencimiento,Estado\n'
   data.cuotas.forEach(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
-    const cl=data.clientes.find(x=>x.id===t?.clienteId)
-    const st=cuotaStatus(c)
+    const cl=data.clientes.find(x=>x.id===t&&t.clienteId)
     const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-    csv+='"'+[cl&&cl.nombre||'',t&&t.titulo||'',c.label||'',c.acordado||0,c.pagado||0,saldo.toFixed(2),c.fechaVencimiento||'',st].join('","')+'"\n'
+    csv+='"'+[cl&&cl.nombre||'',t&&t.titulo||'',c.label||'',c.acordado||0,c.pagado||0,saldo.toFixed(2),c.fechaVencimiento||'',cStat(c)].join('","')+'"\n'
   })
   const a=document.createElement('a')
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFF'+csv)
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv)
   a.download='cobros_'+new Date().toISOString().slice(0,10)+'.csv';a.click()
 }
 
-// ═══════════════════════════════════════════════
-// REUNIONES — con Google Meet y calendario
-// ═══════════════════════════════════════════════
+// ── REUNIONES ─────────────────────────────────────────────────────────────────
 function htmlReuniones(){
   const hoy=new Date().toISOString().split('T')[0]
   const today=new Date()
   const list=data.reuniones.filter(r=>{
-    if(meetView==='upcoming')return r.fecha>=hoy
-    if(meetView==='past')return r.fecha<hoy
+    if(mvw==='upcoming')return r.fecha>=hoy
+    if(mvw==='past')return r.fecha<hoy
     return true
   }).sort((a,b)=>a.fecha.localeCompare(b.fecha))
 
+  // Build calendar
   const calDays={}
   data.reuniones.forEach(r=>{
     const d=new Date(r.fecha+'T12:00:00')
-    if(d.getMonth()===calMonth&&d.getFullYear()===calYear)
+    if(d.getMonth()===calM&&d.getFullYear()===calY)
       calDays[d.getDate()]=(calDays[d.getDate()]||[]).concat(r)
   })
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate()
-  const firstDay=new Date(calYear,calMonth,1).getDay()
+  const dim=new Date(calY,calM+1,0).getDate()
+  const fd=new Date(calY,calM,1).getDay()
 
-  let html='<div style="display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start">'
+  let h='<div style="display:grid;grid-template-columns:1fr 265px;gap:18px;align-items:start">'
     +'<div>'
 
-  html+='<div class="sec-hd"><div><h2>Reuniones</h2><p>Agenda con Google Meet integrado</p></div>'
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">'
+    +'<div><strong style="font-size:16px">Reuniones</strong><span style="font-size:12px;color:#64748b;margin-left:8px">Agenda con Google Meet</span></div>'
     +'<button class="btn btn-p" onclick="openModal(\'reunion\',null)">+ Nueva reunión</button></div>'
 
-  html+='<div class="tb">'
-    +['upcoming','past','all'].map((v,i)=>'<button class="btn btn-sm '+(meetView===v?'btn-p':'btn-g')+'" onclick="meetView=\''+v+'\';draw()">'+['Próximas','Pasadas','Todas'][i]+'</button>').join('')
+  h+='<div class="tb">'
+    +['upcoming','past','all'].map((v,i)=>'<button class="btn btn-sm '+(mvw===v?'btn-p':'btn-g')+'" onclick="mvw=\''+v+'\';draw()">'+['Próximas','Pasadas','Todas'][i]+'</button>').join('')
     +'</div>'
 
-  if(!list.length){html+='<div class="card"><p class="empty">Sin reuniones en esta vista</p></div>'}
+  if(!list.length){h+='<div class="card"><p class="empty">Sin reuniones en esta vista</p></div>'}
   else{
     list.forEach(r=>{
       const cl=data.clientes.find(c=>c.id===r.clienteId)
-      const tr=data.trabajos.find(t=>t.id===r.trabajoId)
       const dObj=new Date(r.fecha+'T12:00:00')
       const isToday=r.fecha===hoy
       const isPast=r.fecha<hoy
-      const hasLink=!!r.link
-
-      html+='<div class="mcard" style="opacity:'+(isPast?.65:1)+';border-color:'+(isToday?'#bfdbfe':'#e2e8f0')+'">'
-        +'<div class="datebox" style="'+(isToday?'background:#dbeafe;border-color:#bfdbfe':'background:#f8faff')+'">'
-        +'<div class="mo" style="'+(isToday?'color:#1d4ed8':'')+'">'+MONTHS[dObj.getMonth()].slice(0,3)+'</div>'
-        +'<div class="dy" style="'+(isToday?'color:#1d4ed8':'')+'">'+dObj.getDate()+'</div>'
+      h+='<div class="mcard" style="opacity:'+(isPast?.65:1)+';border-color:'+(isToday?'#bfdbfe':'#e2e8f0')+'">'
+        +'<div class="datebox" style="'+(isToday?'background:#dbeafe;border:1px solid #bfdbfe':'background:#f8faff;border:1px solid #e2e8f0')+'">'
+        +'<div style="font-size:10px;font-weight:700;color:'+(isToday?'#1d4ed8':'#94a3b8')+'">'+MESES[dObj.getMonth()].slice(0,3).toUpperCase()+'</div>'
+        +'<div style="font-size:20px;font-weight:800;line-height:1;color:'+(isToday?'#1d4ed8':'#1e293b')+'">'+dObj.getDate()+'</div>'
         +'</div>'
         +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
         +'<strong style="font-size:14px">'+esc(r.titulo)+'</strong>'
         +(isToday?'<span class="b bb">HOY</span>':'')
-        +(!hasLink&&!isPast?'<span class="b ba">Sin link</span>':'')
+        +(!r.link&&!isPast?'<span class="b ba">Sin link</span>':'')
         +'</div>'
-        +'<div style="font-size:12px;color:#64748b;margin-bottom:6px">'+esc(cl&&cl.nombre||'—')+(tr?' · '+esc(tr.titulo.slice(0,25)):'')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;margin-bottom:5px">'+esc(cl&&cl.nombre||'—')+'</div>'
         +'<div style="font-size:12px;color:#475569">🕐 '+esc(r.hora||'—')+' · 💻 '+esc(r.plataforma||'—')+'</div>'
         +(r.notas?'<div style="font-size:11px;color:#94a3b8;margin-top:3px">📝 '+esc(r.notas)+'</div>':'')
-        +(hasLink?'<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;background:#f0f9ff;border-radius:7px;border:1px solid #bae6fd">'
+        +(r.link?'<div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding:5px 9px;background:#f0f9ff;border-radius:7px;border:1px solid #bae6fd">'
           +'<span style="font-size:11px;color:#0369a1;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.link)+'</span>'
-          +'<button class="btn btn-g btn-sm" onclick="navigator.clipboard.writeText(\''+esc(r.link)+'\');this.textContent=\'✓ Copiado\';setTimeout(()=>this.textContent=\'Copiar\',2000)">Copiar</button>'
+          +'<button class="btn btn-g btn-sm" onclick="navigator.clipboard.writeText(\''+esc(r.link)+'\');this.textContent=\'✓\';setTimeout(()=>this.textContent=\'Copiar\',2000)">Copiar</button>'
           +'</div>':'')
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">'
-        +(hasLink?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none;justify-content:center">🎥 Unirse</a>'
-          :'<a href="'+esc(buildCalUrl(r,cl&&cl.nombre||''))+'" target="_blank" class="btn btn-amber btn-sm" style="text-decoration:none;justify-content:center">📅 Google Cal</a>')
-        +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="sendMeetWa(\''+r.id+'\')">💬 Confirmar</button>':'')
+        +(r.link
+          ?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none;justify-content:center">🎥 Unirse</a>'
+          :'<a href="'+esc(calUrl(r,cl&&cl.nombre||''))+'" target="_blank" class="btn btn-amber btn-sm" style="text-decoration:none;justify-content:center">📅 Crear Meet</a>')
+        +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="waMeet(\''+r.id+'\')">💬 Confirmar</button>':'')
         +'<div style="display:flex;gap:4px">'
         +'<button class="btn btn-g btn-sm" onclick=\'openModal("reunion",'+jss(r)+')\'>✏️</button>'
-        +'<button class="btn btn-r btn-sm" onclick="confirmDel(\'Reuniones\',\''+r.id+'\',\'¿Eliminar reunión?\')">🗑</button>'
-        +'</div>'
-        +'</div>'
-        +'</div>'
+        +'<button class="btn btn-r btn-sm" onclick="delRec(\'Reuniones\',\''+r.id+'\',\'¿Eliminar reunión?\')">🗑</button>'
+        +'</div></div></div>'
     })
   }
+  h+='</div>'
 
-  html+='</div>'
-
-  // Mini calendario
-  html+='<div style="position:sticky;top:70px">'
-    +'<div class="card" style="padding:16px">'
+  // Calendario
+  h+='<div style="position:sticky;top:70px">'
+    +'<div class="card" style="padding:15px">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    +'<button class="btn btn-g btn-sm" onclick="calMonth===0?(calMonth=11,calYear--):(calMonth--);draw()">‹</button>'
-    +'<strong style="font-size:14px">'+MONTHS[calMonth]+' '+calYear+'</strong>'
-    +'<button class="btn btn-g btn-sm" onclick="calMonth===11?(calMonth=0,calYear++):(calMonth++);draw()">›</button>'
+    +'<button class="btn btn-g btn-sm" onclick="calM===0?(calM=11,calY--):(calM--);draw()">‹</button>'
+    +'<strong style="font-size:13px">'+MESES[calM]+' '+calY+'</strong>'
+    +'<button class="btn btn-g btn-sm" onclick="calM===11?(calM=0,calY++):(calM++);draw()">›</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">'
-    +DAYS_S.map(d=>'<div style="font-size:10px;font-weight:700;color:#94a3b8;padding:2px">' +d+'</div>').join('')
-    +Array(firstDay).fill('<div></div>').join('')
-    +Array(daysInMonth).fill(0).map((_,i)=>{
-      const day=i+1,hasMeet=!!calDays[day]
-      const isNow=day===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear()
-      return'<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:'+(hasMeet?600:400)+';background:'+(isNow?'#1d4ed8':hasMeet?'#dbeafe':'transparent')+';color:'+(isNow?'#fff':hasMeet?'#1d4ed8':'#475569')+'">'
-        +day+'</div>'
+    +DIAS.map(d=>'<div style="font-size:10px;font-weight:700;color:#94a3b8;padding:2px">'+d+'</div>').join('')
+    +Array(fd).fill('<div></div>').join('')
+    +Array(dim).fill(0).map((_,i)=>{
+      const day=i+1,hm=!!calDays[day]
+      const isN=day===today.getDate()&&calM===today.getMonth()&&calY===today.getFullYear()
+      return'<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:'+(hm?600:400)+';background:'+(isN?'#1d4ed8':hm?'#dbeafe':'transparent')+';color:'+(isN?'#fff':hm?'#1d4ed8':'#475569')+'">'+day+'</div>'
     }).join('')
-    +'</div>'
-    +'</div>'
+    +'</div></div>'
 
-    // Plataformas
-    +'<div class="card" style="padding:14px;margin-top:12px">'
-    +'<div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px">PLATAFORMAS</div>'
+  h+='<div class="card" style="padding:13px;margin-top:10px">'
+    +'<div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px">PLATAFORMAS</div>'
     +[{n:'Google Meet',u:'https://meet.google.com',c:'#4285f4'},
       {n:'Zoom',u:'https://zoom.us/start/videomeeting',c:'#2d8cff'},
       {n:'Whereby',u:'https://whereby.com',c:'#5c5bd4'}].map(p=>
-      '<a href="'+p.u+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:5px;background:#f8faff;text-decoration:none;border:1px solid #e2e8f0">'
-      +'<div style="width:8px;height:8px;border-radius:50%;background:'+p.c+';flex-shrink:0"></div>'
+      '<a href="'+p.u+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;margin-bottom:4px;background:#f8faff;text-decoration:none;border:1px solid #e2e8f0">'
+      +'<div style="width:7px;height:7px;border-radius:50%;background:'+p.c+'"></div>'
       +'<span style="font-size:12px;font-weight:600;color:#1e293b">'+p.n+'</span>'
-      +'<span style="margin-left:auto;font-size:11px;color:#94a3b8">↗</span>'
-      +'</a>'
+      +'<span style="margin-left:auto;font-size:11px;color:#94a3b8">↗</span></a>'
     ).join('')
     +'</div>'
     +'</div>'
 
-  html+='</div>'
-  return html
+  h+='</div>'
+  return h
 }
 
-function buildCalUrl(r,clientName){
-  const title=encodeURIComponent((r.titulo||'Reunión')+(clientName?' — '+clientName:''))
-  const date=(r.fecha||'').replace(/-/g,'')
-  const [h,m]=(r.hora||'10:00').split(':')
-  const endH=String(parseInt(h)+1).padStart(2,'0')
-  return'https://calendar.google.com/calendar/r/eventedit?text='+title+'&dates='+date+'T'+h+m+'00/'+date+'T'+endH+m+'00&location='+encodeURIComponent(r.link||'')+'&details='+encodeURIComponent('Research Assesor\n'+(r.link||''))
+function calUrl(r,clName){
+  const tt=encodeURIComponent((r.titulo||'Reunión')+(clName?' — '+clName:''))
+  const dt=(r.fecha||'').replace(/-/g,'')
+  const [hh,mm]=(r.hora||'10:00').split(':')
+  const eh=String(parseInt(hh)+1).padStart(2,'0')
+  return'https://calendar.google.com/calendar/r/eventedit?text='+tt+'&dates='+dt+'T'+hh+mm+'00/'+dt+'T'+eh+mm+'00&location='+encodeURIComponent(r.link||'')+'&details='+encodeURIComponent('Research Assesor\n'+(r.link||''))
 }
 
-async function createGoogleMeet(titulo,fecha,hora){
+function waMeet(rid){
+  const r=data.reuniones.find(x=>x.id===rid)
+  const cl=data.clientes.find(x=>x.id===r&&r.clienteId)
+  if(!r||!(cl&&cl.telefono))return
+  const msg=waTpl('meeting',{nombre:cl.nombre||'',fecha:r.fecha||'',hora:r.hora||'',plat:r.plataforma||'',link:r.link||''})
+  window.open(waUrl(cl.telefono,msg),'_blank')
+}
+
+async function genMeet(titulo,fecha,hora){
   return new Promise((resolve,reject)=>{
     const cb='_mc_'+Date.now()
     const s=document.createElement('script')
     const to=setTimeout(()=>{cleanup();reject(new Error('Timeout'))},15000)
-    function cleanup(){clearTimeout(to);delete window[cb];if(s.parentNode)s.parentNode.removeChild(s)}
-    window[cb]=function(d){cleanup();d.error?reject(new Error(d.error)):d.meetLink?resolve(d.meetLink):reject(new Error('Sin link'))}
+    function cleanup(){clearTimeout(to);delete window[cb];s.parentNode&&s.parentNode.removeChild(s)}
+    window[cb]=d=>{cleanup();d.error?reject(new Error(d.error)):d.meetLink?resolve(d.meetLink):reject(new Error('Sin link'))}
     s.src=API+'?action=createMeet&title='+encodeURIComponent(titulo)+'&date='+encodeURIComponent(fecha)+'&time='+encodeURIComponent(hora||'10:00')+'&duration=60&callback='+cb
-    s.onerror=()=>{cleanup();reject(new Error('Error de red'))}
+    s.onerror=()=>{cleanup();reject(new Error('Sin conexión'))}
     document.head.appendChild(s)
   })
 }
 
-function sendMeetWa(reunionId){
-  const r=data.reuniones.find(x=>x.id===reunionId)
-  const cl=data.clientes.find(x=>x.id===r?.clienteId)
-  if(!r||!cl?.telefono)return
-  const msg=buildMeetingMsg(r,cl)
-  window.open(waUrl(cl.telefono,msg),'_blank')
+async function clickGenMeet(){
+  const btn=document.getElementById('btnMeet')
+  const sta=document.getElementById('meetSta')
+  const titulo=v('r0')||'Reunión Research Assesor'
+  const fecha=v('r3'),hora=v('r4')
+  btn.disabled=true;btn.textContent='⟳ Creando...'
+  sta.innerHTML='<span style="color:#b45309">Creando Google Meet...</span>'
+  try{
+    const link=await genMeet(titulo,fecha,hora)
+    document.getElementById('r6').value=link
+    sta.innerHTML='<span style="color:#059669">✓ Meet creado: '+esc(link)+'</span>'
+  }catch(e){
+    const url=calUrl({titulo,fecha,hora,link:''},'')
+    window.open(url,'_blank')
+    sta.innerHTML='<span style="color:#b45309">⚠ No automático. Se abrió Google Calendar — copia el link meet.google.com/xxx-yyy aquí.</span>'
+  }finally{btn.disabled=false;btn.textContent='🎥 Generar Meet'}
 }
 
-function sendCuotaWa(cuotaId,trabajoId,phone,tplId){
-  const c=data.cuotas.find(x=>x.id===cuotaId)
-  const t=data.trabajos.find(x=>x.id===trabajoId)
-  const cl=data.clientes.find(x=>x.id===t?.clienteId)
-  if(!c||!phone)return
-  const msg=buildCuotaMsg(tplId,c,t,cl)
-  window.open(waUrl(phone,msg),'_blank')
-}
-
-// ═══════════════════════════════════════════════
-// MODALES
-// ═══════════════════════════════════════════════
+// ── MODALES ───────────────────────────────────────────────────────────────────
 function openModal(type,rec){modal={type,rec:rec||{}};draw()}
 function closeModal(){modal=null;draw()}
 
@@ -754,259 +682,183 @@ function htmlModal(){
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
 
-// MODAL CLIENTE
 function mCliente(d){
-  const isE=!!d.id
-  return'<h3>'+(isE?'Editar':'Nuevo')+' cliente</h3>'
+  const e=!!d.id
+  return'<h3>'+(e?'Editar':'Nuevo')+' cliente</h3>'
     +'<div class="fg">'
-    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'"/></div>'
-    +'<div><label>Teléfono (WhatsApp)</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
+    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'" placeholder="Nombre completo"/></div>'
+    +'<div><label>Teléfono / WhatsApp</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
     +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'"/></div>'
     +'<div><label>Institución / Universidad</label><input id="f3" value="'+esc(d.institucion||'')+'"/></div>'
     +'<div><label>Ciudad</label><input id="f4" value="'+esc(d.ciudad||'')+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f5">'+esc(d.notas||'')+'</textarea></div>'
     +'</div>'
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button></div>'
+    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')"><strong>'+(e?'Actualizar':'Registrar')+'</strong></button></div>'
 }
 function submitCliente(id){
-  const nombre=v('f0')
-  if(!nombre){alert('El nombre es obligatorio');return}
-  const fila={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion:v('f3'),ciudad:v('f4'),notas:v('f5'),createdAt:id?undefined:new Date().toISOString()}
-  mutate('Clientes',id?'update':'insert',id||null,fila)
+  const nombre=v('f0');if(!nombre){alert('Nombre obligatorio');return}
+  const rec={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion:v('f3'),ciudad:v('f4'),notas:v('f5'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  saveRec('Clientes',rec,!id)
 }
 
-// MODAL TRABAJO
 function mTrabajo(d){
-  const isE=!!d.id
-  const hoy=new Date().toISOString().split('T')[0]
-  let html='<h3>'+(isE?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
-    +'<div class="full"><label>Título del trabajo *</label><input id="t0" value="'+esc(d.titulo||'')+'"/></div>'
-    +'<div class="full"><label>Cliente *</label><select id="t1"><option value="">Seleccionar cliente...</option>'
+  const e=!!d.id,hoy=new Date().toISOString().split('T')[0]
+  let s='<h3>'+(e?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
+    +'<div class="full"><label>Título *</label><input id="f0" value="'+esc(d.titulo||'')+'"/></div>'
+    +'<div class="full"><label>Cliente *</label><select id="f1"><option value="">Seleccionar...</option>'
     +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
     +'</select></div>'
-    +'<div><label>Tipo de servicio</label><select id="t2">'+SERVICE_TYPES.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
-    +'<div><label>Estado</label><select id="t3">'+WORK_STATUSES.map(e=>'<option'+(d.estado===e?' selected':'')+'>'+esc(e)+'</option>').join('')+'</select></div>'
-    +'<div><label>Valor total ($)</label><input id="t4" type="number" min="0" step="0.01" value="'+esc(d.total||'')+'"/></div>'
-    +'<div><label>Progreso (%)</label><input id="t5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
-    +'<div><label>Fecha inicio</label><input id="t6" type="date" value="'+esc(d.fechaInicio||hoy)+'"/></div>'
-    +'<div><label>Fecha entrega</label><input id="t7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
-    +'<div class="full"><label>Notas / descripción</label><textarea id="t8">'+esc(d.notas||'')+'</textarea></div>'
+    +'<div><label>Tipo</label><select id="f2">'+TIPOS.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
+    +'<div><label>Estado</label><select id="f3">'+ESTADOS.map(x=>'<option'+(d.estado===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
+    +'<div><label>Total ($)</label><input id="f4" type="number" min="0" step="0.01" value="'+esc(d.total||'')+'"/></div>'
+    +'<div><label>Progreso (%)</label><input id="f5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
+    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(d.fechaInicio||hoy)+'"/></div>'
+    +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
+    +'<div class="full"><label>Notas / descripción</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div>'
     +'</div>'
-
-  // Plan de pagos (solo nuevos)
-  if(!isE){
-    html+='<div style="margin-top:14px;padding:14px;background:#f8faff;border-radius:10px;border:1px solid #dbeafe">'
-      +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:10px">💰 PLAN DE PAGOS AUTOMÁTICO</div>'
+  if(!e){
+    s+='<div style="margin-top:12px;padding:13px;background:#f0f6ff;border-radius:10px;border:1px solid #dbeafe">'
+      +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:10px">💰 Plan de pagos automático</div>'
       +'<div class="fg">'
-      +'<div><label>Número de cuotas</label><input id="tp_n" type="number" min="1" max="24" value="2" onchange="updatePlanPreview()"/></div>'
-      +'<div><label>Primera cuota</label><input id="tp_d" type="date" value="'+new Date().toISOString().split('T')[0]+'" onchange="updatePlanPreview()"/></div>'
+      +'<div><label>Número de cuotas</label><input id="tp_n" type="number" min="1" max="24" value="2" oninput="previewPlan()"/></div>'
+      +'<div><label>Fecha primera cuota</label><input id="tp_d" type="date" value="'+hoy+'" oninput="previewPlan()"/></div>'
       +'</div>'
-      +'<div id="plan-preview" style="margin-top:8px;font-size:12px;color:#64748b"></div>'
+      +'<div id="pprev" style="margin-top:7px;font-size:12px;color:#64748b"></div>'
       +'</div>'
   }
-
-  html+='<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitTrabajo(\''+esc(d.id||'')+'\','+isE+')"><strong>'+(isE?'Actualizar':'Registrar')+'</strong></button></div>'
-  return html
+  s+='<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitTrabajo(\''+esc(d.id||'')+'\','+e+')"><strong>'+(e?'Actualizar':'Registrar')+'</strong></button></div>'
+  return s
 }
 
-function updatePlanPreview(){
-  const total=parseFloat(document.getElementById('t4')?.value||0)
-  const n=parseInt(document.getElementById('tp_n')?.value||1)
-  const d=document.getElementById('tp_d')?.value
-  const prev=document.getElementById('plan-preview')
-  if(!prev)return
-  if(!total||!n){prev.innerHTML='<span style="color:#94a3b8">Ingresa el valor total para ver el plan</span>';return}
-  const perCuota=Math.floor(total*100/n)/100
-  const lastCuota=Math.round((total-(perCuota*(n-1)))*100)/100
-  let html='Plan: '
-  for(let i=0;i<Math.min(n,4);i++){
-    const date=new Date(d||new Date())
-    date.setMonth(date.getMonth()+i)
-    const label=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
-    const amt=i===n-1?lastCuota:perCuota
-    html+='<span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px;display:inline-block">'+label+' $'+fmt(amt)+' · '+date.toISOString().split('T')[0]+'</span>'
+function previewPlan(){
+  const total=parseFloat(document.getElementById('f4')&&document.getElementById('f4').value||0)
+  const n=parseInt(document.getElementById('tp_n')&&document.getElementById('tp_n').value||1)
+  const d=document.getElementById('tp_d')&&document.getElementById('tp_d').value
+  const el=document.getElementById('pprev');if(!el)return
+  if(!total||!n){el.innerHTML='<em>Ingresa el valor total para ver el plan</em>';return}
+  const pc=Math.floor(total*100/n)/100
+  const last=Math.round((total-pc*(n-1))*100)/100
+  let h='Plan: '
+  for(let i=0;i<Math.min(n,5);i++){
+    const dt=new Date(d||new Date());dt.setMonth(dt.getMonth()+i)
+    const lb=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
+    const am=i===n-1?last:pc
+    h+='<span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px;display:inline-block">'+lb+' $'+fmt(am)+' · '+dt.toISOString().split('T')[0]+'</span>'
   }
-  if(n>4)html+='<span style="color:#94a3b8">...+${n-4} más</span>'
-  prev.innerHTML=html
+  if(n>5)h+='<em style="color:#94a3b8"> ...y '+(n-5)+' más</em>'
+  el.innerHTML=h
 }
 
 async function submitTrabajo(id,isEdit){
-  const titulo=v('t0'),clienteId=v('t1')
-  if(!titulo){alert('El título es obligatorio');return}
+  const titulo=v('f0'),clienteId=v('f1')
+  if(!titulo){alert('Título obligatorio');return}
   if(!clienteId){alert('Selecciona un cliente');return}
   const cl=data.clientes.find(c=>c.id===clienteId)
-  const total=parseFloat(v('t4'))||0
-  const fila={
-    id:id||uid(),clienteId,clienteNombre:cl&&cl.nombre||'',titulo,
-    tipo:v('t2'),estado:v('t3'),total,progreso:v('t5'),
-    fechaInicio:v('t6'),fechaFin:v('t7'),notas:v('t8'),
-    createdAt:id?undefined:new Date().toISOString()
-  }
-  await mutate('Trabajos',id?'update':'insert',id||null,fila)
-
-  // Crear cuotas automáticas para trabajos nuevos
+  const total=parseFloat(v('f4'))||0
+  const rec={id:id||uid(),clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo:v('f2'),estado:v('f3'),total,progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  await saveRec('Trabajos',rec,!id)
   if(!isEdit&&total>0){
-    const n=parseInt(v('tp_n'))||1
-    const d=v('tp_d')||new Date().toISOString().split('T')[0]
-    const perCents=Math.floor(total*100/n)
-    const lastCents=Math.round(total*100)-(perCents*(n-1))
-    const workId=fila.id
+    const n=parseInt(v('tp_n'))||1,d=v('tp_d')||new Date().toISOString().split('T')[0]
+    const pc=Math.floor(total*100/n)/100
+    const last=Math.round((total-pc*(n-1))*100)/100
     for(let i=0;i<n;i++){
-      const date=new Date(d)
-      date.setMonth(date.getMonth()+i)
-      const label=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
-      const amt=i===n-1?lastCents/100:perCents/100
-      const cuota={id:uid(),trabajoId:workId,label,fechaVencimiento:date.toISOString().split('T')[0],acordado:amt,pagado:0,estado:'pendiente'}
-      await apiPost({action:'insertar',tabla:'Cuotas',fila:cuota})
+      const dt=new Date(d);dt.setMonth(dt.getMonth()+i)
+      const lb=i===0?'Anticipo':`Cuota ${i+1}`+(i===n-1&&n>1?' (final)':'')
+      const am=i===n-1?last:pc
+      await apiPost({action:'insertar',tabla:'Cuotas',fila:{id:uid(),trabajoId:rec.id,label:lb,fechaVencimiento:dt.toISOString().split('T')[0],acordado:am,pagado:0,estado:'pendiente'}})
     }
     await loadData()
   }
 }
 
-// MODAL CUOTA (agregar cuota manual)
 function mCuota(d){
-  return'<h3>Agregar cuota — '+esc(d.trabajoTitulo||'Trabajo')+'</h3>'
+  return'<h3>Agregar cuota</h3>'
     +'<div class="fg">'
-    +'<div class="full"><label>Descripción / label</label><input id="q0" value="'+esc(d.label||'Cuota '+(data.cuotas.filter(c=>c.trabajoId===d.trabajoId).length+1))+'"/></div>'
-    +'<div><label>Monto acordado ($)</label><input id="q1" type="number" min="0" step="0.01" value=""/></div>'
-    +'<div><label>Fecha de vencimiento</label><input id="q2" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
+    +'<div class="full"><label>Descripción</label><input id="q0" value="'+esc(d.label||('Cuota '+d.nro))+'"/></div>'
+    +'<div><label>Monto ($) *</label><input id="q1" type="number" min="0" step="0.01" placeholder="0.00"/></div>'
+    +'<div><label>Fecha vencimiento</label><input id="q2" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
     +'</div>'
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitCuota(\''+esc(d.trabajoId)+'\')">Agregar cuota</button></div>'
+    +'<button class="btn btn-p" onclick="submitCuota(\''+esc(d.trabajoId)+'\')">Agregar</button></div>'
 }
 function submitCuota(trabajoId){
-  const monto=parseFloat(v('q1'))
-  if(!monto){alert('El monto es obligatorio');return}
-  const fila={id:uid(),trabajoId,label:v('q0'),fechaVencimiento:v('q2'),acordado:monto,pagado:0,estado:'pendiente'}
-  mutate('Cuotas','insert',null,fila)
+  const monto=parseFloat(v('q1'));if(!monto){alert('Monto obligatorio');return}
+  saveRec('Cuotas',{id:uid(),trabajoId,label:v('q0'),fechaVencimiento:v('q2'),acordado:monto,pagado:0,estado:'pendiente'},true)
 }
 
-// MODAL ABONO
 function mAbono(d){
   const saldo=parseFloat(d.acordado||0)-parseFloat(d.pagado||0)
   return'<h3>Registrar pago — '+esc(d.label||'Cuota')+'</h3>'
-    +'<div style="background:#f8faff;border:1px solid #dbeafe;border-radius:10px;padding:12px;margin-bottom:14px">'
-    +'<div style="display:flex;gap:16px;font-size:13px">'
+    +'<div style="background:#f0f6ff;border:1px solid #dbeafe;border-radius:9px;padding:12px;margin-bottom:14px;display:flex;gap:16px;font-size:13px">'
     +'<span>Acordado: <strong style="color:#1d4ed8">$'+fmt(d.acordado)+'</strong></span>'
     +'<span>Pagado: <strong style="color:#059669">$'+fmt(d.pagado)+'</strong></span>'
     +'<span>Saldo: <strong style="color:#b45309">$'+fmt(saldo)+'</strong></span>'
-    +'</div></div>'
+    +'</div>'
     +'<div class="fg">'
     +'<div class="full"><label>Monto recibido ($) *</label><input id="a0" type="number" min="0.01" step="0.01" max="'+saldo+'" placeholder="Hasta $'+fmt(saldo)+'"/></div>'
     +'</div>'
-    +'<button type="button" style="width:100%;margin-bottom:10px;padding:9px;border-radius:8px;background:#dcfce7;color:#059669;border:1px solid #bbf7d0;font-weight:700;cursor:pointer;font-size:13px" onclick="document.getElementById(\'a0\').value=\''+saldo.toFixed(2)+'\'">✓ Pago completo — $'+fmt(saldo)+'</button>'
+    +'<button style="width:100%;margin-bottom:10px;padding:9px;border-radius:8px;background:#dcfce7;color:#059669;border:1px solid #bbf7d0;font-weight:700;cursor:pointer;font-size:13px" onclick="document.getElementById(\'a0\').value=\''+saldo.toFixed(2)+'\'">✓ Pago completo — $'+fmt(saldo)+'</button>'
     +'<div class="fg">'
-    +'<div><label>Fecha de pago</label><input id="a1" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
-    +'<div><label>Ref. comprobante</label><input id="a2" placeholder="TRF-001, No. transacción..."/></div>'
-    +'<div class="full"><label>Nota</label><input id="a3" placeholder="Ej: Transferencia Banco Pichincha"/></div>'
+    +'<div><label>Fecha</label><input id="a1" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
+    +'<div><label>Ref. comprobante</label><input id="a2" placeholder="TRF-001, Nro. transacción..."/></div>'
+    +'<div class="full"><label>Nota</label><input id="a3" placeholder="Ej: Transferencia BP"/></div>'
     +'</div>'
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-green" onclick="submitAbono(\''+esc(d.cuotaId)+'\',\''+esc(d.trabajoId)+'\',\''+esc(d.acordado)+'\',\''+esc(d.pagado)+'\')">Registrar pago</button></div>'
 }
 async function submitAbono(cuotaId,trabajoId,acordado,pagadoPrev){
-  const monto=parseFloat(v('a0'))
-  if(!monto||monto<=0){alert('Ingresa un monto válido');return}
+  const monto=parseFloat(v('a0'));if(!monto||monto<=0){alert('Monto inválido');return}
   const newPagado=parseFloat(pagadoPrev||0)+monto
   const newAcordado=parseFloat(acordado||0)
   const newSt=newPagado>=newAcordado?'pagado':newPagado>0?'parcial':'pendiente'
-  // Insertar abono
-  const abono={id:uid(),cuotaId,trabajoId,fecha:v('a1'),monto,nota:v('a3'),comprobante:v('a2')}
-  // Actualizar cuota
   const cuota=data.cuotas.find(c=>c.id===cuotaId)
   const cuotaUpd={...cuota,pagado:newPagado,estado:newSt}
+  const abono={id:uid(),cuotaId,trabajoId,fecha:v('a1'),monto,nota:v('a3'),comprobante:v('a2')}
   modal=null;syncing=true;syncMsg='Guardando...';draw()
   await apiPost({action:'insertar',tabla:'Abonos',fila:abono})
   await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:cuotaUpd})
-  syncing=false
-  toast('Pago registrado ✓')
-  await loadData()
+  syncing=false;toast('Pago registrado ✓');await loadData()
 }
 
-// MODAL REUNIÓN — con generación de Google Meet
 function mReunion(d){
-  const hoy=new Date()
-  hoy.setDate(hoy.getDate()+1)
+  const e=!!d.id,hoy=new Date();hoy.setDate(hoy.getDate()+1)
   const def=hoy.toISOString().split('T')[0]
-  return'<h3>'+(d.id?'Editar':'Nueva')+' reunión</h3>'
+  return'<h3>'+(e?'Editar':'Nueva')+' reunión</h3>'
     +'<div class="fg">'
-    +'<div class="full"><label>Título de la reunión *</label><input id="r0" value="'+esc(d.titulo||'')+'" placeholder="Ej: Revisión Cap. 2 tesis"/></div>'
+    +'<div class="full"><label>Título *</label><input id="r0" value="'+esc(d.titulo||'')+'" placeholder="Ej: Revisión Cap. 2"/></div>'
     +'<div class="full"><label>Cliente</label><select id="r1"><option value="">Seleccionar...</option>'
-    +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
-    +'</select></div>'
+    +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')+'</select></div>'
     +'<div class="full"><label>Trabajo relacionado</label><select id="r2"><option value="">Ninguno</option>'
-    +data.trabajos.map(t=>'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo.slice(0,40))+'</option>').join('')
-    +'</select></div>'
+    +data.trabajos.map(t=>'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo.slice(0,42))+'</option>').join('')+'</select></div>'
     +'<div><label>Fecha *</label><input id="r3" type="date" value="'+esc(d.fecha||def)+'"/></div>'
     +'<div><label>Hora</label><input id="r4" type="time" value="'+esc(d.hora||'10:00')+'"/></div>'
     +'<div><label>Plataforma</label><select id="r5">'
     +['Google Meet','Zoom','Microsoft Teams','Whereby','Otra'].map(p=>'<option'+(d.plataforma===p?' selected':'')+'>'+p+'</option>').join('')
     +'</select></div>'
     +'</div>'
-    +'<div style="margin-top:10px">'
-    +'<label>Enlace de reunión</label>'
+    +'<div style="margin-top:10px"><label>Enlace de reunión</label>'
     +'<div style="display:flex;gap:8px;align-items:center">'
-    +'<input id="r6" value="'+esc(d.link||'')+'" placeholder="Se generará al hacer clic → o pega el link directamente"/>'
-    +'<button type="button" class="btn btn-p" style="flex-shrink:0" id="btn-meet" onclick="handleGenMeet()">🎥 Generar Meet</button>'
+    +'<input id="r6" value="'+esc(d.link||'')+'" placeholder="Pega el link o usa → Generar Meet"/>'
+    +'<button type="button" id="btnMeet" class="btn btn-p" style="flex-shrink:0" onclick="clickGenMeet()">🎥 Generar Meet</button>'
     +'</div>'
-    +(d.link?'<div style="margin-top:6px;padding:6px 10px;background:#dcfce7;border-radius:8px;border:1px solid #bbf7d0;font-size:12px;color:#15803d">✓ Link configurado: '+esc(d.link)+'</div>':'')
-    +'<div id="meet-status" style="margin-top:6px;font-size:12px"></div>'
-    +'<div style="margin-top:6px;padding:10px 12px;background:#f0f6ff;border-radius:8px;font-size:12px;color:#1d4ed8;line-height:1.6">'
-    +'<strong>Cómo obtener el link:</strong><br>'
-    +'<strong>Opción A (auto):</strong> Clic en "Generar Meet" — crea el evento directamente en tu Calendar.<br>'
-    +'<strong>Opción B (manual):</strong> Clic en "Generar Meet" → se abre Google Calendar → crea el evento → copia el link <code style="background:#dbeafe;padding:0 4px;border-radius:3px">meet.google.com/xxx-yyy</code> → pégalo arriba.'
+    +'<div id="meetSta" style="margin-top:5px;font-size:12px"></div>'
+    +'<div style="margin-top:6px;padding:9px 12px;background:#f0f6ff;border-radius:8px;font-size:12px;color:#1d4ed8;line-height:1.6">'
+    +'<strong>A:</strong> "Generar Meet" → crea automáticamente.<br>'
+    +'<strong>B:</strong> Clic → Google Calendar → crea el evento → copia link <code style="background:#dbeafe;padding:0 4px;border-radius:3px">meet.google.com/xxx</code> → pégalo arriba.'
     +'</div></div>'
-    +'<div style="margin-top:10px"><label>Notas / agenda</label><textarea id="r7" rows="2">'+esc(d.notas||'')+'</textarea></div>'
+    +'<div style="margin-top:10px"><label>Notas</label><textarea id="r7" rows="2">'+esc(d.notas||'')+'</textarea></div>'
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitReunion(\''+esc(d.id||'')+'\')">Guardar reunión</button></div>'
 }
-
-async function handleGenMeet(){
-  const btn=document.getElementById('btn-meet')
-  const status=document.getElementById('meet-status')
-  const titulo=v('r0')||'Reunión Research Assesor'
-  const fecha=v('r3')
-  const hora=v('r4')
-  btn.textContent='⟳ Creando...'
-  btn.disabled=true
-  status.innerHTML='<span style="color:#b45309">Creando Google Meet...</span>'
-  try{
-    const link=await createGoogleMeet(titulo,fecha,hora)
-    document.getElementById('r6').value=link
-    status.innerHTML='<span style="color:#059669">✓ Meet creado: '+esc(link)+'</span>'
-  }catch(e){
-    // Fallback: open Google Calendar
-    const calUrl=buildCalUrl({titulo,fecha,hora,link:''},'')
-    window.open(calUrl,'_blank')
-    status.innerHTML='<span style="color:#b45309">⚠ No se pudo crear automáticamente. Se abrió Google Calendar — crea el evento y copia el link meet.google.com/xxx-yyy-zzz aquí arriba.</span>'
-  }finally{
-    btn.textContent='🎥 Generar Meet'
-    btn.disabled=false
-  }
-}
-
 function submitReunion(id){
-  const titulo=v('r0')
-  if(!titulo){alert('El título es obligatorio');return}
-  const fila={
-    id:id||uid(),titulo,clienteId:v('r1'),trabajoId:v('r2'),
-    fecha:v('r3'),hora:v('r4'),plataforma:v('r5'),link:v('r6'),notas:v('r7')
-  }
-  mutate('Reuniones',id?'update':'insert',id||null,fila)
+  const titulo=v('r0');if(!titulo){alert('Título obligatorio');return}
+  const rec={id:id||uid(),titulo,clienteId:v('r1'),trabajoId:v('r2'),fecha:v('r3'),hora:v('r4'),plataforma:v('r5'),link:v('r6'),notas:v('r7')}
+  saveRec('Reuniones',rec,!id)
 }
 
-// Confirmar eliminación
-function confirmDel(tabla,id,msg){
-  if(!confirm(msg||'¿Eliminar este registro? No se puede deshacer.'))return
-  mutate(tabla,'delete',id,null)
-}
-
-// ═══════════════════════════════════════════════
-// INICIO
-// ═══════════════════════════════════════════════
-window._wStatus='Todos'
-window._cStatus='Todos'
+// ── INICIO ────────────────────────────────────────────────────────────────────
 draw()
 </script>
 </body>
