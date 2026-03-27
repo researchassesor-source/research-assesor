@@ -167,6 +167,46 @@ textarea{resize:vertical;min-height:64px}
 </head>
 <body>
 <div id="R"></div>
+
+<script>
+// ── DEMO MODE: carga datos de prueba si no hay conexión ──────────────────────
+window._demoData = {
+  clientes:[
+    {id:'c1',nombre:'Ana García Flores',institucion:'Universidad Central',ciudad:'Quito',telefono:'0991234567',email:'ana@uce.edu'},
+    {id:'c2',nombre:'Carlos Moreno',institucion:'PUCE',ciudad:'Quito',telefono:'0987654321',email:'carlos@puce.edu'},
+    {id:'c3',nombre:'María Paredes',institucion:'ESPE',ciudad:'Latacunga',telefono:'0971234567',email:'maria@espe.edu'},
+  ],
+  trabajos:[
+    {id:'t1',clienteId:'c1',titulo:'Tesis Maestría en Educación',tipo:'Asesoría de tesis/proyectos',estado:'En progreso',total:900,progreso:60,fechaInicio:'2025-01-10',fechaFin:'2026-06-30'},
+    {id:'t2',clienteId:'c2',titulo:'Análisis Datos Encuesta PUCE',tipo:'Análisis estadístico',estado:'En progreso',total:600,progreso:40,fechaInicio:'2025-03-01',fechaFin:'2026-05-01'},
+    {id:'t3',clienteId:'c3',titulo:'Artículo Científico LATINDEX',tipo:'Artículo científico',estado:'Revisión',total:500,progreso:80,fechaInicio:'2025-02-01',fechaFin:'2026-04-30'},
+    {id:'t4',clienteId:'c1',titulo:'Diseño Instrumento Investigación',tipo:'Diseño de instrumentos',estado:'Completado',total:400,progreso:100},
+  ],
+  cuotas:[
+    {id:'q1',trabajoId:'t1',label:'Anticipo',fechaVencimiento:'2025-01-15',acordado:300,pagado:300,estado:'pagado'},
+    {id:'q2',trabajoId:'t1',label:'Cuota 2',fechaVencimiento:'2026-04-15',acordado:300,pagado:0,estado:'pendiente'},
+    {id:'q3',trabajoId:'t1',label:'Final',fechaVencimiento:'2026-06-30',acordado:300,pagado:0,estado:'pendiente'},
+    {id:'q4',trabajoId:'t2',label:'Anticipo',fechaVencimiento:'2025-03-05',acordado:300,pagado:300,estado:'pagado'},
+    {id:'q5',trabajoId:'t2',label:'Final',fechaVencimiento:'2026-05-01',acordado:300,pagado:0,estado:'pendiente'},
+    {id:'q6',trabajoId:'t3',label:'Anticipo',fechaVencimiento:'2025-02-10',acordado:200,pagado:200,estado:'pagado'},
+    {id:'q7',trabajoId:'t3',label:'Cuota 2',fechaVencimiento:'2026-03-20',acordado:150,pagado:0,estado:'vencido'},
+    {id:'q8',trabajoId:'t3',label:'Final',fechaVencimiento:'2026-04-30',acordado:150,pagado:0,estado:'pendiente'},
+    {id:'q9',trabajoId:'t4',label:'Pago único',fechaVencimiento:'2025-05-01',acordado:400,pagado:400,estado:'pagado'},
+  ],
+  abonos:[
+    {id:'a1',cuotaId:'q1',trabajoId:'t1',fecha:'2025-01-12',monto:300,nota:'Transferencia inicial',comprobante:'TRF-001'},
+    {id:'a2',cuotaId:'q4',trabajoId:'t2',fecha:'2025-03-03',monto:300,nota:'Depósito',comprobante:'DEP-042'},
+    {id:'a3',cuotaId:'q6',trabajoId:'t3',fecha:'2025-02-08',monto:200,nota:'Efectivo'},
+    {id:'a4',cuotaId:'q9',trabajoId:'t4',fecha:'2025-05-02',monto:400,nota:'Transferencia'},
+  ],
+  reuniones:[
+    {id:'r1',clienteId:'c1',trabajoId:'t1',titulo:'Revisión Capítulo 3',fecha:'2026-03-28',hora:'10:00',plataforma:'Google Meet',link:'https://meet.google.com/abc-def-ghi',notas:'Revisar metodología'},
+    {id:'r2',clienteId:'c2',trabajoId:'t2',titulo:'Entrega resultados SPSS',fecha:'2026-04-02',hora:'15:00',plataforma:'Zoom',link:'',notas:''},
+    {id:'r3',clienteId:'c3',trabajoId:'t3',titulo:'Correcciones artículo',fecha:'2026-04-10',hora:'09:00',plataforma:'Google Meet',link:''},
+  ]
+};
+</script>
+
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const API='https://script.google.com/macros/s/AKfycbxqO7Z4y2j3wukVw1zKMecRS16CmrEa2n0PVXK-vM36_4cYtK4CNdfHLDOwp_iaH8w62Q/exec'
@@ -245,7 +285,7 @@ function toast(msg,err){
 async function loadData(){
   loading=true;syncMsg='Cargando...';syncErr=false;draw()
   const r=await apiGet('getData')
-  if(r&&!r.error){
+  if(r&&!r.error&&(r.clientes||r.trabajos)){
     data={
       clientes:  r.clientes  ||[],
       trabajos:  r.trabajos  ||[],
@@ -255,7 +295,16 @@ async function loadData(){
     }
     syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
     syncErr=false
-  }else{syncMsg='Error: '+(r&&r.error||'Sin conexión');syncErr=true}
+  }else{
+    // Cargar datos de demo si falla la conexión
+    if(window._demoData){
+      data=window._demoData
+      syncMsg='⚡ Modo demo — sin conexión al Sheets'
+      syncErr=true
+    }else{
+      syncMsg='Error: '+(r&&r.error||'Sin conexión');syncErr=true
+    }
+  }
   loading=false;draw()
 }
 
@@ -402,9 +451,9 @@ function htmlDash(){
   const futureMonths = allMonths.filter(x=>x.isFuture)
 
   // Ingresos reales del mes actual
-  const ingresoMesActual=allMonths.find(x=>x.isCurrent)?.real||0
+  const _cur=allMonths.find(x=>x.isCurrent);const ingresoMesActual=(_cur&&_cur.real)||0
   // Ingresos mes anterior
-  const ingresoMesAnterior=allMonths.find((_,i,a)=>a[i].isCurrent&&i>0?false:a[i+1]&&a[i+1].isCurrent)?.real||0
+  const _prev=allMonths.find((_,i,a)=>a[i].isCurrent&&i>0?false:a[i+1]&&a[i+1].isCurrent);const ingresoMesAnterior=(_prev&&_prev.real)||0
   // Proyección total futura
   const proyeccionTotal=futureMonths.reduce((s,x)=>s+x.proj,0)
   // Mejor mes futuro
@@ -800,7 +849,7 @@ function htmlReuniones(){
     const cl=data.clientes.find(c=>c.id===r.clienteId)
     const dObj=new Date(r.fecha+'T12:00:00')
     const isToday=r.fecha===hoy,isPast=r.fecha<hoy
-    h+='<div class="mcard" style="opacity:'+(isPast?.65:1)+';border-color:'+(isToday?'#bfdbfe':'var(--border)')+'">'
+    h+='<div class="mcard" style="opacity:'+(isPast?0.65:1)+';border-color:'+(isToday?'#bfdbfe':'var(--border)')+'">'
       +'<div class="datebox" style="'+(isToday?'background:#dbeafe;border:1px solid #bfdbfe':'background:#f8faff;border:1px solid var(--border)') +'">'
       +'<div style="font-size:10px;font-weight:700;color:'+(isToday?'var(--brand)':'var(--text3)')+'">'+MESES[dObj.getMonth()]+'</div>'
       +'<div style="font-size:22px;font-weight:800;line-height:1.1;color:'+(isToday?'var(--brand)':'var(--text)')+'">'+dObj.getDate()+'</div>'
