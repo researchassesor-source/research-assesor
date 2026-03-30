@@ -248,11 +248,43 @@ const CIUDADES=[
   'Esmeraldas','Tulcán','Babahoyo','Milagro','Sangolquí','Salinas',
   'Otra',
 ]
-const WA_TPLS=[
-  {id:'reminder',msg:'Hola {{nombre}} 👋\n\nTe recuerdo que tienes un pago pendiente:\n\n💼 Trabajo: *"{{trabajo}}"*\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Vence: *{{fecha}}*\n\nPor favor realiza la transferencia.\n\n🙏 Gracias\n— Research Assesor'},
-  {id:'overdue', msg:'Hola {{nombre}}, espero que estés bien.\n\nEl pago del trabajo *"{{trabajo}}"* está vencido:\n\n💳 Cuota: *{{cuota}}*\n💰 Monto: *${{monto}}*\n📅 Venció el: *{{fecha}}*\n\n— Research Assesor'},
-  {id:'meeting', msg:'Hola {{nombre}} 👋\n\nTe confirmo nuestra reunión:\n\n📅 Fecha: *{{fecha}}*\n🕐 Hora: *{{hora}}*\n💻 Plataforma: *{{plat}}*\n🔗 Enlace: {{link}}\n\n¡Nos vemos pronto!\n— Research Assesor'},
-]
+// Plantillas WhatsApp — editables desde Configuración > Mensajes WA
+// Variables disponibles: {{nombre}} {{trabajo}} {{cuota}} {{monto}} {{fecha}} {{hora}} {{plat}} {{link}}
+var WA_TPLS_DEFAULT=[
+  {id:'reminder', nombre:'Recordatorio de pago', categoria:'cobros',
+   msg:'Hola {{nombre}} 👋\n\nEspero que estés teniendo un excelente día. 😊\n\nTe escribo para recordarte amablemente que tienes un pago próximo a vencer:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Vence:* {{fecha}}\n\nSi ya realizaste la transferencia, ¡muchas gracias! Puedes ignorar este mensaje. 🙏\n\nCualquier consulta estoy aquí para ayudarte.\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'overdue', nombre:'Pago vencido (amable)', categoria:'cobros',
+   msg:'Hola {{nombre}}, espero que estés muy bien. 😊\n\nMe pongo en contacto contigo porque tengo pendiente registrar un pago del trabajo que estamos desarrollando juntos:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Fecha de vencimiento:* {{fecha}}\n\nEntiendo que a veces los tiempos se complican. Si necesitas coordinar la forma de pago o tienes alguna consulta, con gusto lo conversamos. 🤝\n\nQuedo pendiente de tu respuesta.\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'overdue2', nombre:'Pago vencido (urgente)', categoria:'cobros',
+   msg:'Hola {{nombre}} 👋\n\nNecesito comentarte que el pago de tu asesoría lleva varios días vencido y es importante regularizarlo para continuar con el proceso:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Venció el:* {{fecha}}\n\nPor favor, realiza la transferencia a la brevedad posible y envíame el comprobante. Si tienes algún inconveniente, escríbeme para buscar una solución juntos.\n\nGracias por tu comprensión.\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'paid', nombre:'Confirmación de pago recibido', categoria:'cobros',
+   msg:'¡Hola {{nombre}}! 🎉\n\nHe recibido tu pago correctamente. ¡Muchas gracias!\n\n✅ *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto registrado:* ${{monto}}\n\nEs un placer trabajar contigo. Seguimos avanzando con tu proyecto. 💪\n\nCualquier consulta o novedad, aquí me tienes.\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'meeting', nombre:'Confirmación de reunión', categoria:'reuniones',
+   msg:'Hola {{nombre}} 👋\n\nTe confirmo nuestra sesión de asesoría:\n\n📅 *Fecha:* {{fecha}}\n🕐 *Hora:* {{hora}}\n💻 *Plataforma:* {{plat}}\n🔗 *Enlace:* {{link}}\n\nTe recomiendo tener a mano los avances o documentos que revisaremos. Si necesitas reprogramar, avísame con anticipación. 😊\n\n¡Nos vemos pronto!\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'welcome', nombre:'Bienvenida a nuevo cliente', categoria:'general',
+   msg:'¡Hola {{nombre}}! 🎓\n\nBienvenido/a a Research Assesor. Es un gusto tenerte como cliente.\n\nTrabajaremos juntos en *{{trabajo}}* y haré todo lo posible para que alcances tus objetivos académicos con éxito. 🏆\n\nEn los próximos días me comunicaré contigo para coordinar los detalles del inicio. Cualquier pregunta, estoy a tu disposición.\n\n¡Mucho éxito!\n\n— Edison Bonifaz | Research Assesor'},
+
+  {id:'advance', nombre:'Avance del trabajo', categoria:'general',
+   msg:'Hola {{nombre}} 😊\n\nTe comparto un breve avance de tu trabajo *{{trabajo}}*:\n\nHemos completado la etapa acordada y el progreso va muy bien. Próximamente te enviaré el documento para tu revisión.\n\nSi tienes alguna observación o ajuste, no dudes en escribirme.\n\n¡Seguimos adelante! 💪\n\n— Edison Bonifaz | Research Assesor'},
+];
+
+// Cargar desde localStorage o usar defaults
+function cargarTpls(){
+  try{
+    const saved=localStorage.getItem('wa_tpls_v2')
+    return saved?JSON.parse(saved):WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
+  }catch(e){return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})}
+}
+function guardarTpls(tpls){
+  try{localStorage.setItem('wa_tpls_v2',JSON.stringify(tpls))}catch(e){}
+}
+var WA_TPLS=cargarTpls()
+
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 async function apiGet(action){
@@ -316,6 +348,7 @@ function waUrl(phone,msg){
   return'https://wa.me/'+ec+'?text='+encodeURIComponent(msg)
 }
 function waTpl(id,vars){
+  WA_TPLS=cargarTpls()
   const t=WA_TPLS.find(x=>x.id===id)||WA_TPLS[0]
   return t.msg.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?String(vars[k]):'')
 }
@@ -426,8 +459,8 @@ const NAV_MAIN=[
   {id:'cobros',   l:'Cobros',   ic:'◎'},
   {id:'reuniones',l:'Reuniones',ic:'◷'},
 ]
-const NAV_ADMIN=[{id:'usuarios',l:'Usuarios',ic:'◐'}]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',usuarios:'Usuarios'}
+const NAV_ADMIN=[{id:'usuarios',l:'Usuarios',ic:'◐'},{id:'mensajes',l:'Mensajes WA',ic:'💬'}]
+const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
 const VERSION='v5.0'
 
 function htmlApp(){
@@ -472,6 +505,7 @@ function htmlPage(){
   if(page==='cobros')   return htmlCobros()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
+  if(page==='mensajes') return htmlMensajes()
   return''
 }
 
@@ -1051,7 +1085,9 @@ function htmlModal(){
   if(modal.type==='cuota')   c=mCuota(modal.rec)
   if(modal.type==='abono')   c=mAbono(modal.rec)
   if(modal.type==='reunion') c=mReunion(modal.rec)
-  if(modal.type==='usuario') c=mUsuario(modal.rec)
+  if(modal.type==='usuario')    c=mUsuario(modal.rec)
+  if(modal.type==='tpl')         c=mTpl(modal.rec)
+  if(modal.type==='preview_tpl') c=mPreviewTpl(modal.rec)
   if(!c)return''
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
@@ -1586,6 +1622,155 @@ function _generarDocx(cl,trabajos,modo){
     setTimeout(function(){URL.revokeObjectURL(url)},5000)
     toast('✓ Documento descargado')
   }).catch(function(e){toast('Error generando Word: '+e.message,'err')})
+}
+
+// ── MENSAJES WHATSAPP ─────────────────────────────────────────────
+function htmlMensajes(){
+  WA_TPLS=cargarTpls()
+  const cats={cobros:'💰 Cobros y pagos',reuniones:'📅 Reuniones',general:'📋 General'}
+  let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">'
+    +'<div><strong style="font-size:16px">Mensajes WhatsApp</strong>'
+    +'<div style="font-size:13px;color:var(--text3);margin-top:2px">Personaliza las plantillas · Tono amable y persuasivo</div></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn btn-g" onclick="resetTpls()">↺ Restaurar</button>'
+    +'<button class="btn btn-p" onclick="openModal(\'tpl\',{})">+ Nueva plantilla</button>'
+    +'</div></div>'
+  // Variables card
+  h+='<div style="background:#dbeafe;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;margin-bottom:20px">'
+    +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">📌 Variables disponibles</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}'].map(function(vr){
+      return'<code style="background:#fff;border:1px solid #bfdbfe;border-radius:5px;padding:2px 8px;font-size:12px;color:#1d4ed8">'+vr+'</code>'
+    }).join('')
+    +'</div></div>'
+  // Templates by category
+  Object.keys(cats).forEach(function(cat){
+    const tpls=WA_TPLS.filter(function(t){return(t.categoria||'general')===cat})
+    if(!tpls.length)return
+    h+='<div style="font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin:20px 0 8px">'+cats[cat]+'</div>'
+    tpls.forEach(function(t){
+      const preview=t.msg.split('\n').join(' ').replace(/[*]/g,'').slice(0,130)
+      const isDefault=WA_TPLS_DEFAULT.some(function(d){return d.id===t.id})
+      const tJson=JSON.stringify(t)
+      h+='<div class="card" style="margin-bottom:10px">'
+        +'<div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        +'<strong style="font-size:14px">'+esc(t.nombre||t.id)+'</strong>'
+        +'<span style="font-size:11px;background:#dcfce7;color:#15803d;border-radius:20px;padding:2px 9px;font-weight:600">'+esc(t.id)+'</span>'
+        +(isDefault?'<span style="font-size:11px;background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:2px 9px">predeterminado</span>':'')
+        +'</div>'
+        +'<div style="font-size:12px;color:var(--text3);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(preview)+'...</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-g btn-sm" onclick="previewTpl(\''+t.id+'\')">👁 Ver</button>'
+        +'<button class="btn btn-g btn-sm" onclick="editarTpl(\''+t.id+'\')">✏️ Editar</button>'
+        +(!isDefault?'<button class="btn btn-r btn-sm" onclick="eliminarTpl(\''+t.id+'\')">🗑</button>':'')
+        +'</div></div></div>'
+    })
+  })
+  return h
+}
+function previewTpl(id){
+  WA_TPLS=cargarTpls()
+  const t=WA_TPLS.find(x=>x.id===id)
+  if(!t)return
+  const preview=t.msg
+    .replace(/{{nombre}}/g,'Ana García')
+    .replace(/{{trabajo}}/g,'Tesis Maestría en Educación')
+    .replace(/{{cuota}}/g,'Anticipo')
+    .replace(/{{monto}}/g,'300.00')
+    .replace(/{{fecha}}/g,'15/04/2026')
+    .replace(/{{hora}}/g,'10:00')
+    .replace(/{{plat}}/g,'Google Meet')
+    .replace(/{{link}}/g,'meet.google.com/abc-def-ghi')
+  modal={type:'preview_tpl',rec:{t:t,preview:preview}};draw()
+}
+
+function eliminarTpl(id){
+  if(!confirm('¿Eliminar esta plantilla?'))return
+  var tpls=cargarTpls().filter(function(t){return t.id!==id})
+  guardarTpls(tpls);WA_TPLS=tpls;draw();toast('Plantilla eliminada')
+}
+
+function resetTpls(){
+  if(!confirm('¿Restaurar todas las plantillas a sus valores originales? Se perderán los cambios.'))return
+  localStorage.removeItem('wa_tpls_v2')
+  WA_TPLS=cargarTpls();draw();toast('Plantillas restauradas ✓')
+}
+
+function mTpl(d){
+  const isNew=!d.id
+  const eid=esc(d.id||'')
+  return'<h3>'+(isNew?'Nueva':'Editar')+' plantilla</h3>'
+    +'<div class="fg">'
+    +'<div><label>Nombre</label><input id="tp0" value="'+esc(d.nombre||'')+'"/></div>'
+    +'<div><label>ID (sin espacios)</label><input id="tp1" value="'+eid+'" '+(isNew?'placeholder="ej: pago_recordatorio"':'readonly style="background:#f8fafc;color:var(--text3)"')+'/></div>'
+    +'<div class="full"><label>Categoría</label><select id="tp2">'
+    +'<option value="cobros"'+((d.categoria||'general')==='cobros'?' selected':'')+'>cobros — Pagos y cobros</option>'
+    +'<option value="reuniones"'+((d.categoria||'')==='reuniones'?' selected':'')+'>reuniones — Agenda</option>'
+    +'<option value="general"'+((d.categoria||'general')==='general'?' selected':'')+'>general — General</option>'
+    +'</select></div>'
+    +'<div class="full"><label>Mensaje</label>'
+    +'<textarea id="tp3" rows="12" style="font-family:monospace;font-size:12px;line-height:1.6">'+esc(d.msg||'')+'</textarea></div>'
+    +'</div>'
+    +'<div style="background:#dbeafe;border-radius:8px;padding:10px 13px;font-size:12px;color:#1d4ed8;margin-top:8px;line-height:1.7">'
+    +'Variables: {{nombre}} {{trabajo}} {{cuota}} {{monto}} {{fecha}} {{hora}} {{plat}} {{link}}<br>'
+    +'Negrita en WhatsApp: escribe *texto* &nbsp;·&nbsp; Salto de línea: Enter normal'
+    +'</div>'
+    +'<div class="ma">'
+    +'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-g" onclick="previewTplForm()">👁 Vista previa</button>'
+    +'<button class="btn btn-p" onclick="submitTpl(\''+eid+'\')"><strong>'+(isNew?'Crear':'Guardar')+'</strong></button>'
+    +'</div>'
+}
+function previewTplForm(){
+  const msg=document.getElementById('tp3')
+  if(!msg)return
+  const preview=msg.value
+    .replace(/{{nombre}}/g,'Ana García')
+    .replace(/{{trabajo}}/g,'Tesis Maestría')
+    .replace(/{{cuota}}/g,'Anticipo')
+    .replace(/{{monto}}/g,'300.00')
+    .replace(/{{fecha}}/g,'15/04/2026')
+    .replace(/{{hora}}/g,'10:00')
+    .replace(/{{plat}}/g,'Google Meet')
+    .replace(/{{link}}/g,'meet.google.com/abc')
+  alert('=== VISTA PREVIA ===\n\n'+preview)
+}
+
+function submitTpl(oldId){
+  const nombre=v('tp0'),id=v('tp1').replace(/\s+/g,'_'),cat=v('tp2'),msg=v('tp3')
+  if(!nombre||!id||!msg){alert('Completa todos los campos');return}
+  var tpls=cargarTpls()
+  const isNew=!oldId
+  if(isNew){
+    if(tpls.some(function(t){return t.id===id})){alert('Ya existe una plantilla con ese ID');return}
+    tpls.push({id:id,nombre:nombre,categoria:cat,msg:msg})
+    toast('Plantilla creada ✓')
+  }else{
+    const idx=tpls.findIndex(function(t){return t.id===oldId})
+    if(idx>-1){tpls[idx]=Object.assign({},tpls[idx],{nombre:nombre,categoria:cat,msg:msg})}
+    toast('Plantilla actualizada ✓')
+  }
+  guardarTpls(tpls);WA_TPLS=tpls;modal=null;draw()
+}
+
+function mPreviewTpl(d){
+  const t=d.t,preview=d.preview
+  const whatsappUrl='https://wa.me/?text='+encodeURIComponent(preview)
+  return'<h3>'+esc(t.nombre||t.id)+'</h3>'
+    +'<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;font-family:system-ui;max-height:400px;overflow-y:auto">'+esc(preview)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">📌 Vista previa con datos de ejemplo</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cerrar</button>'
+    +'<a href="'+whatsappUrl+'" target="_blank" class="btn btn-wa" style="text-decoration:none">💬 Probar en WhatsApp</a>'
+    +'</div>'
+}
+
+function editarTpl(id){
+  WA_TPLS=cargarTpls()
+  const t=WA_TPLS.find(function(x){return x.id===id})
+  if(t) openModal('tpl', t)
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
