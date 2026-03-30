@@ -736,14 +736,18 @@ function htmlClientes(){
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
     const nT=data.trabajos.filter(t=>t.clienteId===c.id).length
-    h+='<tr><td><strong>'+esc(c.nombre)+'</strong></td>'
+        h+='<tr>'
+      +'<td><strong>'+esc(c.nombre)+'</strong>'+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
       +'<td style="color:var(--text3)">'+esc(c.institucion||'—')+'</td>'
       +'<td style="color:var(--text3)">'+esc(c.ciudad||'—')+'</td>'
       +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none">💬 '+esc(c.telefono)+'</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
       +'<td style="color:var(--text3)">'+esc(c.email||'—')+'</td>'
       +'<td>'+bdg(nT,'blue')+'</td>'
-      +'<td><span style="display:flex;gap:4px"><button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>✏️</button>'
-      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar este cliente?\')">🗑</button></span></td></tr>'
+      +'<td><span style="display:flex;gap:4px">'
+      +'<button class="btn btn-g btn-sm" title="Descargar reporte Word" onclick="descargarReporte(\''+c.id+'\')">📄</button>'
+      +'<button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>'+'✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar este cliente?\')">🗑</button>'
+      +'</span></td></tr>'
   })}else h+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
   h+='</tbody></table></div>'
   return h
@@ -1058,9 +1062,11 @@ function mCliente(d){
   const hasOtraInst=!!(d.institucion&&INSTITUCIONES.indexOf(d.institucion)===-1)
   const hasOtraCiud=!!(d.ciudad&&CIUDADES.indexOf(d.ciudad)===-1)
   return'<h3>'+(e?'Editar':'Nuevo')+' cliente</h3><div class="fg">'
-    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'" placeholder="Nombre completo del asesorado"/></div>'
+    +'<div class="full"><label>Nombre completo *</label><input id="f0" value="'+esc(d.nombre||'')+'"/></div>'
+    +'<div><label>Cédula / RUC</label><input id="fc" value="'+esc(d.cedula||'')+'" placeholder="1712345678 o 1790123456001"/></div>'
     +'<div><label>Teléfono / WhatsApp</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
     +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@dominio.com"/></div>'
+    +'<div class="full"><label>Dirección</label><input id="fd" value="'+esc(d.direccion||'')+'" placeholder="Av. Principal 123, sector, ciudad"/></div>'
     +'<div class="full"><label>Institución</label>'
     +'<select id="f3" onchange="toggleOtraInst()"><option value="">Seleccionar...</option>'+instOpts+'</select>'
     +'<input id="f3b" placeholder="Especificar institución..." style="margin-top:6px;display:'+(hasOtraInst?'block':'none')+'" value="'+esc(hasOtraInst?d.institucion:'')+'"/></div>'
@@ -1069,15 +1075,7 @@ function mCliente(d){
     +'<input id="f4b" placeholder="Especificar ciudad..." style="margin-top:6px;display:'+(hasOtraCiud?'block':'none')+'" value="'+esc(hasOtraCiud?d.ciudad:'')+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f5" rows="2">'+esc(d.notas||'')+'</textarea></div>'
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')">'+(e?'Actualizar':'Registrar')+'</button></div>'
-}
-function toggleOtraInst(){
-  var s=document.getElementById('f3'),i=document.getElementById('f3b')
-  if(s&&i){i.style.display=s.value==='Otra'?'block':'none';if(s.value!=='Otra')i.value=''}
-}
-function toggleOtraCiud(){
-  var s=document.getElementById('f4'),i=document.getElementById('f4b')
-  if(s&&i){i.style.display=s.value==='Otra'?'block':'none';if(s.value!=='Otra')i.value=''}
+    +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')">'+( e?'Actualizar':'Registrar')+'</button></div>'
 }
 function submitCliente(id){
   const nombre=v('f0');if(!nombre){alert('Nombre obligatorio');return}
@@ -1085,7 +1083,9 @@ function submitCliente(id){
   const selCiud=document.getElementById('f4'),inpCiud=document.getElementById('f4b')
   const institucion=selInst&&selInst.value==='Otra'?(inpInst&&inpInst.value||'Otra'):selInst&&selInst.value||''
   const ciudad=selCiud&&selCiud.value==='Otra'?(inpCiud&&inpCiud.value||'Otra'):selCiud&&selCiud.value||''
-  const rec={id:id||uid(),nombre,telefono:v('f1'),email:v('f2'),institucion,ciudad,notas:v('f5'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  const rec={id:id||uid(),nombre,cedula:v('fc'),telefono:v('f1'),email:v('f2'),
+    direccion:v('fd'),institucion,ciudad,notas:v('f5'),
+    createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
   saveRec('Clientes',rec,!id)
 }
 
@@ -1345,6 +1345,204 @@ async function repararHojas(){
     }
   }catch(e){alert('Error de red: '+e.message)}
   syncing=false;draw()
+}
+
+// ── Descargar reporte Word por cliente ───────────────────────────
+function descargarReporte(clienteId){
+  const cl=data.clientes.find(x=>x.id===clienteId)
+  if(!cl){toast('Cliente no encontrado','err');return}
+  const trabajosCl=data.trabajos.filter(t=>t.clienteId===clienteId)
+  if(!trabajosCl.length){toast('Este cliente no tiene trabajos registrados','err');return}
+  const ids=trabajosCl.map(t=>t.id)
+  const cuotasCl=data.cuotas.filter(c=>ids.includes(c.trabajoId))
+  const abonosCl=data.abonos.filter(a=>ids.includes(a.trabajoId))
+  const fecha=new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'})
+  const payload=JSON.stringify({cliente:cl,trabajos:trabajosCl,cuotas:cuotasCl,abonos:abonosCl,fecha})
+  // Generate Word in-browser using docx.js via CDN
+  generarWordBrowser(cl,trabajosCl,cuotasCl,abonosCl,fecha)
+}
+
+function generarWordBrowser(cl,trabajos,cuotas,abonos,fecha){
+  // Load docx.js from CDN if not already loaded
+  if(window.docx){_crearDocx(cl,trabajos,cuotas,abonos,fecha);return}
+  toast('Preparando generador de documentos...')
+  const s=document.createElement('script')
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js'
+  s.onload=()=>{toast('Generando documento Word...');setTimeout(()=>_crearDocx(cl,trabajos,cuotas,abonos,fecha),100)}
+  s.onerror=()=>toast('Error cargando docx.js — verifica conexión','err')
+  document.head.appendChild(s)
+}
+
+function _crearDocx(cl,trabajos,cuotas,abonos,fecha){
+  try{
+    const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
+           AlignmentType,BorderStyle,WidthType,ShadingType,VerticalAlign}=window.docx
+
+    const BLUE='1E6FC8',LBLUE='D9E8F7',GRAY='F5F7FA'
+    const brd=c=>({style:BorderStyle.SINGLE,size:1,color:c||'CCCCCC'})
+    const borders={top:brd(),bottom:brd(),left:brd(),right:brd()}
+    const bordH={top:brd(BLUE),bottom:brd(BLUE),left:brd(BLUE),right:brd(BLUE)}
+    const fmtMoney=n=>'$'+(parseFloat(n)||0).toFixed(2)
+
+    const P=(text,opts={})=>new Paragraph({
+      alignment:opts.align||AlignmentType.LEFT,
+      spacing:{before:opts.before||0,after:opts.after||80},
+      children:[new TextRun({text:String(text||''),bold:!!opts.bold,size:opts.size||22,
+        font:'Arial',color:opts.color||'000000',italics:!!opts.italic})]
+    })
+
+    const C=(text,opts={})=>new TableCell({
+      borders:opts.head?bordH:borders,
+      width:{size:opts.w||2000,type:WidthType.DXA},
+      shading:opts.head?{fill:BLUE,type:ShadingType.CLEAR}:opts.gray?{fill:GRAY,type:ShadingType.CLEAR}:{fill:'FFFFFF',type:ShadingType.CLEAR},
+      margins:{top:80,bottom:80,left:120,right:120},
+      verticalAlign:VerticalAlign.CENTER,
+      children:[new Paragraph({alignment:opts.align||AlignmentType.LEFT,
+        children:[new TextRun({text:String(text||''),bold:!!opts.bold||!!opts.head,
+          size:opts.size||20,font:'Arial',color:opts.head?'FFFFFF':opts.color||'000000'})]})]
+    })
+
+    const hline=()=>new Paragraph({border:{bottom:{style:BorderStyle.SINGLE,size:4,color:BLUE}},spacing:{before:120,after:60},children:[]})
+
+    const cuotasByTrabajo={}
+    cuotas.forEach(c=>{if(!cuotasByTrabajo[c.trabajoId])cuotasByTrabajo[c.trabajoId]=[];cuotasByTrabajo[c.trabajoId].push(c)})
+
+    const children=[]
+
+    // Header
+    children.push(
+      new Paragraph({alignment:AlignmentType.RIGHT,spacing:{after:40},children:[new TextRun({text:'Research Assesor',bold:true,size:28,font:'Arial',color:BLUE})]}),
+      new Paragraph({alignment:AlignmentType.RIGHT,spacing:{after:20},children:[new TextRun({text:'Coordinación de Investigación',size:18,font:'Arial',color:'555555'})]}),
+      new Paragraph({alignment:AlignmentType.RIGHT,spacing:{after:0},children:[new TextRun({text:'Fecha: '+fecha,size:18,font:'Arial',color:'555555'})]}),
+      hline()
+    )
+
+    // Title
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:80,after:60},
+      children:[new TextRun({text:'RESUMEN DE TRABAJOS Y PLAN DE PAGOS',bold:true,size:28,font:'Arial',color:BLUE})]}))
+
+    // Client info
+    children.push(P('DATOS DEL CLIENTE',{bold:true,size:24,color:BLUE,before:100,after:40}),hline())
+    const campos=[
+      ['Nombre',cl.nombre||'—'],
+      ['Cédula / RUC',cl.cedula||'—'],
+      ['Teléfono',cl.telefono||'—'],
+      ['Email',cl.email||'—'],
+      ['Institución',cl.institucion||'—'],
+      ['Ciudad',cl.ciudad||'—'],
+      ['Dirección',cl.direccion||'—'],
+    ].filter(([,v])=>v&&v!=='—')
+    const cfRows=[]
+    for(let i=0;i<campos.length;i+=2){
+      const cells=[C(campos[i][0],{w:2200,gray:true,bold:true}),C(campos[i][1],{w:4000})]
+      if(campos[i+1]){cells.push(C(campos[i+1][0],{w:2200,gray:true,bold:true}),C(campos[i+1][1],{w:4000}))}
+      else cells.push(C('',{w:6200}))
+      cfRows.push(new TableRow({children:cells}))
+    }
+    if(cfRows.length){
+      children.push(new Table({width:{size:12400,type:WidthType.DXA},columnWidths:[2200,4000,2200,4000],rows:cfRows}))
+      children.push(new Paragraph({spacing:{after:100},children:[]}))
+    }
+
+    // Works summary
+    children.push(P('TRABAJOS',{bold:true,size:24,color:BLUE,before:100,after:40}),hline())
+    const wH=new TableRow({tableHeader:true,children:[
+      C('N°',{w:400,head:true,align:AlignmentType.CENTER}),
+      C('Trabajo / Servicio',{w:3800,head:true}),
+      C('Tipo',{w:2000,head:true}),
+      C('Estado',{w:1500,head:true}),
+      C('Total',{w:1500,head:true,align:AlignmentType.RIGHT}),
+      C('Cobrado',{w:1500,head:true,align:AlignmentType.RIGHT}),
+      C('Saldo',{w:1700,head:true,align:AlignmentType.RIGHT}),
+    ]})
+    const wRows=[wH]
+    let gTotal=0,gCob=0
+    trabajos.forEach((t,i)=>{
+      const cs=cuotasByTrabajo[t.id]||[]
+      const cob=cs.reduce((s,c)=>s+parseFloat(c.pagado||0),0)
+      const tot=parseFloat(t.total||0)
+      const sal=tot-cob
+      gTotal+=tot;gCob+=cob
+      const ev=i%2===0
+      wRows.push(new TableRow({children:[
+        C(String(i+1),{w:400,gray:!ev,align:AlignmentType.CENTER}),
+        C(t.titulo,{w:3800,gray:!ev}),
+        C(t.tipo||'—',{w:2000,gray:!ev}),
+        C(t.estado||'—',{w:1500,gray:!ev}),
+        C(fmtMoney(tot),{w:1500,gray:!ev,align:AlignmentType.RIGHT}),
+        C(fmtMoney(cob),{w:1500,gray:!ev,align:AlignmentType.RIGHT,color:cob>0?'15803D':'000000'}),
+        C(fmtMoney(sal),{w:1700,gray:!ev,align:AlignmentType.RIGHT,color:sal>0?'B45309':'15803D',bold:sal>0}),
+      ]}))
+    })
+    wRows.push(new TableRow({children:[
+      C('',{w:400}),C('TOTAL',{w:3800,bold:true,gray:true}),C('',{w:2000,gray:true}),C('',{w:1500,gray:true}),
+      C(fmtMoney(gTotal),{w:1500,bold:true,gray:true,align:AlignmentType.RIGHT}),
+      C(fmtMoney(gCob),{w:1500,bold:true,gray:true,align:AlignmentType.RIGHT,color:'15803D'}),
+      C(fmtMoney(gTotal-gCob),{w:1700,bold:true,gray:true,align:AlignmentType.RIGHT,color:'B45309'}),
+    ]}))
+    children.push(new Table({width:{size:12400,type:WidthType.DXA},columnWidths:[400,3800,2000,1500,1500,1500,1700],rows:wRows}))
+    children.push(new Paragraph({spacing:{after:100},children:[]}))
+
+    // Payment plan per work
+    children.push(P('PLAN DE PAGOS PROYECTADO',{bold:true,size:24,color:BLUE,before:100,after:40}),hline())
+    trabajos.forEach(t=>{
+      const cs=(cuotasByTrabajo[t.id]||[]).sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
+      if(!cs.length)return
+      children.push(P(t.titulo,{bold:true,size:22,color:BLUE,before:100,after:30}))
+      const cH=new TableRow({tableHeader:true,children:[
+        C('Cuota',{w:2500,head:true}),C('Vencimiento',{w:2000,head:true,align:AlignmentType.CENTER}),
+        C('Acordado',{w:2000,head:true,align:AlignmentType.RIGHT}),C('Pagado',{w:2000,head:true,align:AlignmentType.RIGHT}),
+        C('Saldo',{w:2000,head:true,align:AlignmentType.RIGHT}),C('Estado',{w:1900,head:true,align:AlignmentType.CENTER}),
+      ]})
+      const cRows=[cH]
+      let tA=0,tP=0
+      cs.forEach((c,i)=>{
+        const ac=parseFloat(c.acordado||0),pa=parseFloat(c.pagado||0),sa=ac-pa
+        const st=c.estado||'pendiente'
+        tA+=ac;tP+=pa
+        const ev=i%2===0
+        const sc=st==='pagado'?'15803D':st==='vencido'?'DC2626':'B45309'
+        cRows.push(new TableRow({children:[
+          C(c.label||'Cuota',{w:2500,gray:!ev}),
+          C(c.fechaVencimiento||'—',{w:2000,gray:!ev,align:AlignmentType.CENTER}),
+          C(fmtMoney(ac),{w:2000,gray:!ev,align:AlignmentType.RIGHT}),
+          C(fmtMoney(pa),{w:2000,gray:!ev,align:AlignmentType.RIGHT,color:pa>0?'15803D':'555555'}),
+          C(fmtMoney(sa),{w:2000,gray:!ev,align:AlignmentType.RIGHT,color:sa>0?'B45309':'15803D'}),
+          C(st.toUpperCase(),{w:1900,gray:!ev,align:AlignmentType.CENTER,color:sc,bold:true}),
+        ]}))
+      })
+      cRows.push(new TableRow({children:[
+        C('SUBTOTAL',{w:2500,bold:true,gray:true}),C('',{w:2000,gray:true}),
+        C(fmtMoney(tA),{w:2000,bold:true,gray:true,align:AlignmentType.RIGHT}),
+        C(fmtMoney(tP),{w:2000,bold:true,gray:true,align:AlignmentType.RIGHT,color:'15803D'}),
+        C(fmtMoney(tA-tP),{w:2000,bold:true,gray:true,align:AlignmentType.RIGHT,color:'B45309'}),
+        C('',{w:1900,gray:true}),
+      ]}))
+      children.push(new Table({width:{size:12400,type:WidthType.DXA},columnWidths:[2500,2000,2000,2000,2000,1900],rows:cRows}))
+      children.push(new Paragraph({spacing:{after:80},children:[]}))
+    })
+
+    // Footer
+    children.push(hline(),new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:80},
+      children:[new TextRun({text:'Documento generado por Research Assesor · '+fecha,size:16,font:'Arial',color:'999999',italics:true})]}))
+
+    const doc=new Document({
+      styles:{default:{document:{run:{font:'Arial',size:22}}}},
+      sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:720,right:720,bottom:720,left:720}}},children}]
+    })
+
+    Packer.toBlob(doc).then(blob=>{
+      const url=URL.createObjectURL(blob)
+      const a=document.createElement('a')
+      const fname='Reporte_'+esc(cl.nombre).replace(/[^a-zA-Z0-9]/g,'_')+'_'+fecha.replace(/\//g,'-')+'.docx'
+      a.href=url;a.download=fname;a.click()
+      setTimeout(()=>URL.revokeObjectURL(url),5000)
+      toast('Documento descargado: '+fname)
+    }).catch(e=>toast('Error generando Word: '+e.message,'err'))
+  }catch(e){
+    toast('Error: '+e.message,'err')
+    console.error('[Word]',e)
+  }
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
