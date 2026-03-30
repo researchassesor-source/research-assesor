@@ -821,7 +821,14 @@ function htmlTrabajos(){
       +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
       +'<div style="text-align:right;font-size:12px"><div style="font-weight:700">$'+fmt(bal.total)+'</div><div style="color:var(--green)">$'+fmt(bal.paid)+' cobrado</div></div>'
       +'<div><div class="pbar" style="width:72px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><div style="font-size:10px;color:var(--text3);text-align:center">'+bal.pct+'%</div></div>'
-      +'<div style="display:flex;gap:4px">'
+      +'<div style="display:flex;gap:4px;align-items:center">'
+      +'<select class="btn btn-sm" style="padding:4px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:'
+        +(t.estado==='Completado'?'#dcfce7':t.estado==='En progreso'?'#dbeafe':t.estado==='Revisión'?'#fef3c7':t.estado==='Cancelado'?'#f1f5f9':'#fff')
+        +';color:'
+        +(t.estado==='Completado'?'#15803d':t.estado==='En progreso'?'#1d4ed8':t.estado==='Revisión'?'#b45309':t.estado==='Cancelado'?'#64748b':'#475569')
+        +';" onchange="event.stopPropagation();cambiarEstadoTrabajo(\''+t.id+'\',this.value)" onclick="event.stopPropagation()">'
+        +ESTADOS.map(function(s){return'<option value="'+s+'"'+(t.estado===s?' selected':'')+'>'+s+'</option>'}).join('')
+        +'</select>'
       +'<button class="btn btn-g btn-sm" title="Descargar Word" onclick=\'event.stopPropagation();descargarReporteTrabajo("'+t.id+'")\'>'+'📄</button>'
       +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>'+'✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button>'
@@ -1771,6 +1778,14 @@ function editarTpl(id){
   WA_TPLS=cargarTpls()
   const t=WA_TPLS.find(function(x){return x.id===id})
   if(t) openModal('tpl', t)
+}
+
+// Cambio rápido de estado desde el dropdown
+function cambiarEstadoTrabajo(trabajoId, nuevoEstado){
+  const t=data.trabajos.find(function(x){return x.id===trabajoId})
+  if(!t||t.estado===nuevoEstado)return
+  const actualizado=Object.assign({},t,{estado:nuevoEstado})
+  saveRec('Trabajos',actualizado,false)
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
