@@ -919,7 +919,7 @@ function htmlTrabajos(){
             +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+' pagado</div>':'')
             +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
             +'</div>'+bdg(st,cColor(st))
-            +'<button class="btn btn-g btn-sm" title="Editar cuota" onclick="openModal(\'cuota\',Object.assign({},c,{trabajoId:\''+t.id+'\'}))">✏️</button>'
+            +'<button class="btn btn-g btn-sm" title="Editar cuota" onclick="editarCuota(\''+c.id+'\',\''+t.id+'\')" >✏️</button>'
             +'<button class="btn btn-r btn-sm" title="Eliminar cuota" onclick="delRec(\'Cuotas\',\''+c.id+'\',\'¿Eliminar esta cuota?\')" >🗑</button>'
             +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="doAbono(\''+c.id+'\',\''+t.id+'\',\''+esc(c.label)+'\','+c.acordado+','+( parseFloat(c.pagado)||0)+')" >💵 Pago</button>':'')
             +(phone?waBtns(c.id,t.id,phone,st):'')
@@ -974,6 +974,7 @@ function htmlCobros(){
   h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'" style="max-width:240px"/>'
     +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
     +'<button class="btn btn-g btn-sm" style="margin-left:auto" onclick="exportCobros()">⬇ CSV</button></div>'
+    +htmlCobrosFilterBadge()
   if(!rows.length)return h+'<div class="card"><p class="empty">Sin resultados</p></div>'
   rows.forEach(c=>{
     const st=c._st,saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
@@ -2094,6 +2095,31 @@ function getCuotasManual(){
     }
   })
   return cuotas
+}
+
+function htmlCobrosFilterBadge(){
+  if(cSt==='Todos')return''
+  var filtRows=data.cuotas.filter(function(c){return cStat(c)===cSt})
+  if(!filtRows.length)return''
+  var filtTotal=filtRows.reduce(function(s,c){return s+parseFloat(c.acordado||0)},0)
+  var filtSaldo=filtRows.reduce(function(s,c){return s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0))},0)
+  var filtPagado=filtRows.reduce(function(s,c){return s+parseFloat(c.pagado||0)},0)
+  var bg=cSt==='vencido'?'#fee2e2':cSt==='pagado'?'#dcfce7':'#fef3c7'
+  var label={vencido:'vencidas',pendiente:'pendientes',parcial:'parciales',pagado:'pagadas'}[cSt]||cSt
+  var h='<div style="display:flex;gap:16px;padding:8px 14px;background:'+bg+';border-radius:8px;font-size:13px;flex-wrap:wrap;align-items:center;margin-top:4px">'
+  h+='<span>🔍 <strong>'+filtRows.length+'</strong> cuota'+(filtRows.length!==1?'s':'')+' '+label+'</span>'
+  h+='<span>Total acordado: <strong>$'+fmt(filtTotal)+'</strong></span>'
+  if(cSt!=='pagado') h+='<span style="color:'+(cSt==='vencido'?'#dc2626':'#b45309')+'">Saldo: <strong>$'+fmt(filtSaldo)+'</strong></span>'
+  if(cSt==='parcial'||cSt==='pagado') h+='<span style="color:#15803d">Cobrado: <strong>$'+fmt(filtPagado)+'</strong></span>'
+  h+='</div>'
+  return h
+}
+
+// Open cuota modal by ID (avoids HTML-encoding issues with inline JSON)
+function editarCuota(cuotaId, trabajoId){
+  var c=data.cuotas.find(function(x){return x.id===cuotaId})
+  if(c) openModal('cuota', Object.assign({},c,{trabajoId:trabajoId||c.trabajoId}))
+  else  openModal('cuota', {trabajoId:trabajoId, nro:1})
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
