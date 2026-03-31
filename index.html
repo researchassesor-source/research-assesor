@@ -252,13 +252,13 @@ const CIUDADES=[
 // Variables disponibles: {{nombre}} {{trabajo}} {{cuota}} {{monto}} {{fecha}} {{hora}} {{plat}} {{link}}
 var WA_TPLS_DEFAULT=[
   {id:'reminder', nombre:'Recordatorio de pago', categoria:'cobros',
-   msg:'Hola {{nombre}} 👋\n\nEspero que estés teniendo un excelente día. 😊\n\nTe escribo para recordarte amablemente que tienes un pago próximo a vencer:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Vence:* {{fecha}}\n\nSi ya realizaste la transferencia, ¡muchas gracias! Puedes ignorar este mensaje. 🙏\n\nCualquier consulta estoy aquí para ayudarte.\n\n— Edison Bonifaz | Research Assesor'},
+   msg:'Hola {{nombre}} 👋\n\nEspero que estés teniendo un excelente día. 😊\n\nTe escribo para recordarte amablemente que tienes un pago próximo a vencer:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Valor de la cuota:* ${{monto}}\n💵 *Saldo de esta cuota:* ${{saldo}}\n📊 *Saldo total pendiente:* ${{saldo_total}}\n📅 *Vence:* {{fecha}}\n\nSi ya realizaste la transferencia, ¡muchas gracias! Puedes ignorar este mensaje. 🙏\n\nCualquier consulta estoy aquí para ayudarte.\n\n— Edison Bonifaz | Research Assesor'},
 
   {id:'overdue', nombre:'Pago vencido (amable)', categoria:'cobros',
-   msg:'Hola {{nombre}}, espero que estés muy bien. 😊\n\nMe pongo en contacto contigo porque tengo pendiente registrar un pago del trabajo que estamos desarrollando juntos:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Fecha de vencimiento:* {{fecha}}\n\nEntiendo que a veces los tiempos se complican. Si necesitas coordinar la forma de pago o tienes alguna consulta, con gusto lo conversamos. 🤝\n\nQuedo pendiente de tu respuesta.\n\n— Edison Bonifaz | Research Assesor'},
+   msg:'Hola {{nombre}}, espero que estés muy bien. 😊\n\nMe pongo en contacto contigo porque tengo pendiente registrar un pago del trabajo que estamos desarrollando juntos:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Valor de la cuota:* ${{monto}}\n💵 *Saldo pendiente de esta cuota:* ${{saldo}}\n📊 *Saldo total del trabajo:* ${{saldo_total}}\n📅 *Fecha de vencimiento:* {{fecha}}\n\nEntiendo que a veces los tiempos se complican. Si necesitas coordinar la forma de pago o tienes alguna consulta, con gusto lo conversamos. 🤝\n\nQuedo pendiente de tu respuesta.\n\n— Edison Bonifaz | Research Assesor'},
 
   {id:'overdue2', nombre:'Pago vencido (urgente)', categoria:'cobros',
-   msg:'Hola {{nombre}} 👋\n\nNecesito comentarte que el pago de tu asesoría lleva varios días vencido y es importante regularizarlo para continuar con el proceso:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto:* ${{monto}}\n📅 *Venció el:* {{fecha}}\n\nPor favor, realiza la transferencia a la brevedad posible y envíame el comprobante. Si tienes algún inconveniente, escríbeme para buscar una solución juntos.\n\nGracias por tu comprensión.\n\n— Edison Bonifaz | Research Assesor'},
+   msg:'Hola {{nombre}} 👋\n\nNecesito comentarte que el pago de tu asesoría lleva varios días vencido y es importante regularizarlo para continuar con el proceso:\n\n📚 *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Valor de la cuota:* ${{monto}}\n💵 *Saldo pendiente:* ${{saldo}}\n📊 *Saldo total del trabajo:* ${{saldo_total}}\n📅 *Venció el:* {{fecha}}\n\nPor favor, realiza la transferencia a la brevedad posible y envíame el comprobante. Si tienes algún inconveniente, escríbeme para buscar una solución juntos.\n\nGracias por tu comprensión.\n\n— Edison Bonifaz | Research Assesor'},
 
   {id:'paid', nombre:'Confirmación de pago recibido', categoria:'cobros',
    msg:'¡Hola {{nombre}}! 🎉\n\nHe recibido tu pago correctamente. ¡Muchas gracias!\n\n✅ *Trabajo:* {{trabajo}}\n💳 *Cuota:* {{cuota}}\n💰 *Monto registrado:* ${{monto}}\n\nEs un placer trabajar contigo. Seguimos avanzando con tu proyecto. 💪\n\nCualquier consulta o novedad, aquí me tienes.\n\n— Edison Bonifaz | Research Assesor'},
@@ -385,46 +385,63 @@ async function loadData(){
 }
 
 async function saveRec(tabla,rec,isNew){
-  modal=null
-  syncing=true;syncMsg='Guardando...';syncErr=false
-  draw()
+  // Optimistic update: update UI immediately, then sync in background
+  const key=tabla.toLowerCase()
+  if(data[key]){
+    data[key]=isNew?[...data[key],rec]:data[key].map(x=>x.id===rec.id?rec:x)
+  }
+  modal=null;syncMsg='Guardando...';syncErr=false;draw()
   try{
     const r=await apiPost({action:isNew?'insertar':'actualizar',tabla,fila:rec,id:rec.id})
-    syncing=false
     if(r&&r.ok){
-      syncMsg='✓ Guardado';toast('Guardado ✓')
+      syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
+      toast('Guardado ✓')
+      // Silent background reload - don't block UI
+      apiGet('getData').then(function(rd){
+        if(rd&&!rd.error){
+          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[]}
+          syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
+          draw()
+        }
+      })
     }else{
-      const msg=r&&r.error?r.error:'Sin respuesta del servidor'
+      const msg=r&&r.error?r.error:'Sin respuesta'
       syncMsg='Error: '+msg;syncErr=true
       toast('Error: '+msg,'err')
+      draw()
     }
   }catch(err){
-    syncing=false
-    syncMsg='Error inesperado: '+err.message;syncErr=true
-    toast('Error: '+err.message,'err')
+    syncMsg='Error: '+err.message;syncErr=true
+    toast('Error: '+err.message,'err');draw()
   }
-  await loadData()
 }
 async function delRec(tabla,id,msg){
   if(!confirm(msg||'¿Eliminar este registro?'))return
-  syncing=true;syncMsg='Eliminando...';syncErr=false
-  draw()
+  // Optimistic: remove from UI immediately
+  const key=tabla.toLowerCase()
+  if(data[key]) data[key]=data[key].filter(function(x){return x.id!==id})
+  syncMsg='Eliminando...';syncErr=false;draw()
   try{
     const r=await apiPost({action:'eliminar',tabla,id})
-    syncing=false
     if(r&&r.ok){
       toast('Eliminado ✓');syncMsg='✓ Eliminado'
+      apiGet('getData').then(function(rd){
+        if(rd&&!rd.error){
+          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[]}
+          draw()
+        }
+      })
     }else{
       const msg2=r&&r.error?r.error:'Sin respuesta'
       syncMsg='Error: '+msg2;syncErr=true
       toast('Error: '+msg2,'err')
+      await loadData()  // reload to restore removed item
     }
   }catch(err){
-    syncing=false
     syncMsg='Error: '+err.message;syncErr=true
     toast('Error: '+err.message,'err')
+    await loadData()
   }
-  await loadData()
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -820,23 +837,24 @@ function htmlTrabajos(){
       +'<div style="font-size:12px;color:var(--text3)">'+esc(cl&&cl.nombre||'—')+' · '+esc(t.tipo||'—')+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
       +'<div style="text-align:right;font-size:12px"><div style="font-weight:700">$'+fmt(bal.total)+'</div><div style="color:var(--green)">$'+fmt(bal.paid)+' cobrado</div></div>'
-      +'<div><div class="pbar" style="width:72px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><div style="font-size:10px;color:var(--text3);text-align:center">'+bal.pct+'%</div></div>'
+      +'<div style="min-width:76px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:1px"><span>Avance</span><span>'+(parseInt(t.progreso)||0)+'%</span></div>'
+      +'<div class="pbar" style="width:76px;margin-bottom:3px"><div class="pbar-f" style="width:'+(parseInt(t.progreso)||0)+'%;background:#7c3aed"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:1px"><span>Cobro</span><span>'+bal.pct+'%</span></div>'
+      +'<div class="pbar" style="width:76px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div>'
+      +'</div>'
       +'<div style="display:flex;gap:4px;align-items:center">'
-      +'<select class="btn btn-sm" style="padding:4px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:'
-        +(t.estado==='Completado'?'#dcfce7':t.estado==='En progreso'?'#dbeafe':t.estado==='Revisión'?'#fef3c7':t.estado==='Cancelado'?'#f1f5f9':'#fff')
-        +';color:'
-        +(t.estado==='Completado'?'#15803d':t.estado==='En progreso'?'#1d4ed8':t.estado==='Revisión'?'#b45309':t.estado==='Cancelado'?'#64748b':'#475569')
-        +';" onchange="event.stopPropagation();cambiarEstadoTrabajo(\''+t.id+'\',this.value)" onclick="event.stopPropagation()">'
-        +ESTADOS.map(function(s){return'<option value="'+s+'"'+(t.estado===s?' selected':'')+'>'+s+'</option>'}).join('')
-        +'</select>'
-      +'<button class="btn btn-g btn-sm" title="Descargar Word" onclick=\'event.stopPropagation();descargarReporteTrabajo("'+t.id+'")\'>'+'📄</button>'
-      +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>'+'✏️</button>'
-      +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')">🗑</button>'
+      +'<select class="btn btn-sm" style="padding:4px 8px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:'+(t.estado==='Completado'?'#dcfce7':t.estado==='En progreso'?'#dbeafe':t.estado==='Revisión'?'#fef3c7':t.estado==='Cancelado'?'#f1f5f9':'#fff')+';color:'+(t.estado==='Completado'?'#15803d':t.estado==='En progreso'?'#1d4ed8':t.estado==='Revisión'?'#b45309':t.estado==='Cancelado'?'#64748b':'#475569')+';" onchange="event.stopPropagation();cambiarEstadoTrabajo(\''+t.id+'\',this.value)" onclick="event.stopPropagation()">'
+      +ESTADOS.map(function(s){return'<option value="'+s+'"'+(t.estado===s?' selected':'')+'>'+s+'</option>'}).join('')
+      +'</select>'
+      +'<button class="btn btn-g btn-sm" title="Descargar Word" onclick=\'event.stopPropagation();descargarReporteTrabajo("'+t.id+'")\'>📄</button>'
+      +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')" >🗑</button>'
       +'</div><span style="color:var(--text3);font-size:16px">'+(isExp?'▲':'▼')+'</span></div></div>'
     if(isExp){
       h+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
       if(t.notas)h+='<p style="font-size:12px;color:var(--text3);margin-bottom:10px">📝 '+esc(t.notas)+'</p>'
-      if(t.progreso||t.fechaInicio)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Progreso: <strong>'+esc(t.progreso||0)+'%</strong>'+(t.fechaInicio?' · Inicio: '+esc(t.fechaInicio):'')+(t.fechaFin?' · Entrega: '+esc(t.fechaFin):'')+'</div>'
+      if(t.progreso||t.fechaInicio)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Avance: <strong>'+esc(t.progreso||0)+'%</strong>'+(t.fechaInicio?' · Inicio: '+esc(t.fechaInicio):'')+(t.fechaFin?' · Entrega: '+esc(t.fechaFin):'')+' <button class="btn btn-g btn-sm" style="margin-left:6px" onclick="openModal(\'trabajo\','+jss(t)+')">Actualizar progreso</button></div>'
       h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<strong style="font-size:12px;color:var(--text2)">Plan de pagos ('+cuotas.length+')</strong>'
         +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',nro:'+(cuotas.length+1)+'})">+ Cuota</button></div>'
@@ -853,9 +871,10 @@ function htmlTrabajos(){
             +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+' pagado</div>':'')
             +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
             +'</div>'+bdg(st,cColor(st))
-            +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+t.id+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})">💵 Pago</button>':'')
-            +(phone?'<button class="btn btn-wa btn-sm" onclick="waRec(\''+c.id+'\',\''+t.id+'\',\''+esc(phone)+'\','+(st==='vencido'?'\'overdue\'':'\'reminder\'')+')">💬</button>':'')
+            +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="doAbono(\''+c.id+'\',\''+t.id+'\',\''+esc(c.label)+'\','+c.acordado+','+( parseFloat(c.pagado)||0)+')" >💵 Pago</button>':'')
+            +(phone?waBtns(c.id,t.id,phone,st):'')
             +'</div>'
+
           const abs=data.abonos.filter(a=>a.cuotaId===c.id)
           if(abs.length){
             h+='<div style="border-top:1px solid '+bdc+';padding:5px 13px;display:flex;gap:10px;flex-wrap:wrap">'
@@ -916,9 +935,9 @@ function htmlCobros(){
       +'<div style="text-align:center;min-width:85px"><div style="font-size:12px">'+esc(c.fechaVencimiento||'—')+'</div>'
       +(st!=='pagado'?'<div style="font-size:11px;color:'+(days<0?'var(--red)':days<=3?'var(--amber)':'var(--text3)')+'">'+(days<0?Math.abs(days)+'d vencido':days===0?'Hoy':'en '+days+'d')+'</div>':'')
       +'</div>'+bdg(st,cColor(st))
-      +'<div style="display:flex;gap:5px">'
-      +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})">💵 Pago</button>':'')
-      +(phone?'<button class="btn btn-wa btn-sm" onclick="waRec(\''+c.id+'\',\''+c.trabajoId+'\',\''+esc(phone)+'\','+(st==='vencido'?'\'overdue\'':'\'reminder\'')+')">💬</button>':'')
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
+      +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})" >💵 Pago</button>':'' )
+      +(phone?waBtnsCobros(c.id,c.trabajoId,phone,st):'')
       +'</div></div>'
     const abs=data.abonos.filter(a=>a.cuotaId===c.id)
     if(abs.length){h+='<div style="border-top:1px solid '+bdc+';padding:5px 15px;display:flex;gap:10px;flex-wrap:wrap">'+abs.map(a=>'<span style="font-size:11px;color:var(--green)">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+' </span>').join('')+'</div>'}
@@ -932,7 +951,20 @@ function waRec(cuotaId,trabajoId,phone,tplId){
   const t=data.trabajos.find(x=>x.id===trabajoId)
   const cl=t?data.clientes.find(x=>x.id===t.clienteId):null
   if(!c||!phone)return
-  const msg=waTpl(tplId,{nombre:cl&&cl.nombre||'',trabajo:t&&t.titulo||'',cuota:c.label||'',monto:fmt(c.acordado),fecha:c.fechaVencimiento||''})
+  const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+  // Total saldo pendiente del trabajo
+  const cuotasTrabajo=data.cuotas.filter(x=>x.trabajoId===trabajoId)
+  const saldoTotal=cuotasTrabajo.reduce(function(s,x){return s+(parseFloat(x.acordado||0)-parseFloat(x.pagado||0))},0)
+  const msg=waTpl(tplId,{
+    nombre:cl&&cl.nombre||'',
+    trabajo:t&&t.titulo||'',
+    cuota:c.label||'',
+    monto:fmt(c.acordado),
+    pagado:fmt(c.pagado||0),
+    saldo:fmt(saldo),
+    saldo_total:fmt(saldoTotal),
+    fecha:c.fechaVencimiento||''
+  })
   window.open(waUrl(phone,msg),'_blank')
 }
 function exportCobros(){
@@ -1042,10 +1074,31 @@ async function genMeet(titulo,fecha,hora){
 }
 async function clickGenMeet(){
   const btn=document.getElementById('btnMeet'),sta=document.getElementById('meetSta')
+  if(!btn||!sta)return
   btn.disabled=true;btn.textContent='⟳ Creando...'
-  sta.innerHTML='<span style="color:var(--amber)">Creando Google Meet...</span>'
-  try{const link=await genMeet(v('r0')||'Reunión',v('r3'),v('r4'));document.getElementById('r6').value=link;sta.innerHTML='<span style="color:var(--green)">✓ Meet creado: '+esc(link)+'</span>'}
-  catch(e){window.open(calUrl({titulo:v('r0'),fecha:v('r3'),hora:v('r4'),link:''},''),'_blank');sta.innerHTML='<span style="color:var(--amber)">⚠ Abrí Google Calendar — copia el link meet.google.com/xxx-yyy aquí.</span>'}
+  sta.innerHTML='<span style="color:var(--amber)">⏳ Creando enlace de Google Meet...</span>'
+  try{
+    const link=await genMeet(v('r0')||'Reunión de Asesoría',v('r3'),v('r4'))
+    const inp=document.getElementById('r6')
+    if(inp) inp.value=link
+    sta.innerHTML='<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;margin-top:6px">'
+      +'<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:6px">✅ ¡Google Meet creado!</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<a href="'+link+'" target="_blank" style="font-size:12px;color:#0369a1;word-break:break-all">'+esc(link)+'</a>'
+      +'<button onclick="copiarMeet(this,\''+esc(link)+'\')" '
+      +'style="padding:3px 10px;border:1px solid #bfdbfe;background:#fff;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:#1d4ed8">📋 Copiar</button>'
+      +'</div></div>'
+    toast('✅ Google Meet creado')
+  }catch(e){
+    // Fallback: open Google Calendar with pre-filled event
+    const calFallbackUrl=calUrl({titulo:v('r0')||'Reunión',fecha:v('r3'),hora:v('r4'),link:''},'')
+    sta.innerHTML='<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-top:6px">'
+      +'<div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:4px">⚠️ '+esc(e.message)+'</div>'
+      +'<div style="font-size:12px;color:#78350f">Para crear el Meet manualmente: '
+      +'<a href="'+calFallbackUrl+'" target="_blank" style="color:#0369a1;font-weight:600">Abrir Google Calendar</a>'
+      +' → activa "Google Meet" → copia el enlace meet.google.com/xxx aquí.</div>'
+      +'</div>'
+  }
   finally{btn.disabled=false;btn.textContent='🎥 Generar Meet'}
 }
 
@@ -1646,7 +1699,7 @@ function htmlMensajes(){
   h+='<div style="background:#dbeafe;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;margin-bottom:20px">'
     +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">📌 Variables disponibles</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}'].map(function(vr){
+    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{pagado}}','{{saldo}}','{{saldo_total}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}'].map(function(vr){
       return'<code style="background:#fff;border:1px solid #bfdbfe;border-radius:5px;padding:2px 8px;font-size:12px;color:#1d4ed8">'+vr+'</code>'
     }).join('')
     +'</div></div>'
@@ -1687,6 +1740,9 @@ function previewTpl(id){
     .replace(/{{trabajo}}/g,'Tesis Maestría en Educación')
     .replace(/{{cuota}}/g,'Anticipo')
     .replace(/{{monto}}/g,'300.00')
+    .replace(/{{pagado}}/g,'0.00')
+    .replace(/{{saldo}}/g,'300.00')
+    .replace(/{{saldo_total}}/g,'600.00')
     .replace(/{{fecha}}/g,'15/04/2026')
     .replace(/{{hora}}/g,'10:00')
     .replace(/{{plat}}/g,'Google Meet')
@@ -1739,6 +1795,9 @@ function previewTplForm(){
     .replace(/{{trabajo}}/g,'Tesis Maestría')
     .replace(/{{cuota}}/g,'Anticipo')
     .replace(/{{monto}}/g,'300.00')
+    .replace(/{{pagado}}/g,'0.00')
+    .replace(/{{saldo}}/g,'300.00')
+    .replace(/{{saldo_total}}/g,'600.00')
     .replace(/{{fecha}}/g,'15/04/2026')
     .replace(/{{hora}}/g,'10:00')
     .replace(/{{plat}}/g,'Google Meet')
@@ -1786,6 +1845,55 @@ function cambiarEstadoTrabajo(trabajoId, nuevoEstado){
   if(!t||t.estado===nuevoEstado)return
   const actualizado=Object.assign({},t,{estado:nuevoEstado})
   saveRec('Trabajos',actualizado,false)
+}
+
+// Helper: WA action buttons for a cuota
+function waBtns(cid,tid,phone,st){
+  var h='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">'
+  if(st!=='pagado'){
+    var tpl=st==='vencido'?'overdue2':'reminder'
+    var lbl=st==='vencido'?'⚠️ Vencido':'📅 Recordar'
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px;padding:4px 10px"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\''+tpl+'\')">'+lbl+'</button>'
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px;padding:4px 10px;background:#15803d"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\'overdue\')">💬 Amable</button>'
+  }
+  if(st==='pagado'){
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px;padding:4px 10px;background:#0369a1"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\'paid\')">✅ Pago confirmado</button>'
+  }
+  h+='</div>'
+  return h
+}
+function waBtnsCobros(cid,tid,phone,st){
+  var h=''
+  if(st!=='pagado'){
+    var tpl=st==='vencido'?'overdue2':'reminder'
+    var lbl=st==='vencido'?'⚠️ Vencido':'📅 Recordar'
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\''+tpl+'\')">'+lbl+'</button>'
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px;background:#15803d"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\'overdue\')">💬</button>'
+  }
+  if(st==='pagado'){
+    h+='<button class="btn btn-wa btn-sm" style="font-size:11px;background:#0369a1"'
+      +' onclick="waRec(\''+cid+'\',\''+tid+'\',\''+phone+'\',\'paid\')">✅</button>'
+  }
+  return h
+}
+
+function doAbono(cuotaId,trabajoId,label,acordado,pagado){
+  openModal('abono',{cuotaId:cuotaId,trabajoId:trabajoId,label:label,acordado:acordado,pagado:pagado})
+}
+
+function copiarMeet(btn,link){
+  navigator.clipboard.writeText(link).then(function(){
+    btn.textContent='✓ Copiado'
+    setTimeout(function(){btn.textContent='📋 Copiar'},2000)
+  }).catch(function(){
+    // Fallback for browsers without clipboard API
+    btn.textContent=link
+  })
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
