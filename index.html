@@ -218,6 +218,54 @@ const TIPOS=['Asesoría de tesis/proyectos','Análisis estadístico','Artículo 
 const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_FULL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const DIAS_FULL=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
+
+// Convierte cualquier string de fecha a YYYY-MM-DD para input type="date"
+function toISO(s){
+  if(!s||s==='')return''
+  s=String(s).trim()
+  // Already ISO: 2026-03-15
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10)
+  // Google Sheets locale formats: M/D/YYYY or MM/DD/YYYY (US)
+  const m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if(m1){
+    // Sheets always uses M/D/YYYY (US format)
+    return m1[3]+'-'+m1[1].padStart(2,'0')+'-'+m1[2].padStart(2,'0')
+  }
+  // DD-MM-YYYY
+  const m2=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
+  if(m2)return m2[3]+'-'+m2[2].padStart(2,'0')+'-'+m2[1].padStart(2,'0')
+  // Try native parse as fallback
+  try{const d=new Date(s);if(!isNaN(d.getTime()))return d.toISOString().slice(0,10)}catch(e){}
+  return s.slice(0,10)
+}
+
+// Formatea fecha larga: "Lunes, 30 de marzo 2026"
+function fmtD(s){
+  if(!s||s==='---'||s==='')return'—'
+  const iso=toISO(s)
+  if(!iso||iso==='')return s||'—'
+  try{
+    // Parse as local date (avoid UTC shift)
+    const p=iso.split('-')
+    const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))
+    if(isNaN(d.getTime()))return s
+    return DIAS_FULL[d.getDay()]+', '+d.getDate()+' de '+MESES_FULL[d.getMonth()].toLowerCase()+' '+d.getFullYear()
+  }catch(e){return s}
+}
+
+// Formato corto: "15 mar 2026"
+function fmtDCorto(s){
+  if(!s||s==='')return'—'
+  const iso=toISO(s)
+  if(!iso)return s
+  try{
+    const p=iso.split('-')
+    const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))
+    if(isNaN(d.getTime()))return s
+    return d.getDate()+' '+MESES_FULL[d.getMonth()].slice(0,3).toLowerCase()+' '+d.getFullYear()
+  }catch(e){return s}
+}
 const DIAS=['D','L','M','X','J','V','S']
 const INSTITUCIONES=[
   'Universidad de Otavalo (UNO)',
@@ -854,7 +902,7 @@ function htmlTrabajos(){
     if(isExp){
       h+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
       if(t.notas)h+='<p style="font-size:12px;color:var(--text3);margin-bottom:10px">📝 '+esc(t.notas)+'</p>'
-      if(t.progreso||t.fechaInicio)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Avance: <strong>'+esc(t.progreso||0)+'%</strong>'+(t.fechaInicio?' · Inicio: '+esc(t.fechaInicio):'')+(t.fechaFin?' · Entrega: '+esc(t.fechaFin):'')+' <button class="btn btn-g btn-sm" style="margin-left:6px" onclick="openModal(\'trabajo\','+jss(t)+')">Actualizar progreso</button></div>'
+      if(t.progreso||t.fechaInicio||t.fechaFin)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">'+(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')+(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')+(t.progreso?'<span>📊 Avance: <strong>'+esc(t.progreso)+'%</strong></span>':'')+'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar</button></div>'
       h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<strong style="font-size:12px;color:var(--text2)">Plan de pagos ('+cuotas.length+')</strong>'
         +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',nro:'+(cuotas.length+1)+'})">+ Cuota</button></div>'
@@ -866,7 +914,7 @@ function htmlTrabajos(){
           const phone=cl&&cl.telefono
           h+='<div class="crow" style="background:'+bgc+';border-color:'+bdc+'">'
             +'<div class="crow-hd">'
-            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">Vence: '+esc(c.fechaVencimiento||'—')+'</div></div>'
+            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">Vence: '+fmtDCorto(c.fechaVencimiento||'')+'</div></div>'
             +'<div style="text-align:right;min-width:80px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
             +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+' pagado</div>':'')
             +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
@@ -932,7 +980,7 @@ function htmlCobros(){
       +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+'</div>':'')
       +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;font-weight:600;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
       +'</div>'
-      +'<div style="text-align:center;min-width:85px"><div style="font-size:12px">'+esc(c.fechaVencimiento||'—')+'</div>'
+      +'<div style="text-align:center;min-width:85px"><div style="font-size:12px">'+fmtDCorto(c.fechaVencimiento||'')+'</div>'
       +(st!=='pagado'?'<div style="font-size:11px;color:'+(days<0?'var(--red)':days<=3?'var(--amber)':'var(--text3)')+'">'+(days<0?Math.abs(days)+'d vencido':days===0?'Hoy':'en '+days+'d')+'</div>':'')
       +'</div>'+bdg(st,cColor(st))
       +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
@@ -1203,15 +1251,32 @@ function mTrabajo(d){
     +'<div><label>Estado</label><select id="f3">'+ESTADOS.map(x=>'<option'+(d.estado===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
     +'<div><label>Total ($)</label><input id="f4" type="number" min="0" step="0.01" value="'+esc(d.total||'')+'"/></div>'
     +'<div><label>Progreso (%)</label><input id="f5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
-    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(d.fechaInicio||'')+'"/></div>'
-    +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
+    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(toISO(d.fechaInicio||''))+'"/></div>'
+    +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(toISO(d.fechaFin||''))+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div></div>'
   if(!e){
     s+='<div style="margin-top:12px;padding:13px;background:#f0f6ff;border-radius:10px;border:1px solid #dbeafe">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px">💰 Plan de pagos automático</div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px">💰 Plan de pagos</div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+      +'<button type="button" id="tab_auto" class="btn btn-p btn-sm" onclick="switchPlanTab(\'auto\')">⚡ Automático</button>'
+      +'<button type="button" id="tab_manual" class="btn btn-g btn-sm" onclick="switchPlanTab(\'manual\')">✍️ Manual</button>'
+      +'</div>'
+      +'<div id="plan_auto">'
       +'<div class="fg"><div><label>Nº cuotas</label><input id="tp_n" type="number" min="1" max="24" value="2" oninput="previewPlan()"/></div>'
       +'<div><label>Fecha primera cuota</label><input id="tp_d" type="date" value="'+hoy+'" oninput="previewPlan()"/></div></div>'
-      +'<div id="pprev" style="margin-top:7px;font-size:12px;color:var(--text3)"></div></div>'
+      +'<div id="pprev" style="margin-top:7px;font-size:12px;color:var(--text3)"></div>'
+      +'</div>'
+      +'<div id="plan_manual" style="display:none">'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Define cada cuota individualmente. Se guardarán al registrar el trabajo:</div>'
+      +'<div id="cuotas_manual"><div class="manual-row" style="display:grid;grid-template-columns:1fr 100px 140px auto;gap:6px;margin-bottom:6px">'
+      +'<input placeholder="Nombre (Ej: Anticipo)" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'
+      +'<input type="number" placeholder="$0" min="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'
+      +'<input type="date" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'
+      +'<button type="button" onclick="this.closest(\'.manual-row\').remove()" style="padding:4px 8px;border:1px solid #fecaca;background:#fee2e2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:12px">✕</button>'
+      +'</div></div>'
+      +'<button type="button" class="btn btn-g btn-sm" onclick="addCuotaManual()" style="margin-top:6px">+ Agregar cuota</button>'
+      +'</div>'
+      +'</div>'
   }
   s+='<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitTrabajo(\''+esc(d.id||'')+'\','+e+')">'+(e?'Actualizar':'Registrar')+'</button></div>'
@@ -1244,28 +1309,42 @@ async function submitTrabajo(id,isEdit){
   // Capture plan values BEFORE draw() clears the modal inputs
   const planN=parseInt(v('tp_n'))||1
   const planD=v('tp_d')||new Date().toISOString().split('T')[0]
-  const crearCuotas=!isEdit&&total>0
+  const planManual=document.getElementById('plan_manual')
+  const usaManual=planManual&&planManual.style.display!=='none'
+  const crearCuotas=!isEdit&&(total>0||usaManual)
   await saveRec('Trabajos',rec,!id)
   if(crearCuotas){
-    const pc=Math.floor(total*100/planN)/100
-    const last=Math.round((total-pc*(planN-1))*100)/100
-    toast('Creando '+planN+' cuota'+(planN>1?'s':'')+'...')
-    for(let i=0;i<planN;i++){
-      const dt=new Date(planD);dt.setMonth(dt.getMonth()+i)
-      const lb=i===0?'Anticipo':'Cuota '+(i+1)+(i===planN-1&&planN>1?' (final)':'')
+    let cuotasACrear=[]
+    if(usaManual){
+      // Cuotas manuales
+      cuotasACrear=getCuotasManual()
+      if(cuotasACrear.length===0){await loadData();return}
+    }else{
+      // Cuotas automáticas
+      const pc=Math.floor(total*100/planN)/100
+      const last=Math.round((total-pc*(planN-1))*100)/100
+      for(let i=0;i<planN;i++){
+        const dt=new Date(planD);dt.setMonth(dt.getMonth()+i)
+        const lb=i===0?'Anticipo':'Cuota '+(i+1)+(i===planN-1&&planN>1?' (final)':'')
+        cuotasACrear.push({label:lb,monto:i===planN-1?last:pc,fecha:dt.toISOString().split('T')[0]})
+      }
+    }
+    toast('Creando '+cuotasACrear.length+' cuota'+(cuotasACrear.length>1?'s':'')+'...')
+    for(let i=0;i<cuotasACrear.length;i++){
+      const c=cuotasACrear[i]
       await apiPost({action:'insertar',tabla:'Cuotas',fila:{
         id:uid(),trabajoId:workId,
         clienteId:clienteId,
         clienteNombre:cl&&cl.nombre||'',
         trabajoTitulo:titulo,
-        label:lb,
-        fechaVencimiento:dt.toISOString().split('T')[0],
-        acordado:i===planN-1?last:pc,
+        label:c.label,
+        fechaVencimiento:c.fecha,
+        acordado:c.monto,
         pagado:0,estado:'pendiente'
       }})
     }
     await loadData()
-    toast('✓ Trabajo y '+planN+' cuota'+(planN>1?'s':'')+' creadas')
+    toast('✓ Trabajo y '+cuotasACrear.length+' cuota'+(cuotasACrear.length>1?'s':'')+' creadas')
   }
 }
 
@@ -1280,7 +1359,7 @@ function mCuota(d){
     +'<div><label>Ya pagado ($)</label>'
     +'<input id="q3" type="number" min="0" step="0.01" value="'+esc(d.pagado||0)+'"/></div>'
     +'<div><label>Fecha vencimiento</label>'
-    +'<input id="q2" type="date" value="'+esc(d.fechaVencimiento||new Date().toISOString().split('T')[0])+'"/></div>'
+    +'<input id="q2" type="date" value="'+esc(toISO(d.fechaVencimiento)||new Date().toISOString().split('T')[0])+'"/></div>'
     +'<div class="full"><label>Estado</label><select id="q4">'
     +['pendiente','parcial','pagado'].map(function(st){return'<option value="'+st+'"'+((d.estado||'pendiente')===st?' selected':'')+'>'+st.charAt(0).toUpperCase()+st.slice(1)+'</option>'}).join('')
     +'</select></div>'
@@ -1919,6 +1998,49 @@ function copiarMeet(btn,link){
     // Fallback for browsers without clipboard API
     btn.textContent=link
   })
+}
+
+// ── Plan de pagos manual ──────────────────────────────────────────
+function switchPlanTab(tab){
+  const auto=document.getElementById('plan_auto')
+  const manual=document.getElementById('plan_manual')
+  const btnA=document.getElementById('tab_auto')
+  const btnM=document.getElementById('tab_manual')
+  if(!auto||!manual)return
+  if(tab==='auto'){
+    auto.style.display='block';manual.style.display='none'
+    if(btnA){btnA.className='btn btn-p btn-sm'}
+    if(btnM){btnM.className='btn btn-g btn-sm'}
+  }else{
+    auto.style.display='none';manual.style.display='block'
+    if(btnA){btnA.className='btn btn-g btn-sm'}
+    if(btnM){btnM.className='btn btn-p btn-sm'}
+  }
+}
+
+function addCuotaManual(){
+  const cont=document.getElementById('cuotas_manual')
+  if(!cont)return
+  const row=document.createElement('div')
+  row.className='manual-row'
+  row.style.cssText='display:grid;grid-template-columns:1fr 100px 140px auto;gap:6px;margin-bottom:6px'
+  row.innerHTML='<input placeholder="Nombre (Ej: Cuota 2)" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'    +'<input type="number" placeholder="$0" min="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'    +'<input type="date" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"/>'    +'<button type="button" onclick="this.closest(\'.manual-row\').remove()" style="padding:4px 8px;border:1px solid #fecaca;background:#fee2e2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:12px">✕</button>'
+  cont.appendChild(row)
+}
+
+function getCuotasManual(){
+  const rows=document.querySelectorAll('.manual-row')
+  const cuotas=[]
+  rows.forEach(function(row){
+    const inputs=row.querySelectorAll('input')
+    if(inputs.length>=2){
+      const label=inputs[0].value.trim()||'Cuota'
+      const monto=parseFloat(inputs[1].value)||0
+      const fecha=inputs[2]&&inputs[2].value||new Date().toISOString().split('T')[0]
+      if(monto>0) cuotas.push({label:label,monto:monto,fecha:fecha})
+    }
+  })
+  return cuotas
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
