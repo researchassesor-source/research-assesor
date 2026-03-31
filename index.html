@@ -1067,9 +1067,15 @@ async function genMeet(titulo,fecha,hora){
     const cb='_mc_'+Date.now();const s=document.createElement('script')
     const to=setTimeout(()=>{cleanup();reject(new Error('Timeout'))},15000)
     function cleanup(){clearTimeout(to);delete window[cb];s.parentNode&&s.parentNode.removeChild(s)}
-    window[cb]=d=>{cleanup();d.error?reject(new Error(d.error)):d.meetLink?resolve(d.meetLink):reject(new Error('Sin link'))}
+    window[cb]=function(d){
+      cleanup()
+      if(d&&d.ok&&d.meetLink) resolve(d.meetLink)
+      else if(d&&d.error) reject(new Error(d.error))
+      else reject(new Error('El Apps Script no devolvió enlace Meet. Verifica que Calendar API v3 esté habilitado en Servicios Avanzados.'))
+    }
     s.src=API+'?action=createMeet&title='+encodeURIComponent(titulo)+'&date='+encodeURIComponent(fecha)+'&time='+encodeURIComponent(hora||'10:00')+'&duration=60&callback='+cb
-    s.onerror=()=>{cleanup();reject(new Error('Sin conexión'))};document.head.appendChild(s)
+    s.onerror=function(){cleanup();reject(new Error('No se pudo conectar al Apps Script. Verifica que esté desplegado correctamente.'))}
+    document.head.appendChild(s)
   })
 }
 async function clickGenMeet(){
@@ -1197,7 +1203,7 @@ function mTrabajo(d){
     +'<div><label>Estado</label><select id="f3">'+ESTADOS.map(x=>'<option'+(d.estado===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
     +'<div><label>Total ($)</label><input id="f4" type="number" min="0" step="0.01" value="'+esc(d.total||'')+'"/></div>'
     +'<div><label>Progreso (%)</label><input id="f5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
-    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(d.fechaInicio||hoy)+'"/></div>'
+    +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(d.fechaInicio||'')+'"/></div>'
     +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(d.fechaFin||'')+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div></div>'
   if(!e){
@@ -1264,25 +1270,44 @@ async function submitTrabajo(id,isEdit){
 }
 
 function mCuota(d){
-  return'<h3>Agregar cuota</h3><div class="fg">'
-    +'<div class="full"><label>Descripción</label><input id="q0" value="'+esc(d.label||('Cuota '+d.nro))+'"/></div>'
-    +'<div><label>Monto ($) *</label><input id="q1" type="number" min="0" step="0.01"/></div>'
-    +'<div><label>Fecha vencimiento</label><input id="q2" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
+  const isEdit=!!d.id
+  const titulo=isEdit?'Editar cuota':'Nueva cuota'
+  return'<h3>'+titulo+'</h3><div class="fg">'
+    +'<div class="full"><label>Descripción / Nombre de cuota</label>'
+    +'<input id="q0" value="'+esc(d.label||(d.nro?'Cuota '+d.nro:''))+'" placeholder="Ej: Anticipo, Cuota 1, Pago final..."/></div>'
+    +'<div><label>Monto acordado ($) *</label>'
+    +'<input id="q1" type="number" min="0" step="0.01" value="'+esc(d.acordado||'')+'" placeholder="0.00"/></div>'
+    +'<div><label>Ya pagado ($)</label>'
+    +'<input id="q3" type="number" min="0" step="0.01" value="'+esc(d.pagado||0)+'"/></div>'
+    +'<div><label>Fecha vencimiento</label>'
+    +'<input id="q2" type="date" value="'+esc(d.fechaVencimiento||new Date().toISOString().split('T')[0])+'"/></div>'
+    +'<div class="full"><label>Estado</label><select id="q4">'
+    +['pendiente','parcial','pagado'].map(function(st){return'<option value="'+st+'"'+((d.estado||'pendiente')===st?' selected':'')+'>'+st.charAt(0).toUpperCase()+st.slice(1)+'</option>'}).join('')
+    +'</select></div>'
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
-    +'<button class="btn btn-p" onclick="submitCuota(\''+esc(d.trabajoId)+'\')">Agregar</button></div>'
+    +'<button class="btn btn-p" onclick="submitCuota(\''+esc(d.trabajoId||'')+'\''+( isEdit?',\''+esc(d.id)+'\'':'')+')">'+(isEdit?'Actualizar':'Agregar')+'</button></div>'
 }
-function submitCuota(trabajoId){
+function submitCuota(trabajoId,cuotaId){
   const monto=parseFloat(v('q1'));if(!monto){alert('Monto obligatorio');return}
+  const isEdit=!!cuotaId
   const t=data.trabajos.find(x=>x.id===trabajoId)
   const cl=t?data.clientes.find(x=>x.id===t.clienteId):null
-  saveRec('Cuotas',{
-    id:uid(),trabajoId,
+  const existing=isEdit?data.cuotas.find(x=>x.id===cuotaId):null
+  const pagado=parseFloat(v('q3'))||0
+  const estado=v('q4')||'pendiente'
+  const rec={
+    id:isEdit?cuotaId:uid(),
+    trabajoId,
     clienteId:t&&t.clienteId||'',
     clienteNombre:cl&&cl.nombre||t&&t.clienteNombre||'',
     trabajoTitulo:t&&t.titulo||'',
-    label:v('q0'),fechaVencimiento:v('q2'),
-    acordado:monto,pagado:0,estado:'pendiente'
-  },true)
+    label:v('q0'),
+    fechaVencimiento:v('q2'),
+    acordado:monto,
+    pagado:pagado,
+    estado:estado
+  }
+  saveRec('Cuotas',rec,!isEdit)
 }
 
 function mAbono(d){
