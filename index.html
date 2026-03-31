@@ -902,7 +902,7 @@ function htmlTrabajos(){
     if(isExp){
       h+='<div style="border-top:1px solid #f1f5f9;padding:14px 16px">'
       if(t.notas)h+='<p style="font-size:12px;color:var(--text3);margin-bottom:10px">📝 '+esc(t.notas)+'</p>'
-      if(t.progreso||t.fechaInicio||t.fechaFin)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">'+(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')+(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')+(t.progreso?'<span>📊 Avance: <strong>'+esc(t.progreso)+'%</strong></span>':'')+'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar</button></div>'
+      if(t.progreso||t.fechaInicio||t.fechaFin||t.carpeta)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">'+(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')+(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')+(t.progreso?'<span>📊 Avance: <strong>'+esc(t.progreso)+'%</strong></span>':'')+(t.carpeta?'<a href="'+esc(t.carpeta)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">📁 Carpeta</a>':'')+'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar</button></div>'
       h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<strong style="font-size:12px;color:var(--text2)">Plan de pagos ('+cuotas.length+')</strong>'
         +'<button class="btn btn-g btn-sm" onclick="openModal(\'cuota\',{trabajoId:\''+t.id+'\',nro:'+(cuotas.length+1)+'})">+ Cuota</button></div>'
@@ -1121,22 +1121,30 @@ function waMeet(rid){
   window.open(waUrl(cl.telefono,msg),'_blank')
 }
 async function genMeet(titulo,fecha,hora){
-  // Try fetch GET first (works with current script deployment)
-  const url=API+'?action=createMeet&title='+encodeURIComponent(titulo)
-    +'&date='+encodeURIComponent(fecha||'')
-    +'&time='+encodeURIComponent(hora||'10:00')
-    +'&duration=60&t='+Date.now()
-  const r=await fetch(url)
-  const text=await r.text()
-  // Handle JSONP-style response or plain JSON
-  const jsonStr=text.replace(/^[^(]+\((.+)\)\s*;?\s*$/,'$1').trim()
-  let d
-  try{d=JSON.parse(jsonStr||text)}catch(e){
-    throw new Error('Respuesta inesperada del servidor. Redesplega el Apps Script con la nueva versión.')
+  // Try Apps Script createMeet action
+  try{
+    const url=API+'?action=createMeet&title='+encodeURIComponent(titulo)
+      +'&date='+encodeURIComponent(fecha||'')
+      +'&time='+encodeURIComponent(hora||'10:00')
+      +'&duration=60&t='+Date.now()
+    const r=await fetch(url)
+    const text=await r.text()
+    const jsonStr=text.replace(/^[^(]+\((.+)\)\s*;?\s*$/,'$1').trim()
+    let d
+    try{d=JSON.parse(jsonStr||text)}catch(e){d=null}
+    if(d&&d.ok&&d.meetLink)return d.meetLink
+    // If script doesn't support createMeet yet, throw specific error
+    if(d&&d.error&&d.error.includes('desconocida')){
+      throw new Error('NEEDS_REDEPLOY')
+    }
+    if(d&&d.error)throw new Error(d.error)
+  }catch(fe){
+    if(fe.message==='NEEDS_REDEPLOY'||fe.name==='TypeError'){
+      throw new Error('NEEDS_REDEPLOY')
+    }
+    throw fe
   }
-  if(d&&d.ok&&d.meetLink)return d.meetLink
-  if(d&&d.error)throw new Error(d.error)
-  throw new Error('El Apps Script no devolvió enlace Meet. Activa Calendar API v3 en Servicios Avanzados del editor.')
+  throw new Error('Sin enlace Meet en la respuesta del servidor.')
 }
 async function clickGenMeet(){
   const btn=document.getElementById('btnMeet'),sta=document.getElementById('meetSta')
@@ -1144,7 +1152,25 @@ async function clickGenMeet(){
   btn.disabled=true;btn.textContent='⟳ Creando...'
   sta.innerHTML='<span style="color:var(--amber)">⏳ Creando enlace de Google Meet...</span>'
   try{
-    const link=await genMeet(v('r0')||'Reunión de Asesoría',v('r3'),v('r4'))
+    let link
+    try{
+      link=await genMeet(v('r0')||'Reunión de Asesoría',v('r3'),v('r4'))
+    }catch(ge){
+      if(ge.message==='NEEDS_REDEPLOY'){
+        // Fallback: open Google Meet directly (creates instant meeting)
+        const meetUrl='https://meet.google.com/new'
+        window.open(meetUrl,'_blank')
+        sta.innerHTML='<div style="background:#dbeafe;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-top:6px">'
+          +'<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px">📋 Google Meet abierto en nueva pestaña</div>'
+          +'<div style="font-size:12px;color:#1e40af">1. Copia el enlace meet.google.com/xxx que aparece</div>'
+          +'<div style="font-size:12px;color:#1e40af">2. Pégalo en el campo de enlace de abajo</div>'
+          +'<div style="font-size:12px;color:#64748b;margin-top:4px">Para generación automática: redesplega el Apps Script con la última versión y activa <strong>Calendar API v3</strong></div>'
+          +'</div>'
+        btn.disabled=false;btn.textContent='🎥 Generar Meet'
+        return
+      }
+      throw ge
+    }
     const inp=document.getElementById('r6')
     if(inp) inp.value=link
     sta.innerHTML='<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;margin-top:6px">'
@@ -1265,7 +1291,22 @@ function mTrabajo(d){
     +'<div><label>Progreso (%)</label><input id="f5" type="number" min="0" max="100" value="'+esc(d.progreso||0)+'"/></div>'
     +'<div><label>Fecha inicio</label><input id="f6" type="date" value="'+esc(toISO(d.fechaInicio||''))+'"/></div>'
     +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(toISO(d.fechaFin||''))+'"/></div>'
-    +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div></div>'
+    +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div>'
+    +'<div class="full"><label>📁 Enlace carpeta de trabajo (Drive, Dropbox, etc.)</label>'    +'<input id="f9" type="url" value="'+esc(d.carpeta||'')+'" placeholder="https://drive.google.com/drive/folders/..."/></div>'    +'</div>'
+  // Edit mode: show existing cuotas with edit options
+  if(e){
+    const cuotasTrab=data.cuotas.filter(function(c){return c.trabajoId===d.id})
+    if(cuotasTrab.length){
+      s+='<div style="margin-top:12px;padding:13px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">'        +'<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">💳 Cuotas del trabajo ('+cuotasTrab.length+')</div>'        +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'        +'<thead><tr style="background:#f1f5f9">'        +'<th style="padding:6px 8px;text-align:left;font-weight:600">Cuota</th>'        +'<th style="padding:6px 8px;text-align:right;font-weight:600">Acordado</th>'        +'<th style="padding:6px 8px;text-align:right;font-weight:600">Pagado</th>'        +'<th style="padding:6px 8px;text-align:center;font-weight:600">Vence</th>'        +'<th style="padding:6px 8px;text-align:center;font-weight:600">Estado</th>'        +'<th style="padding:6px 8px"></th>'        +'</tr></thead><tbody>'
+      cuotasTrab.forEach(function(c){
+        const st=cStat(c)
+        const sc={pagado:'#15803d',parcial:'#1d4ed8',vencido:'#dc2626',pendiente:'#b45309'}[st]||'#64748b'
+        s+='<tr style="border-top:1px solid #f1f5f9">'          +'<td style="padding:7px 8px"><strong>'+esc(c.label||'Cuota')+'</strong></td>'          +'<td style="padding:7px 8px;text-align:right">$'+fmt(c.acordado)+'</td>'          +'<td style="padding:7px 8px;text-align:right;color:var(--green)">$'+fmt(c.pagado||0)+'</td>'          +'<td style="padding:7px 8px;text-align:center;color:var(--text3)">'+fmtDCorto(c.fechaVencimiento||'')+'</td>'          +'<td style="padding:7px 8px;text-align:center;color:'+sc+';font-weight:600">'+st.toUpperCase()+'</td>'          +'<td style="padding:7px 8px"><button type="button" class="btn btn-g btn-sm" onclick="closeModal();setTimeout(function(){openModal(\'cuota\',Object.assign({},'+jss(c)+'))},50)">✏️</button></td>'          +'</tr>'      })
+      s+='</tbody></table></div>'        +'<div style="margin-top:8px;display:flex;gap:8px">'        +'<button type="button" class="btn btn-g btn-sm" onclick="closeModal();setTimeout(function(){openModal(\'cuota\',{trabajoId:\''+d.id+'\',nro:'+(cuotasTrab.length+1)+'})},50)">+ Nueva cuota</button>'        +'</div></div>'
+    }else{
+      s+='<div style="margin-top:12px;padding:13px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">'        +'<div style="font-size:12px;color:var(--text3);margin-bottom:8px">💳 Sin cuotas — puedes agregar el plan de pagos:</div>'        +'<button type="button" class="btn btn-g btn-sm" onclick="closeModal();setTimeout(function(){openModal(\'cuota\',{trabajoId:\''+d.id+'\',nro:1})},50)">+ Agregar cuota</button>'        +'</div>'
+    }
+  }
   if(!e){
     s+='<div style="margin-top:12px;padding:13px;background:#f0f6ff;border-radius:10px;border:1px solid #dbeafe">'
       +'<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px">💰 Plan de pagos</div>'
@@ -1317,7 +1358,7 @@ async function submitTrabajo(id,isEdit){
   const cl=data.clientes.find(c=>c.id===clienteId)
   const total=parseFloat(v('f4'))||0
   const workId=id||uid()
-  const rec={id:workId,clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo:v('f2'),estado:v('f3'),total,progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  const rec={id:workId,clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo:v('f2'),estado:v('f3'),total,progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),carpeta:v('f9'),createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
   // Capture plan values BEFORE draw() clears the modal inputs
   const planN=parseInt(v('tp_n'))||1
   const planD=v('tp_d')||new Date().toISOString().split('T')[0]
