@@ -324,20 +324,20 @@ var WA_TPLS_DEFAULT=[
 // Cargar desde localStorage o usar defaults
 function cargarTpls(){
   try{
-    const saved=localStorage.getItem('wa_tpls_v3')
+    const saved=localStorage.getItem('wa_tpls_v4')
     if(!saved) return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
     const parsed=JSON.parse(saved)
     // Check emoji integrity: if any template has replacement char, reset
     const broken=parsed.some(function(t){return t.msg&&t.msg.indexOf('\uFFFD')>-1})
     if(broken){
-      localStorage.removeItem('wa_tpls_v3')
+      localStorage.removeItem('wa_tpls_v4')
       return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
     }
     return parsed
   }catch(e){return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})}
 }
 function guardarTpls(tpls){
-  try{localStorage.setItem('wa_tpls_v3',JSON.stringify(tpls))}catch(e){}
+  try{localStorage.setItem('wa_tpls_v4',JSON.stringify(tpls))}catch(e){}
 }
 var WA_TPLS=cargarTpls()
 
@@ -1105,7 +1105,7 @@ function htmlReuniones(){
       +'</div>'
       +'<div style="font-size:12px;color:var(--text3);margin-bottom:5px">'+esc(cl&&cl.nombre||'—')+'</div>'
       +'<div style="font-size:12px;color:var(--text2)">📅 '+(_fechaOk?fmtD(r.fecha):'Sin fecha')+'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">🕐 '+esc((r.hora||'—').slice(0,5))+' · 💻 '+esc(r.plataforma||'—')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">🕐 '+esc((function(h){if(!h)return'—';if(/^\d{1,2}:\d{2}/.test(h))return h.slice(0,5);return'—'})(r.hora))+' · 💻 '+esc(r.plataforma||'—')+'</div>'
       +(r.notas?'<div style="font-size:11px;color:var(--text3);margin-top:3px">📝 '+esc(r.notas)+'</div>':'')
       +(r.link?'<div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding:5px 9px;background:#f0f9ff;border-radius:7px;border:1px solid #bae6fd">'
         +'<span style="font-size:11px;color:#0369a1;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.link)+'</span>'
@@ -1168,7 +1168,10 @@ function waMeet(rid){
   const r=data.reuniones.find(x=>x.id===rid)
   const cl=r?data.clientes.find(x=>x.id===r.clienteId):null
   if(!r||!(cl&&cl.telefono))return
-  const msg=waTpl('meeting',{nombre:cl.nombre||'',fecha:r.fecha||'',hora:r.hora||'',plat:r.plataforma||'',link:r.link||''})
+  // Format fecha and hora safely before sending to template
+  const fechaFmt=fmtD(r.fecha||'')
+  const horaFmt=(function(h){if(!h)return'—';if(/^\d{1,2}:\d{2}/.test(h))return h.slice(0,5);return'—'})(r.hora)
+  const msg=waTpl('meeting',{nombre:cl.nombre||'',fecha:fechaFmt,hora:horaFmt,plat:r.plataforma||'',link:r.link||''})
   window.open(waUrl(cl.telefono,msg),'_blank')
 }
 async function genMeet(titulo,fecha,hora){
@@ -1521,16 +1524,18 @@ async function submitAbono(cuotaId,trabajoId,acordado,pagadoPrev){
 }
 
 function mReunion(d){
-  const e=!!d.id,hoy=new Date();hoy.setDate(hoy.getDate()+1)
-  const def=hoy.toISOString().split('T')[0]
+  const e=!!d.id
+  // Default: tomorrow (local time, not UTC)
+  const _tmr=new Date();_tmr.setDate(_tmr.getDate()+1)
+  const def=[_tmr.getFullYear(),String(_tmr.getMonth()+1).padStart(2,'0'),String(_tmr.getDate()).padStart(2,'0')].join('-')
   return'<h3>'+(e?'Editar':'Nueva')+' reunión</h3><div class="fg">'
     +'<div class="full"><label>Título *</label><input id="r0" value="'+esc(d.titulo||'')+'" placeholder="Ej: Revisión Cap. 2"/></div>'
     +'<div class="full"><label>Cliente</label><select id="r1"><option value="">Seleccionar...</option>'
     +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')+'</select></div>'
     +'<div class="full"><label>Trabajo relacionado</label><select id="r2"><option value="">Ninguno</option>'
     +data.trabajos.map(t=>'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo.slice(0,42))+'</option>').join('')+'</select></div>'
-    +'<div><label>Fecha *</label><input id="r3" type="date" value="'+esc(d.fecha||def)+'"/></div>'
-    +'<div><label>Hora</label><input id="r4" type="time" value="'+esc(d.hora||'10:00')+'"/></div>'
+    +'<div><label>Fecha *</label><input id="r3" type="date" value="'+esc(toISO(d.fecha||'')||def)+'"/></div>'
+    +'<div><label>Hora</label><input id="r4" type="time" value="'+esc((function(h){if(!h)return'10:00';if(/^\d{2}:\d{2}/.test(h))return h.slice(0,5);return'10:00'})(d.hora))+'"/></div>'
     +'<div><label>Plataforma</label><select id="r5">'+['Google Meet','Zoom','Microsoft Teams','Whereby','Otra'].map(p=>'<option'+(d.plataforma===p?' selected':'')+'>'+p+'</option>').join('')+'</select></div>'
     +'</div>'
     +'<div style="margin-top:10px"><label>Enlace de reunión</label>'
@@ -1970,7 +1975,7 @@ function eliminarTpl(id){
 
 function resetTpls(){
   if(!confirm('¿Restaurar todas las plantillas a sus valores originales? Se perderán los cambios.'))return
-  localStorage.removeItem('wa_tpls_v3')
+  localStorage.removeItem('wa_tpls_v4')
   WA_TPLS=cargarTpls();draw();toast('Plantillas restauradas ✓')
 }
 
