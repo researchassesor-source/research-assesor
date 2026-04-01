@@ -324,12 +324,20 @@ var WA_TPLS_DEFAULT=[
 // Cargar desde localStorage o usar defaults
 function cargarTpls(){
   try{
-    const saved=localStorage.getItem('wa_tpls_v2')
-    return saved?JSON.parse(saved):WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
+    const saved=localStorage.getItem('wa_tpls_v3')
+    if(!saved) return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
+    const parsed=JSON.parse(saved)
+    // Check emoji integrity: if any template has replacement char, reset
+    const broken=parsed.some(function(t){return t.msg&&t.msg.indexOf('\uFFFD')>-1})
+    if(broken){
+      localStorage.removeItem('wa_tpls_v3')
+      return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
+    }
+    return parsed
   }catch(e){return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})}
 }
 function guardarTpls(tpls){
-  try{localStorage.setItem('wa_tpls_v2',JSON.stringify(tpls))}catch(e){}
+  try{localStorage.setItem('wa_tpls_v3',JSON.stringify(tpls))}catch(e){}
 }
 var WA_TPLS=cargarTpls()
 
@@ -419,6 +427,8 @@ async function loadData(){
       abonos:    r.abonos    ||[],
       reuniones: r.reuniones ||[],
     }
+    // Cache client portal users for login checks
+    if(r.usuariosCliente) window._clientUsers=r.usuariosCliente||[]
     syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
     syncErr=false
   }else{
@@ -511,9 +521,20 @@ function htmlLogin(){
 }
 function doLogin(){
   const u=v('lu'),p=v('lp')
-  const found=USERS.find(x=>x.u===u&&x.p===p)
-  if(!found){const e=document.getElementById('lerr');e.textContent='Credenciales incorrectas';e.style.display='block';return}
-  user=found;loadData()
+  // Check admin users first
+  const adminUsers=window._appUsers||USERS
+  const foundAdmin=adminUsers.find(x=>x.u===u&&x.p===p)
+  if(foundAdmin){user=foundAdmin;loadData();return}
+  // Check client portal users (loaded from Sheets)
+  const clientUsers=window._clientUsers||[]
+  const foundClient=clientUsers.find(x=>x.usuario===u&&x.password===p&&x.activo!=='0')
+  if(foundClient){
+    user={id:foundClient.id,u:foundClient.usuario,name:foundClient.nombre,
+          role:'cliente',clienteId:foundClient.clienteId}
+    loadData();return
+  }
+  const e=document.getElementById('lerr')
+  e.textContent='Credenciales incorrectas';e.style.display='block'
 }
 
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
@@ -525,13 +546,17 @@ const NAV_MAIN=[
   {id:'reuniones',l:'Reuniones',ic:'◷'},
 ]
 const NAV_ADMIN=[{id:'usuarios',l:'Usuarios',ic:'◐'},{id:'mensajes',l:'Mensajes WA',ic:'💬'}]
+const NAV_CLIENTE=[
+  {id:'mi_progreso',l:'Mis trabajos',ic:'📋'},
+  {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
+]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
 const VERSION='v5.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
   const nVenc=data.cuotas.filter(c=>cStat(c)==='vencido').length
-  const allNav=user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
+  const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
   const initials=(user.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
 
   return'<div class="app">'
@@ -564,6 +589,12 @@ function htmlApp(){
 
 function goTo(p){page=p;search='';wExp=null;draw()}
 function htmlPage(){
+  // Cliente portal - restricted view
+  if(user&&user.role==='cliente'){
+    if(page==='mi_progreso') return htmlPortalProgreso()
+    if(page==='mis_cuentas') return htmlPortalCuentas()
+    page='mi_progreso'; return htmlPortalProgreso()
+  }
   if(page==='dashboard')return htmlDash()
   if(page==='clientes') return htmlClientes()
   if(page==='trabajos') return htmlTrabajos()
@@ -843,7 +874,8 @@ function htmlClientes(){
       +'<td style="color:var(--text3)">'+esc(c.email||'—')+'</td>'
       +'<td>'+bdg(nT,'blue')+'</td>'
       +'<td><span style="display:flex;gap:4px">'
-      +'<button class="btn btn-g btn-sm" title="Descargar reporte Word" onclick="descargarReporte(\''+c.id+'\')">📄</button>'
+    +'<button class="btn btn-g btn-sm" title="Portal del cliente" onclick="gestionarPortalCliente(\''+c.id+'\')" style="font-size:11px">👤 Portal</button>'
+            +'<button class="btn btn-g btn-sm" title="Descargar reporte Word" onclick="descargarReporte(\''+c.id+'\')">📄</button>'
       +'<button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>'+'✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar este cliente?\')">🗑</button>'
       +'</span></td></tr>'
@@ -1042,9 +1074,9 @@ function exportCobros(){
 function htmlReuniones(){
   const hoy=new Date().toISOString().split('T')[0]
   const today=new Date()
-  const list=data.reuniones.filter(r=>mvw==='upcoming'?r.fecha>=hoy:mvw==='past'?r.fecha<hoy:true).sort((a,b)=>a.fecha.localeCompare(b.fecha))
+  const list=data.reuniones.filter(r=>{const fi=toISO(r.fecha||'');if(!fi)return mvw==='all';return mvw==='upcoming'?fi>=hoy:mvw==='past'?fi<hoy:true}).sort((a,b)=>(toISO(a.fecha||'')).localeCompare(toISO(b.fecha||'')))
   const calDays={}
-  data.reuniones.forEach(r=>{const d=new Date(r.fecha+'T12:00:00');if(d.getMonth()===calM&&d.getFullYear()===calY)calDays[d.getDate()]=(calDays[d.getDate()]||[]).concat(r)})
+  data.reuniones.forEach(r=>{const _fi=toISO(r.fecha||'');if(!_fi)return;const d=new Date(_fi+'T12:00:00');if(!isNaN(d.getTime())&&d.getMonth()===calM&&d.getFullYear()===calY)calDays[d.getDate()]=(calDays[d.getDate()]||[]).concat(r)})
   const dim=new Date(calY,calM+1,0).getDate(),fd=new Date(calY,calM,1).getDay()
   let h='<div style="display:grid;grid-template-columns:1fr 265px;gap:18px;align-items:start">'
     +'<div>'
@@ -1055,12 +1087,15 @@ function htmlReuniones(){
   if(!list.length)h+='<div class="card"><p class="empty">Sin reuniones en esta vista</p></div>'
   else list.forEach(r=>{
     const cl=data.clientes.find(c=>c.id===r.clienteId)
-    const dObj=new Date(r.fecha+'T12:00:00')
-    const isToday=r.fecha===hoy,isPast=r.fecha<hoy
+    const _fechaISO=toISO(r.fecha||'')
+    const dObj=_fechaISO?new Date(_fechaISO+'T12:00:00'):new Date()
+    const _fechaOk=_fechaISO&&!isNaN(dObj.getTime())
+    const isToday=_fechaISO===hoy,isPast=_fechaISO<hoy
     h+='<div class="mcard" style="opacity:'+(isPast?0.65:1)+';border-color:'+(isToday?'#bfdbfe':'var(--border)')+'">'
       +'<div class="datebox" style="'+(isToday?'background:#dbeafe;border:1px solid #bfdbfe':'background:#f8faff;border:1px solid var(--border)') +'">'
-      +'<div style="font-size:10px;font-weight:700;color:'+(isToday?'var(--brand)':'var(--text3)')+'">'+MESES[dObj.getMonth()]+'</div>'
-      +'<div style="font-size:22px;font-weight:800;line-height:1.1;color:'+(isToday?'var(--brand)':'var(--text)')+'">'+dObj.getDate()+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:'+(isToday?'var(--brand)':'var(--text3)')+'">'+(_fechaOk?MESES[dObj.getMonth()]:'???')+'</div>'
+      +'<div style="font-size:22px;font-weight:800;line-height:1.1;color:'+(isToday?'var(--brand)':'var(--text)')+'">'+(_fechaOk?dObj.getDate():'?')+'</div>'
+      +'<div style="font-size:9px;font-weight:600;color:'+(isToday?'var(--brand)':'var(--text3)')+';margin-top:1px">'+(_fechaOk?DIAS_FULL[dObj.getDay()].slice(0,3).toUpperCase():'—')+'</div>'
       +'</div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
@@ -1069,7 +1104,8 @@ function htmlReuniones(){
       +(!r.link&&!isPast?'<span class="b ba">Sin link</span>':'')
       +'</div>'
       +'<div style="font-size:12px;color:var(--text3);margin-bottom:5px">'+esc(cl&&cl.nombre||'—')+'</div>'
-      +'<div style="font-size:12px;color:var(--text2)">🕐 '+esc(r.hora||'—')+' · 💻 '+esc(r.plataforma||'—')+'</div>'
+      +'<div style="font-size:12px;color:var(--text2)">📅 '+(_fechaOk?fmtD(r.fecha):'Sin fecha')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">🕐 '+esc((r.hora||'—').slice(0,5))+' · 💻 '+esc(r.plataforma||'—')+'</div>'
       +(r.notas?'<div style="font-size:11px;color:var(--text3);margin-top:3px">📝 '+esc(r.notas)+'</div>':'')
       +(r.link?'<div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding:5px 9px;background:#f0f9ff;border-radius:7px;border:1px solid #bae6fd">'
         +'<span style="font-size:11px;color:#0369a1;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.link)+'</span>'
@@ -1096,7 +1132,21 @@ function htmlReuniones(){
     +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">'
     +DIAS.map(d=>'<div style="font-size:10px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>').join('')
     +Array(fd).fill('<div></div>').join('')
-    +Array(dim).fill(0).map((_,i)=>{const day=i+1,hm=!!calDays[day];const isN=day===new Date().getDate()&&calM===new Date().getMonth()&&calY===new Date().getFullYear();return'<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:'+(hm?600:400)+';background:'+(isN?'var(--brand)':hm?'var(--brand-lt)':'transparent')+';color:'+(isN?'#fff':hm?'var(--brand)':'var(--text2)')+'">'+day+'</div>'}).join('')
+    +Array(dim).fill(0).map((_,i)=>{
+      const day=i+1,meetings=calDays[day]||[],hm=meetings.length>0
+      const conflict=meetings.length>1
+      const isN=day===new Date().getDate()&&calM===new Date().getMonth()&&calY===new Date().getFullYear()
+      const bg=isN?'var(--brand)':hm?'var(--brand-lt)':'transparent'
+      const col=isN?'#fff':hm?'var(--brand)':'var(--text2)'
+      const tip=hm?meetings.map(function(r){return r.titulo+(r.hora?' '+r.hora.slice(0,5):'')}).join(' | '):''
+      return'<div title="'+esc(tip)+'" onclick="'+(hm?'mvw=\'all\';draw()':'')+'" style="position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:'+(hm?700:400)+';background:'+bg+';color:'+col+';cursor:'+(hm?'pointer':'default')+'">'
+        +day
+        +(hm?'<div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);display:flex;gap:2px">'
+          +meetings.slice(0,3).map(function(){return'<div style="width:4px;height:4px;border-radius:50%;background:'+(isN?'rgba(255,255,255,.9)':'var(--brand)')+'"></div>'}).join('')
+          +'</div>':'')
+        +(conflict?'<div style="position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:50%;background:#ef4444"></div>':'')
+        +'</div>'
+    }).join('')
     +'</div></div>'
     +'<div class="card" style="padding:13px;margin-top:10px">'
     +'<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;letter-spacing:.6px">PLATAFORMAS</div>'
@@ -1241,6 +1291,7 @@ function htmlModal(){
   if(modal.type==='usuario')    c=mUsuario(modal.rec)
   if(modal.type==='tpl')         c=mTpl(modal.rec)
   if(modal.type==='preview_tpl') c=mPreviewTpl(modal.rec)
+  if(modal.type==='portal_user') c=mPortalUser(modal.rec)
   if(!c)return''
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
@@ -1494,7 +1545,10 @@ function mReunion(d){
 }
 function submitReunion(id){
   const titulo=v('r0');if(!titulo){alert('Título obligatorio');return}
-  const rec={id:id||uid(),titulo,clienteId:v('r1'),trabajoId:v('r2'),fecha:v('r3'),hora:v('r4'),plataforma:v('r5'),link:v('r6'),notas:v('r7')}
+  const fechaVal=toISO(v('r3')||'')||v('r3')
+  if(!fechaVal){alert('Fecha obligatoria');return}
+  const hora=v('r4').slice(0,5)||'10:00'
+  const rec={id:id||uid(),titulo,clienteId:v('r1'),trabajoId:v('r2'),fecha:fechaVal,hora:hora,plataforma:v('r5'),link:v('r6'),notas:v('r7')}
   saveRec('Reuniones',rec,!id)
 }
 
@@ -1916,7 +1970,7 @@ function eliminarTpl(id){
 
 function resetTpls(){
   if(!confirm('¿Restaurar todas las plantillas a sus valores originales? Se perderán los cambios.'))return
-  localStorage.removeItem('wa_tpls_v2')
+  localStorage.removeItem('wa_tpls_v3')
   WA_TPLS=cargarTpls();draw();toast('Plantillas restauradas ✓')
 }
 
@@ -2120,6 +2174,221 @@ function editarCuota(cuotaId, trabajoId){
   var c=data.cuotas.find(function(x){return x.id===cuotaId})
   if(c) openModal('cuota', Object.assign({},c,{trabajoId:trabajoId||c.trabajoId}))
   else  openModal('cuota', {trabajoId:trabajoId, nro:1})
+}
+
+// ══ PORTAL DE CLIENTE ════════════════════════════════════════════
+
+function htmlPortalHeader(){
+  return'<div style="background:linear-gradient(135deg,#1d4ed8,#1e40af);border-radius:14px;padding:20px 24px;margin-bottom:20px;color:#fff">'
+    +'<div style="display:flex;align-items:center;gap:14px">'
+    +'<div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">'+esc((user.name||'?')[0].toUpperCase())+'</div>'
+    +'<div>'
+    +'<div style="font-size:18px;font-weight:700">Bienvenido/a, '+esc(user.name||'')+'</div>'
+    +'<div style="font-size:13px;opacity:.85">Portal de seguimiento — Research Assesor</div>'
+    +'</div></div></div>'
+}
+
+function htmlPortalProgreso(){
+  const trabajosCl=data.trabajos.filter(function(t){return t.clienteId===user.clienteId})
+  let h=htmlPortalHeader()
+  if(!trabajosCl.length){
+    return h+'<div class="card"><p class="empty">No tienes trabajos registrados aún.</p></div>'
+  }
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">📋 Mis trabajos</div>'
+  trabajosCl.forEach(function(t){
+    const cuotasTrab=data.cuotas.filter(function(c){return c.trabajoId===t.id})
+    const bal=wBal(t)
+    const prog=parseInt(t.progreso)||0
+    const SC={Completado:'#15803d','En progreso':'#1d4ed8',Revisión:'#b45309',Cancelado:'#64748b',Nuevo:'#6366f1'}
+    const stColor=SC[t.estado]||'#475569'
+    h+='<div class="card" style="margin-bottom:14px;overflow:hidden">'
+      // Header
+      +'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+      +'<div>'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:4px">'+esc(t.titulo)+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+esc(t.tipo||'')+'</div>'
+      +'</div>'
+      +'<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+stColor+'20;color:'+stColor+'">'+esc(t.estado||'—')+'</span>'
+      +'</div></div>'
+      // Progress bars
+      +'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9">'
+      +'<div style="margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+      +'<span style="font-weight:600;color:#7c3aed">📊 Avance del trabajo</span>'
+      +'<span style="font-weight:700;color:#7c3aed">'+prog+'%</span>'
+      +'</div>'
+      +'<div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+      +'<div style="height:100%;width:'+prog+'%;background:#7c3aed;border-radius:99px;transition:width .4s"></div>'
+      +'</div>'
+      +'</div>'
+      +'<div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+      +'<span style="font-weight:600;color:#1d4ed8">💰 Pagos realizados</span>'
+      +'<span style="font-weight:700;color:#1d4ed8">'+bal.pct+'%</span>'
+      +'</div>'
+      +'<div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+      +'<div style="height:100%;width:'+bal.pct+'%;background:#1d4ed8;border-radius:99px;transition:width .4s"></div>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+      // Dates
+      +(t.fechaInicio||t.fechaFin?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--text3)">'
+        +(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')
+        +(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')
+        +'</div>':'')
+      // Folder link
+      +(t.carpeta?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9">'
+        +'<a href="'+esc(t.carpeta)+'" target="_blank" style="font-size:12px;color:#0369a1;display:inline-flex;align-items:center;gap:5px;text-decoration:none">'
+        +'📁 <span>Ver carpeta de archivos del trabajo</span></a></div>':'')
+      // Notes
+      +(t.notas?'<div style="padding:12px 20px;font-size:12px;color:var(--text3)">📝 '+esc(t.notas)+'</div>':'')
+      +'</div>'
+  })
+  return h
+}
+
+function htmlPortalCuentas(){
+  const trabajosCl=data.trabajos.filter(function(t){return t.clienteId===user.clienteId})
+  const idsTrab=trabajosCl.map(function(t){return t.id})
+  const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)})
+  let h=htmlPortalHeader()
+  // Summary KPIs
+  const totalAcord=cuotasCl.reduce(function(s,c){return s+parseFloat(c.acordado||0)},0)
+  const totalPag=cuotasCl.reduce(function(s,c){return s+parseFloat(c.pagado||0)},0)
+  const totalSaldo=totalAcord-totalPag
+  const vencidas=cuotasCl.filter(function(c){return cStat(c)==='vencido'})
+  h+='<div class="kpis" style="margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total acordado</div><div class="kpi-value">$'+fmt(totalAcord)+'</div><div class="kpi-icon">📋</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Pagado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(totalPag)+'</div><div class="kpi-icon">✅</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Saldo pendiente</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(totalSaldo)+'</div><div class="kpi-icon">⏳</div></div>'
+    +(vencidas.length?'<div class="kpi"><div class="kpi-label">Vencidas</div><div class="kpi-value" style="color:var(--red)">'+vencidas.length+'</div><div class="kpi-icon">⚠️</div></div>':'')
+    +'</div>'
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">💳 Mis cuotas</div>'
+  if(!cuotasCl.length){
+    return h+'<div class="card"><p class="empty">No tienes cuotas registradas.</p></div>'
+  }
+  // Group by trabajo
+  trabajosCl.forEach(function(t){
+    const cs=cuotasCl.filter(function(c){return c.trabajoId===t.id})
+      .sort(function(a,b){return new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
+    if(!cs.length)return
+    h+='<div style="font-size:13px;font-weight:700;color:var(--text2);margin:16px 0 8px">'+esc(t.titulo)+'</div>'
+    cs.forEach(function(c){
+      const st=cStat(c)
+      const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+      const bgc={pagado:'#dcfce7',parcial:'#dbeafe',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
+      const bdc={pagado:'#bbf7d0',parcial:'#bfdbfe',vencido:'#fecaca',pendiente:'#fde68a'}[st]||'#e2e8f0'
+      const stColor={pagado:'#15803d',parcial:'#1d4ed8',vencido:'#dc2626',pendiente:'#b45309'}[st]||'#64748b'
+      h+='<div style="background:'+bgc+';border:1px solid '+bdc+';border-radius:10px;padding:14px 18px;margin-bottom:8px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700">'+esc(c.label||'Cuota')+'</div>'
+        +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Vence: '+fmtDCorto(c.fechaVencimiento||'')+'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:16px;font-weight:700">$'+fmt(c.acordado)+'</div>'
+        +(parseFloat(c.pagado||0)>0?'<div style="font-size:11px;color:#15803d">✅ Pagado: $'+fmt(c.pagado)+'</div>':'')
+        +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;color:'+stColor+'">Saldo: $'+fmt(saldo)+'</div>':'')
+        +'</div>'
+        +'<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+stColor+'20;color:'+stColor+'">'+st.toUpperCase()+'</span>'
+        +'</div>'
+        // Abonos
+        +(data.abonos.filter(function(a){return a.cuotaId===c.id}).length>0
+          ?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+bdc+';display:flex;gap:10px;flex-wrap:wrap">'
+          +data.abonos.filter(function(a){return a.cuotaId===c.id}).map(function(a){
+            return'<span style="font-size:11px;color:#15803d;background:#f0fdf4;padding:3px 9px;border-radius:6px;border:1px solid #bbf7d0">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'
+          }).join('')+'</div>':''
+        )
+        +'</div>'
+    })
+  })
+  return h
+}
+
+// Gestionar usuario del portal para un cliente
+function gestionarPortalCliente(clienteId){
+  const cl=data.clientes.find(function(x){return x.id===clienteId})
+  if(!cl){toast('Cliente no encontrado','err');return}
+  // Find existing portal user for this client
+  const existing=(window._clientUsers||[]).find(function(u){return u.clienteId===clienteId})
+  openModal('portal_user',{clienteId:clienteId,clienteNombre:cl.nombre,existing:existing||null})
+}
+
+function mPortalUser(d){
+  const cl=d.clienteNombre||'Cliente'
+  const ex=d.existing
+  const defaultUser=(cl.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12))||'cliente'
+  return'<h3>👤 Portal para '+esc(cl)+'</h3>'
+    +(ex?'<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px">'
+      +'✅ <strong>Usuario activo:</strong> '+esc(ex.usuario)
+      +(ex.activo==='0'?' <span style="color:#dc2626;font-weight:700">(Desactivado)</span>':'')
+      +'</div>':'')
+    +'<div class="fg">'
+    +'<div><label>Usuario (para iniciar sesión)</label>'
+    +'<input id="pu0" value="'+esc(ex?ex.usuario:defaultUser)+'" placeholder="usuario_unico"/></div>'
+    +'<div><label>Contraseña</label>'
+    +'<input id="pu1" type="text" value="'+esc(ex?ex.password:'')+'" placeholder="Mínimo 6 caracteres"/></div>'
+    +'<div class="full"><label>Estado</label><select id="pu2">'
+    +'<option value="1"'+((!ex||ex.activo!=='0')?' selected':'')+'>✅ Activo — puede iniciar sesión</option>'
+    +'<option value="0"'+((ex&&ex.activo==='0')?' selected':'')+'>🚫 Desactivado</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<div style="background:#dbeafe;border-radius:8px;padding:10px 13px;font-size:12px;color:#1d4ed8;margin-top:8px">'
+    +'<strong>El cliente verá:</strong> progreso de sus trabajos, barras de avance, fechas, y el estado de sus cuotas/pagos'
+    +'</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +(ex?'<button class="btn btn-r" onclick="eliminarPortalUser(\''+esc(ex.id||'')+'\')">🗑 Eliminar acceso</button>':'')
+    +'<button class="btn btn-p" onclick="submitPortalUser(\''+esc(d.clienteId)+'\',\''+esc(ex?ex.id:'')+'\')">'+(ex?'Actualizar':'Crear acceso')+'</button>'
+    +'</div>'
+}
+
+async function submitPortalUser(clienteId, existingId){
+  const usuario=v('pu0').trim()
+  const password=v('pu1').trim()
+  const activo=v('pu2')
+  if(!usuario||!password){alert('Usuario y contraseña son obligatorios');return}
+  if(password.length<4){alert('La contraseña debe tener al menos 4 caracteres');return}
+  const cl=data.clientes.find(function(x){return x.id===clienteId})
+  const rec={
+    id:existingId||uid(),
+    clienteId:clienteId,
+    nombre:cl&&cl.nombre||'',
+    usuario:usuario,
+    password:password,
+    role:'cliente',
+    activo:activo
+  }
+  modal=null;syncMsg='Guardando usuario...';draw()
+  const r=await apiPost({action:existingId?'actualizar':'insertar',tabla:'UsuariosCliente',fila:rec,id:rec.id})
+  if(r&&r.ok){
+    // Update local cache
+    const cache=window._clientUsers||[]
+    if(existingId){
+      const idx=cache.findIndex(function(u){return u.id===existingId})
+      if(idx>-1) cache[idx]=rec; else cache.push(rec)
+    }else{
+      cache.push(rec)
+    }
+    window._clientUsers=cache
+    toast(existingId?'Usuario actualizado ✓':'Acceso al portal creado ✓')
+    await loadData()
+  }else{
+    toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
+  }
+}
+
+async function eliminarPortalUser(userId){
+  if(!confirm('¿Eliminar el acceso al portal de este cliente?'))return
+  modal=null;draw()
+  const r=await apiPost({action:'eliminar',tabla:'UsuariosCliente',id:userId})
+  if(r&&r.ok){
+    window._clientUsers=(window._clientUsers||[]).filter(function(u){return u.id!==userId})
+    toast('Acceso eliminado ✓')
+    await loadData()
+  }else{
+    toast('Error: '+(r&&r.error||''),'err')
+  }
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
