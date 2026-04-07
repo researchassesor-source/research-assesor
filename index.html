@@ -427,7 +427,11 @@ let loading=false,syncing=false,syncMsg='',syncErr=false
 let search='',wExp=null,wSt='Todos',cSt='Todos',mvw='upcoming'
 let calM=new Date().getMonth(),calY=new Date().getFullYear()
 
-function draw(){document.getElementById('R').innerHTML=user?htmlApp():htmlLogin()}
+function draw(){
+  const el=document.getElementById('R')
+  if(!el)return
+  el.innerHTML=user?(htmlApp()+htmlModal()):htmlLogin()
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const v=id=>(document.getElementById(id)||{}).value||''
