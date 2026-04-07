@@ -674,8 +674,8 @@ function htmlDash(){
   const proxR      =reuniones.filter(r=>r.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3)
 
   // ── 12 meses de datos (6 pasados + mes actual + 5 futuros) ──
-  const allMonths = Array.from({length:12},(_,i)=>{
-    const d=new Date(now); d.setDate(1); d.setMonth(d.getMonth()-6+i)
+  const allMonths = Array.from({length:14},(_,i)=>{
+    const d=new Date(now); d.setDate(1); d.setMonth(d.getMonth()-8+i)
     const m=d.getMonth(), y=d.getFullYear()
     const isPast=y<anioActual||(y===anioActual&&m<mesActual)
     const isCurrent=y===anioActual&&m===mesActual
@@ -974,6 +974,22 @@ function htmlClientes(){
           +'<td style="padding:6px 8px;text-align:center">'+(vT>0?'<span style="color:#dc2626;font-weight:700">⚠️ '+vT+' venc.</span>':cuotasT.length+' cuota'+(cuotasT.length!==1?'s':''))+'</td>'
           +'<td style="padding:6px 8px"><button class="btn btn-g btn-sm" onclick="page=\'trabajos\';wExp=\''+t.id+'\';draw()">Ver →</button></td>'
           +'</tr>'
+        // Show abonos for this trabajo
+        const absT=data.abonos.filter(function(a){return a.trabajoId===t.id})
+        if(absT.length){
+          h+='<tr><td colspan="7" style="padding:5px 20px 8px;background:#f0fdf4">'
+            +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
+            +'<span style="font-size:10px;font-weight:700;color:#15803d;margin-right:4px">💳 Pagos:</span>'
+          absT.forEach(function(a){
+            h+='<span style="background:#fff;border:1px solid #bbf7d0;border-radius:6px;padding:3px 8px;font-size:11px">'
+              +'<strong style="color:var(--green)">$'+fmt(a.monto)+'</strong>'
+              +' '+fmtDCorto(a.fecha||'')
+              +(a.comprobante?' <span style="color:#0369a1;font-weight:600">'+esc(a.comprobante)+'</span>':'')
+              +(a.nota?' <span style="color:var(--text3)">'+esc(a.nota)+'</span>':'')
+              +'</span>'
+          })
+          h+='</div></td></tr>'
+        }
       })
       h+='</tbody></table></div></td></tr>'
     }
@@ -1057,9 +1073,18 @@ function htmlTrabajos(){
 
           const abs=data.abonos.filter(a=>a.cuotaId===c.id)
           if(abs.length){
-            h+='<div style="border-top:1px solid '+bdc+';padding:5px 13px;display:flex;gap:10px;flex-wrap:wrap">'
-            abs.forEach(a=>{h+='<span style="font-size:11px;color:var(--green)">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'})
-            h+='</div>'
+            h+='<div style="border-top:1px solid '+bdc+';padding:8px 13px">'
+              +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.4px;margin-bottom:5px">PAGOS REGISTRADOS</div>'
+              +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+            abs.forEach(function(a){
+              h+='<div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:6px 10px;font-size:12px;min-width:160px">'
+                +'<div style="font-weight:700;color:var(--green)">💸 $'+fmt(a.monto)+'</div>'
+                +'<div style="color:var(--text3)">'+fmtDCorto(a.fecha||'')+'</div>'
+                +(a.comprobante?'<div style="font-weight:600;color:#0369a1">📋 '+esc(a.comprobante)+'</div>':'')
+                +(a.nota?'<div style="color:var(--text3)">'+esc(a.nota)+'</div>':'')
+                +'</div>'
+            })
+            h+='</div></div>'
           }
           h+='</div>'
         })
@@ -1129,7 +1154,22 @@ function htmlCobros(){
       +(phone?waBtnsCobros(c.id,c.trabajoId,phone,st):'')
       +'</div></div>'
     const abs=data.abonos.filter(a=>a.cuotaId===c.id)
-    if(abs.length){h+='<div style="border-top:1px solid '+bdc+';padding:5px 15px;display:flex;gap:10px;flex-wrap:wrap">'+abs.map(a=>'<span style="font-size:11px;color:var(--green)">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+' </span>').join('')+'</div>'}
+    if(abs.length){
+      h+='<div style="border-top:1px solid '+bdc+';padding:8px 15px">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.4px;margin-bottom:6px">PAGOS REGISTRADOS</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        +abs.map(a=>{
+          return'<div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:7px 11px;display:flex;align-items:center;gap:8px;min-width:200px">'
+            +'<div style="width:32px;height:32px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">💸</div>'
+            +'<div style="flex:1">'
+            +'<div style="font-size:13px;font-weight:700;color:var(--green)">$'+fmt(a.monto)+'</div>'
+            +'<div style="font-size:11px;color:var(--text3)">'+fmtDCorto(a.fecha||'')+'</div>'
+            +(a.comprobante?'<div style="font-size:11px;font-weight:600;color:#0369a1">📋 '+esc(a.comprobante)+'</div>':'')
+            +(a.nota?'<div style="font-size:11px;color:var(--text3)">'+esc(a.nota)+'</div>':'')
+            +'</div></div>'
+        }).join('')
+        +'</div></div>'
+    }
     h+='</div>'
   })
   return h
