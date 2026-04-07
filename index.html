@@ -939,9 +939,9 @@ function htmlClientes(){
       +'<button class="btn btn-g btn-sm" title="Reporte" onclick="descargarReporte(\''+c.id+'\')" >📄</button>'
       +'<button class="btn btn-g btn-sm" onclick="openModal(\'cliente\','+jss(c)+')">✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar?\')">🗑</button>'
-      +'</span></td>',
-      +(isExpC?'<td colspan="1" style="color:var(--text3);font-size:12px">'+(isExpC?'▲':'▼')+'</td>':'<td></td>'),
-      '</tr>'
+      +'</span></td>'
+      +(isExpC?'<td colspan="1" style="color:var(--text3);font-size:12px">'+(isExpC?'▲':'▼')+'</td>':'<td></td>')
+      +'</tr>'
     // Expanded row: all trabajos with balances
     if(isExpC&&nT>0){
       h+='<tr><td colspan="7" style="padding:0;background:#f8fafc;border-top:2px solid var(--brand)">'
