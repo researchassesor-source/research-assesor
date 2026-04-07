@@ -268,24 +268,58 @@ function fmtDCorto(s){
 }
 const DIAS=['D','L','M','X','J','V','S']
 const INSTITUCIONES=[
+  // Imbabura / Norte
   'Universidad de Otavalo (UNO)',
+  'Universidad Técnica del Norte (UTN)',
+  // Pichincha / Quito
   'Universidad Central del Ecuador (UCE)',
   'Pontificia Universidad Católica del Ecuador (PUCE)',
-  'Universidad Politécnica Salesiana (UPS)',
-  'Universidad Técnica del Norte (UTN)',
-  'Universidad Técnica de Ambato (UTA)',
   'Escuela Politécnica Nacional (EPN)',
   'ESPE — Universidad de las Fuerzas Armadas',
-  'FLACSO Ecuador',
   'Universidad Andina Simón Bolívar (UASB)',
-  'Universidad de Cuenca',
-  'Universidad Nacional de Loja (UNL)',
-  'Universidad Técnica de Manabí (UTM)',
-  'Universidad Estatal de Milagro (UNEMI)',
+  'FLACSO Ecuador',
+  'Universidad Internacional del Ecuador (UIDE)',
+  'Universidad de las Américas (UDLA)',
+  'Universidad Tecnológica Equinoccial (UTE)',
+  'Universidad San Francisco de Quito (USFQ)',
+  'Universidad Metropolitana del Ecuador',
+  // Guayas / Guayaquil
   'Universidad de Guayaquil',
   'ESPOL — Escuela Superior Politécnica del Litoral',
+  'Universidad Católica de Santiago de Guayaquil (UCSG)',
   'Universidad Casa Grande',
-  'Universidad del Azuay',
+  'Universidad Laica Vicente Rocafuerte',
+  'Universidad Estatal de Milagro (UNEMI)',
+  // Azuay / Cuenca
+  'Universidad de Cuenca',
+  'Universidad del Azuay (UDA)',
+  'Universidad Politécnica Salesiana (UPS)',
+  // Tungurahua / Ambato
+  'Universidad Técnica de Ambato (UTA)',
+  // Loja
+  'Universidad Nacional de Loja (UNL)',
+  'Universidad Técnica Particular de Loja (UTPL)',
+  // Manabí
+  'Universidad Técnica de Manabí (UTM)',
+  'Universidad Laica Eloy Alfaro de Manabí (ULEAM)',
+  // El Oro
+  'Universidad Técnica de Machala (UTMACH)',
+  // Chimborazo
+  'Escuela Superior Politécnica de Chimborazo (ESPOCH)',
+  'Universidad Nacional de Chimborazo (UNACH)',
+  // Bolívar
+  'Universidad Estatal de Bolívar (UEB)',
+  // Cotopaxi
+  'Universidad Técnica de Cotopaxi (UTC)',
+  // Los Ríos
+  'Universidad Técnica de Babahoyo (UTB)',
+  'Universidad Técnica Estatal de Quevedo (UTEQ)',
+  // Esmeraldas
+  'Pontificia Universidad Católica del Ecuador Sede Esmeraldas (PUCESE)',
+  // Galápagos / Amazonia
+  'Universidad Estatal Amazónica (UEA)',
+  'Universidad Regional Amazónica Ikiam',
+  // Institutos
   'Instituto Superior Tecnológico',
   'Institución privada / empresa',
   'Otra',
@@ -595,17 +629,10 @@ function htmlApp(){
     +'<main>'
     +'<div class="topbar"><h2>'+TITLES[page]+'</h2><span style="font-size:10px;color:var(--text3);margin-right:4px">'+VERSION+'</span>'
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
-    +'<button class="btn btn-g btn-sm" onclick="loadData()" title="Recargar">⟳</button>'
-    +'<button class="btn btn-g btn-sm" onclick="testApiDesdeApp()" title="Test API" style="font-size:11px">🔧 Test</button>'
-    +'<button class="btn btn-g btn-sm" onclick="repararHojas()" title="Reparar estructura de hojas" style="font-size:11px">🔨 Reparar</button>'
-    +'</div>'
-    +'<div class="page">'+htmlPage()+'</div>'
-    +'</main>'
-    +(modal?htmlModal():'')
-    +'</div>'
+    +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
+    +'</div></main></div>'
 }
 
-function goTo(p){page=p;search='';wExp=null;draw()}
 function htmlPage(){
   // Cliente portal - restricted view
   if(user&&user.role==='cliente'){
@@ -623,7 +650,7 @@ function htmlPage(){
   return''
 }
 
-// ─── DASHBOARD DINÁMICO ───────────────────────────────────────────────────────
+
 function htmlDash(){
   const {clientes,trabajos,cuotas,abonos,reuniones}=data
   const now=new Date()
@@ -680,7 +707,14 @@ function htmlDash(){
   // Variación mes a mes
   const variacion=ingresoMesAnterior>0?Math.round((ingresoMesActual-ingresoMesAnterior)/ingresoMesAnterior*100):0
 
-  const maxVal=Math.max(...allMonths.map(x=>Math.max(x.real,x.proj)),1)
+  // Use separate max for real vs projected so past bars stay visible
+  const maxReal=Math.max(...allMonths.map(x=>x.real),1)
+  const maxProj=Math.max(...allMonths.map(x=>x.proj),1)
+  // Common scale: use the larger of the two so bars are comparable
+  const maxVal=Math.max(maxReal,maxProj,1)
+  // But ensure past months always show at least a visible proportion
+  // by using the higher of maxReal or 50% of maxVal for past month scaling
+  const realScale=Math.max(maxReal, Math.round(maxVal*0.4),1)
 
   // ── Estado cuotas ──
   const cuotaDist={pagado:0,parcial:0,pendiente:0,vencido:0}
@@ -736,7 +770,7 @@ function htmlDash(){
     +'</div>'
     +'<div style="display:flex;align-items:flex-end;gap:3px;flex:1;padding-left:44px;height:100%;position:relative">'
     +allMonths.map((m,i)=>{
-      const realPct=maxVal>0?Math.round(m.real/maxVal*100):0
+      const realPct=m.real>0?Math.max(Math.round(m.real/realScale*100),3):0
       const projPct=maxVal>0?Math.round(m.proj/maxVal*100):0
       const divider=m.isCurrent?'border-left:2px dashed #e5eaf3;':'';
       return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;'+divider+'">'
@@ -873,9 +907,6 @@ function htmlDash(){
 
   return h
 }
-
-
-// ─── CLIENTES ─────────────────────────────────────────────────────────────────
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
@@ -1378,10 +1409,10 @@ function mCliente(d){
     +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@dominio.com"/></div>'
     +'<div class="full"><label>Dirección</label><input id="fd" value="'+esc(d.direccion||'')+'" placeholder="Av. Principal 123, sector, ciudad"/></div>'
     +'<div class="full"><label>Institución</label>'
-    +'<select id="f3" onchange="toggleOtraInst()"><option value="">Seleccionar...</option>'+instOpts+'</select>'
+    +'<select id="f3" onchange="this.nextElementSibling.style.display=this.value===\'Otra\'?\'block\':\'none\'"><option value="">Seleccionar...</option>'+instOpts+'</select>'
     +'<input id="f3b" placeholder="Especificar institución..." style="margin-top:6px;display:'+(hasOtraInst?'block':'none')+'" value="'+esc(hasOtraInst?d.institucion:'')+'"/></div>'
     +'<div class="full"><label>Ciudad</label>'
-    +'<select id="f4" onchange="toggleOtraCiud()"><option value="">Seleccionar...</option>'+ciudOpts+'</select>'
+    +'<select id="f4" onchange="this.nextElementSibling.style.display=this.value===\'Otra\'?\'block\':\'none\'"><option value="">Seleccionar...</option>'+ciudOpts+'</select>'
     +'<input id="f4b" placeholder="Especificar ciudad..." style="margin-top:6px;display:'+(hasOtraCiud?'block':'none')+'" value="'+esc(hasOtraCiud?d.ciudad:'')+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f5" rows="2">'+esc(d.notas||'')+'</textarea></div>'
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
