@@ -327,17 +327,31 @@ function cargarTpls(){
     const saved=localStorage.getItem('wa_tpls_v5')
     if(!saved) return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
     const parsed=JSON.parse(saved)
-    // Check emoji integrity: if any template has replacement char, reset
-    const broken=parsed.some(function(t){
-      if(!t.msg)return false
-      // Check for replacement char OR for date strings instead of emojis (broken encoding)
-      return t.msg.indexOf('\uFFFD')>-1||t.msg.indexOf('\u0000')>-1
+    // Check emoji integrity: broken char or missing emoji in default templates
+    const hasBroken=parsed.some(function(t){
+      return t.msg&&(t.msg.indexOf('\uFFFD')>-1||t.msg.indexOf('\u0000')>-1)
     })
-    if(broken){
+    if(hasBroken){
       localStorage.removeItem('wa_tpls_v5')
       return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})
     }
-    return parsed
+    // Merge: keep user's custom templates, but refresh default templates
+    // that have broken emojis (no emoji chars when they should have them)
+    var merged=parsed.map(function(t){
+      var def=WA_TPLS_DEFAULT.find(function(d){return d.id===t.id})
+      if(def){
+        // If saved template lacks emojis that default has, use default
+        var defHasEmoji=/[\u{1F300}-\u{1FFFF}]/u.test(def.msg)
+        var savedHasEmoji=/[\u{1F300}-\u{1FFFF}]/u.test(t.msg)
+        if(defHasEmoji&&!savedHasEmoji) return Object.assign({},def)
+      }
+      return t
+    })
+    // Add any default templates not in saved
+    WA_TPLS_DEFAULT.forEach(function(d){
+      if(!merged.some(function(t){return t.id===d.id})) merged.push(Object.assign({},d))
+    })
+    return merged
   }catch(e){return WA_TPLS_DEFAULT.map(function(t){return Object.assign({},t)})}
 }
 function guardarTpls(tpls){
@@ -636,7 +650,7 @@ function htmlDash(){
 
     // Cobrado real en ese mes
     const real=abonos.reduce((s,a)=>{
-      const ad=new Date(a.fecha||'')
+      const _af=toISO(a.fecha||'');const ad=_af?new Date(_af+'T12:00:00'):new Date(NaN)
       return(ad.getMonth()===m&&ad.getFullYear()===y)?s+parseFloat(a.monto||0):s
     },0)
 
@@ -644,7 +658,7 @@ function htmlDash(){
     const proj=cuotas.filter(c=>{
       const st=cStat(c)
       if(st==='pagado')return false
-      const dv=new Date(c.fechaVencimiento||'')
+      const _cv=toISO(c.fechaVencimiento||'');const dv=_cv?new Date(_cv+'T12:00:00'):new Date(NaN)
       return dv.getMonth()===m&&dv.getFullYear()===y
     }).reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
 
@@ -869,20 +883,63 @@ function htmlClientes(){
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
-    const nT=data.trabajos.filter(t=>t.clienteId===c.id).length
-        h+='<tr>'
+    const trabsC=data.trabajos.filter(t=>t.clienteId===c.id)
+    const nT=trabsC.length
+    const isExpC=(wExp===('c_'+c.id))
+    const cuotasC=data.cuotas.filter(q=>trabsC.some(t=>t.id===q.trabajoId))
+    const pagadoC=cuotasC.reduce((s,q)=>s+parseFloat(q.pagado||0),0)
+    const saldoC=cuotasC.reduce((s,q)=>s+(parseFloat(q.acordado||0)-parseFloat(q.pagado||0)),0)
+    const venceC=cuotasC.filter(q=>cStat(q)==='vencido').length
+    h+='<tr style="cursor:pointer" onclick="wExp=wExp===\'c_'+c.id+'\'\'?null:\'c_'+c.id+'\';draw()">'
       +'<td><strong>'+esc(c.nombre)+'</strong>'+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
-      +'<td style="color:var(--text3)">'+esc(c.institucion||'—')+'</td>'
-      +'<td style="color:var(--text3)">'+esc(c.ciudad||'—')+'</td>'
-      +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none">💬 '+esc(c.telefono)+'</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
-      +'<td style="color:var(--text3)">'+esc(c.email||'—')+'</td>'
-      +'<td>'+bdg(nT,'blue')+'</td>'
-      +'<td><span style="display:flex;gap:4px">'
-    +'<button class="btn btn-g btn-sm" title="Portal del cliente" onclick="gestionarPortalCliente(\''+c.id+'\')" style="font-size:11px">👤 Portal</button>'
-            +'<button class="btn btn-g btn-sm" title="Descargar reporte Word" onclick="descargarReporte(\''+c.id+'\')">📄</button>'
-      +'<button class="btn btn-g btn-sm" onclick=\'openModal("cliente",'+jss(c)+')\'>'+'✏️</button>'
-      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar este cliente?\')">🗑</button>'
-      +'</span></td></tr>'
+      +'<td style="color:var(--text3);font-size:12px">'+esc(c.institucion||'—')+'</td>'
+      +'<td style="color:var(--text3);font-size:12px">'+esc(c.ciudad||'—')+'</td>'
+      +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none;font-size:11px" onclick="event.stopPropagation()">💬 '+esc(c.telefono)+'</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
+      +'<td style="color:var(--text3);font-size:12px">'+esc(c.email||'—')+'</td>'
+      +'<td>'+(nT>0?'<div style="font-size:12px;line-height:1.6">'
+        +'<div style="font-weight:700;color:var(--brand)">'+nT+' trabajo'+(nT!==1?'s':'')+'</div>'
+        +(saldoC>0?'<div style="font-size:11px;color:'+(venceC>0?'#dc2626':'var(--amber)')+'">'+(venceC>0?'⚠️ ':'')+'$'+fmt(saldoC)+' saldo</div>':'')
+        +(pagadoC>0?'<div style="font-size:11px;color:var(--green)">$'+fmt(pagadoC)+' cobrado</div>':'')
+        +'</div>':'<span style="color:var(--text3);font-size:12px">Sin trabajos</span>')+'</td>'
+      +'<td onclick="event.stopPropagation()"><span style="display:flex;gap:4px;flex-wrap:wrap">'
+      +'<button class="btn btn-g btn-sm" title="Portal" onclick="gestionarPortalCliente(\''+c.id+'\')" style="font-size:11px">👤</button>'
+      +'<button class="btn btn-g btn-sm" title="Reporte" onclick="descargarReporte(\''+c.id+'\')" >📄</button>'
+      +'<button class="btn btn-g btn-sm" onclick="openModal(\'cliente\','+jss(c)+')">✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar?\')">🗑</button>'
+      +'</span></td>',
+      +(isExpC?'<td colspan="1" style="color:var(--text3);font-size:12px">'+(isExpC?'▲':'▼')+'</td>':'<td></td>'),
+      '</tr>'
+    // Expanded row: all trabajos with balances
+    if(isExpC&&nT>0){
+      h+='<tr><td colspan="7" style="padding:0;background:#f8fafc;border-top:2px solid var(--brand)">'
+        +'<div style="padding:12px 20px">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:8px">TRABAJOS · '+esc(c.nombre.toUpperCase())+'</div>'
+        +'<table style="width:100%;font-size:12px"><thead><tr style="color:var(--text3)">'
+        +'<th style="padding:5px 8px;text-align:left">Trabajo</th>'
+        +'<th style="padding:5px 8px;text-align:left">Estado</th>'
+        +'<th style="padding:5px 8px;text-align:right">Facturado</th>'
+        +'<th style="padding:5px 8px;text-align:right">Cobrado</th>'
+        +'<th style="padding:5px 8px;text-align:right">Saldo</th>'
+        +'<th style="padding:5px 8px;text-align:center">Cuotas</th>'
+        +'<th></th></tr></thead><tbody>'
+      trabsC.forEach(t=>{
+        const bal=wBal(t)
+        const sc={Completado:'#15803d','En progreso':'#1d4ed8',Revisión:'#b45309',Cancelado:'#94a3b8',Nuevo:'#6366f1'}
+        const stC=sc[t.estado]||'#64748b'
+        const cuotasT=data.cuotas.filter(q=>q.trabajoId===t.id)
+        const vT=cuotasT.filter(q=>cStat(q)==='vencido').length
+        h+='<tr style="border-top:1px solid #f1f5f9">'
+          +'<td style="padding:6px 8px"><strong>'+esc(t.titulo)+'</strong><div style="font-size:10px;color:var(--text3)">'+esc(t.tipo||'')+(t.fechaFin?' · Entrega: '+fmtDCorto(t.fechaFin):'')+'</div></td>'
+          +'<td style="padding:6px 8px"><span style="font-size:11px;font-weight:700;color:'+stC+'">'+esc(t.estado||'—')+'</span></td>'
+          +'<td style="padding:6px 8px;text-align:right;font-weight:700">$'+fmt(bal.total)+'</td>'
+          +'<td style="padding:6px 8px;text-align:right;color:var(--green)">$'+fmt(bal.paid)+'</td>'
+          +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+(vT>0?'#dc2626':'var(--amber)')+'">$'+fmt(bal.bal)+'</td>'
+          +'<td style="padding:6px 8px;text-align:center">'+(vT>0?'<span style="color:#dc2626;font-weight:700">⚠️ '+vT+' venc.</span>':cuotasT.length+' cuota'+(cuotasT.length!==1?'s':''))+'</td>'
+          +'<td style="padding:6px 8px"><button class="btn btn-g btn-sm" onclick="page=\'trabajos\';wExp=\''+t.id+'\';draw()">Ver →</button></td>'
+          +'</tr>'
+      })
+      h+='</tbody></table></div></td></tr>'
+    }
   })}else h+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
   h+='</tbody></table></div>'
   return h
@@ -1308,8 +1365,10 @@ function htmlModal(){
 
 function mCliente(d){
   const e=!!d.id
-  const instOpts=INSTITUCIONES.map(function(i){return'<option value="'+esc(i)+'"'+(d.institucion===i?' selected':'')+'>'+esc(i)+'</option>'}).join('')
-  const ciudOpts=CIUDADES.map(function(c){return'<option value="'+esc(c)+'"'+(d.ciudad===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')
+  const _instVal=INSTITUCIONES.indexOf(d.institucion||'')>-1?(d.institucion||''):(d.institucion?'Otra':'')
+  const instOpts=INSTITUCIONES.map(function(i){return'<option value="'+esc(i)+'"'+(_instVal===i?' selected':'')+'>'+esc(i)+'</option>'}).join('')
+  const _ciudVal=CIUDADES.indexOf(d.ciudad||'')>-1?(d.ciudad||''):(d.ciudad?'Otra':'')
+  const ciudOpts=CIUDADES.map(function(c){return'<option value="'+esc(c)+'"'+(_ciudVal===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')
   const hasOtraInst=!!(d.institucion&&INSTITUCIONES.indexOf(d.institucion)===-1)
   const hasOtraCiud=!!(d.ciudad&&CIUDADES.indexOf(d.ciudad)===-1)
   return'<h3>'+(e?'Editar':'Nuevo')+' cliente</h3><div class="fg">'
@@ -2030,7 +2089,7 @@ function previewTplForm(){
 }
 
 function submitTpl(oldId){
-  const nombre=v('tp0'),id=v('tp1').replace(/\s+/g,'_'),cat=v('tp2'),msg=v('tp3')
+  const nombre=v('tp0'),id=v('tp1').replace(/\s+/g,'_'),cat=v('tp2'),msg=rawV('tp3')
   if(!nombre||!id||!msg){alert('Completa todos los campos');return}
   var tpls=cargarTpls()
   const isNew=!oldId
@@ -2426,6 +2485,27 @@ function cleanHora(h){
 function fechaHoyLocal(){
   var n=new Date()
   return[n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-')
+}
+
+function toggleOtraInst(){
+  var sel=document.getElementById('f3')
+  var inp=document.getElementById('f3b')
+  if(!sel||!inp)return
+  inp.style.display=sel.value==='Otra'?'block':'none'
+  if(sel.value!=='Otra')inp.value=''
+}
+function toggleOtraCiud(){
+  var sel=document.getElementById('f4')
+  var inp=document.getElementById('f4b')
+  if(!sel||!inp)return
+  inp.style.display=sel.value==='Otra'?'block':'none'
+  if(sel.value!=='Otra')inp.value=''
+}
+
+// Get raw textarea value (not HTML-decoded) 
+function rawV(id){
+  var el=document.getElementById(id)
+  return el?el.value:''
 }
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
