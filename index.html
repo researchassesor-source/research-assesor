@@ -755,6 +755,13 @@ function htmlDash(){
   const topTipos=Object.entries(tipoDist).sort((a,b)=>b[1]-a[1]).slice(0,5)
   let h=''
 
+  // Alert vencidas
+  if(vencidas.length){
+    h+='<div class="alert-venc">⚠️ <strong>'+vencidas.length+' cuota'+(vencidas.length>1?'s':'')+' vencida'+(vencidas.length>1?'s':'')+' — $'+fmt(vencidas.reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0))+' pendiente</strong>'
+      +'<button class="btn btn-r btn-sm" onclick="goTo(\'cobros\')">Ver cobros →</button></div>'
+  }
+
+
   h+='<div class="kpis">'
     +'<div class="kpi" style="cursor:pointer" onclick="goTo(\'clientes\')"><div class="kpi-label">Clientes</div><div class="kpi-value">'+clientes.length+'</div><div class="kpi-sub">'+activos+' con trabajos activos</div><div class="kpi-icon">👥</div></div>'
     +'<div class="kpi" style="cursor:pointer" onclick="goTo(\'trabajos\')"><div class="kpi-label">Trabajos activos</div><div class="kpi-value" style="color:var(--brand)">'+activos+'</div><div class="kpi-sub">'+completados+' completados</div><div class="kpi-icon">💼</div></div>'
@@ -762,15 +769,6 @@ function htmlDash(){
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'Todos\';goTo(\'cobros\')"><div class="kpi-label">Mes '+MESES[mesActual]+'</div><div class="kpi-value" style="color:var(--brand)">$'+fmt(ingresoMesActual)+'</div><div class="kpi-sub"><span style="color:'+(variacion>=0?'var(--green)':'var(--red)')+'">'+(variacion>=0?'▲':'▼')+' '+Math.abs(variacion)+'%</span> vs mes anterior</div><div class="kpi-icon">📈</div></div>'
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';goTo(\'cobros\')"><div class="kpi-label">Proyección futura</div><div class="kpi-value" style="color:var(--violet)">$'+fmt(proyeccionTotal)+'</div><div class="kpi-sub">próximos 5 meses</div><div class="kpi-icon">🔮</div></div>'
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'vencido\';goTo(\'cobros\')"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">'+(vencidas.length>0?'<span style="color:var(--red)">⚠ '+vencidas.length+' vencidas — clic para ver</span>':'✅ al día')+'</div><div class="kpi-icon">⏰</div></div>'
-    +'</div>'
-  // ── KPIs row ──
-  h+='<div class="kpis">'
-    +'<div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-value">'+clientes.length+'</div><div class="kpi-sub">registrados</div><div class="kpi-icon">👥</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Trabajos activos</div><div class="kpi-value" style="color:var(--brand)">'+activos+'</div><div class="kpi-sub">'+completados+' completados</div><div class="kpi-icon">💼</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Total cobrado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(cobrado)+'</div><div class="kpi-sub">de $'+fmt(totalFact)+' facturado</div><div class="kpi-icon">💰</div><div class="kpi-bar"><div class="kpi-bar-f" style="width:'+cobPct+'%;background:var(--green)"></div></div></div>'
-    +'<div class="kpi"><div class="kpi-label">Mes actual</div><div class="kpi-value" style="color:var(--brand)">$'+fmt(ingresoMesActual)+'</div><div class="kpi-sub"><span style="color:'+(variacion>=0?'var(--green)':'var(--red)')+'">'+( variacion>=0?'▲':'▼')+' '+Math.abs(variacion)+'%</span> vs mes anterior</div><div class="kpi-icon">📈</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Proyección futura</div><div class="kpi-value" style="color:var(--violet)">$'+fmt(proyeccionTotal)+'</div><div class="kpi-sub">próximos 5 meses</div><div class="kpi-icon">🔮</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">'+(vencidas.length>0?'<span style="color:var(--red)">'+vencidas.length+' vencidas</span>':'al día')+'</div><div class="kpi-icon">⏰</div></div>'
     +'</div>'
 
   // ══ GRÁFICO PRINCIPAL: Ingresos reales + Proyección ══════════════════
