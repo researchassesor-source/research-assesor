@@ -1200,6 +1200,8 @@ function htmlCobros(){
       +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
       +(st!=='pagado'?'<button class="btn btn-green btn-sm" onclick="openModal(\'abono\',{cuotaId:\''+c.id+'\',trabajoId:\''+c.trabajoId+'\',label:\''+esc(c.label)+'\',acordado:\''+esc(c.acordado)+'\',pagado:\''+esc(c.pagado)+'\'})" >💵 Pago</button>':'' )
       +(phone?waBtnsCobros(c.id,c.trabajoId,phone,st):'')
+      +'<button class="btn btn-g btn-sm" title="Editar cuota" onclick="editarCuota(\''+c.id+'\',\''+c.trabajoId+'\')" >✏️</button>'
+      +'<button class="btn btn-r btn-sm" title="Eliminar cuota" onclick="delRec(\'Cuotas\',\''+c.id+'\',\'¿Eliminar esta cuota?\')" >🗑</button>'
       +'</div></div>'
     const abs=data.abonos.filter(a=>a.cuotaId===c.id)
     if(abs.length){
@@ -1208,8 +1210,13 @@ function htmlCobros(){
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
         +abs.map(a=>{
           const _fd=toISO(a.fecha||'');const _fl=_fd?fmtDCorto(a.fecha):'—'
-          return'<div style="background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;min-width:170px;max-width:220px">'
-            +'<div style="font-size:18px;font-weight:800;color:var(--green);margin-bottom:6px">💸 $'+fmt(a.monto)+'</div>'
+          return'<div style="background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;min-width:170px;max-width:240px">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+            +'<span style="font-size:17px;font-weight:800;color:var(--green)">💸 $'+fmt(a.monto)+'</span>'
+            +'<span style="display:flex;gap:4px">'
+            +'<button class="btn btn-g btn-sm" style="padding:2px 7px;font-size:11px" title="Editar pago" onclick="editarAbono(\''+a.id+'\',\''+a.cuotaId+'\',\''+a.trabajoId+'\')">✏️</button>'
+            +'<button class="btn btn-r btn-sm" style="padding:2px 7px;font-size:11px" title="Eliminar pago" onclick="eliminarAbono(\''+a.id+'\',\''+a.cuotaId+'\','+a.monto+')">🗑</button>'
+            +'</span></div>'
             +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px">'
             +'<span style="font-weight:700;color:var(--text3)">📅 FECHA</span>'
             +'<span style="font-weight:600;color:var(--text2)">'+_fl+'</span>'
@@ -1488,6 +1495,7 @@ function htmlModal(){
   if(modal.type==='tpl')         c=mTpl(modal.rec)
   if(modal.type==='preview_tpl') c=mPreviewTpl(modal.rec)
   if(modal.type==='portal_user') c=mPortalUser(modal.rec)
+  if(modal.type==='edit_abono')   c=mEditAbono(modal.rec)
   if(!c)return''
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
@@ -2650,6 +2658,56 @@ function goTo(p){
   wExp=null
   draw()
 }
+
+// ── Editar abono ──────────────────────────────────────────────────────────
+function editarAbono(abonoId, cuotaId, trabajoId){
+  var a=data.abonos.find(function(x){return x.id===abonoId})
+  if(!a)return
+  openModal('edit_abono', Object.assign({},a,{cuotaId:cuotaId,trabajoId:trabajoId}))
+}
+
+function mEditAbono(d){
+  var fechaISO=toISO(d.fecha||'')||new Date().toISOString().split('T')[0]
+  return'<h3>✏️ Editar pago</h3>'    +'<div class="fg">'    +'<div class="full"><label>Monto ($) *</label>'    +'<input id="ea0" type="number" min="0.01" step="0.01" value="'+esc(d.monto||'')+'"/></div>'    +'<div><label>Fecha</label>'    +'<input id="ea1" type="date" value="'+esc(fechaISO)+'"/></div>'    +'<div><label>Ref. comprobante</label>'    +'<input id="ea2" value="'+esc(d.comprobante||'')+'" placeholder="TRF-001..."/></div>'    +'<div class="full"><label>Nota</label>'    +'<input id="ea3" value="'+esc(d.nota||'')+'" placeholder="Ej: Transferencia BP"/></div>'    +'</div>'    +'<div class="ma">'    +'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>'    +'<button class="btn btn-p" onclick="submitEditAbono(\''+esc(d.id)+'\',\''+esc(d.cuotaId)+'\',\''+esc(d.trabajoId)+'\','+parseFloat(d.monto||0)+')">Guardar cambios</button>'    +'</div>'}
+
+async function submitEditAbono(abonoId, cuotaId, trabajoId, montoAnterior){
+  const nuevoMonto=parseFloat(document.getElementById('ea0')&&document.getElementById('ea0').value||0)
+  if(!nuevoMonto||nuevoMonto<=0){alert('Monto inválido');return}
+  // Read ALL values before draw()
+  const fecha      = document.getElementById('ea1')&&document.getElementById('ea1').value||''
+  const comprobante= document.getElementById('ea2')&&document.getElementById('ea2').value||''
+  const nota       = document.getElementById('ea3')&&document.getElementById('ea3').value||''
+  const abono      = data.abonos.find(function(x){return x.id===abonoId})
+  if(!abono)return
+  const updated = Object.assign({},abono,{monto:nuevoMonto,fecha:fecha,comprobante:comprobante,nota:nota})
+  modal=null;syncing=true;syncMsg='Guardando...';draw()
+  await apiPost({action:'actualizar',tabla:'Abonos',id:abonoId,fila:updated})
+  // Recalculate cuota.pagado from all abonos
+  const cuota=data.cuotas.find(function(c){return c.id===cuotaId})
+  if(cuota){
+    const totalAbonos=(data.abonos||[]).filter(function(a){return a.cuotaId===cuotaId&&a.id!==abonoId})
+      .reduce(function(s,a){return s+parseFloat(a.monto||0)},0)+nuevoMonto
+    const newSt=totalAbonos>=parseFloat(cuota.acordado||0)?'pagado':totalAbonos>0?'parcial':'pendiente'
+    await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:Object.assign({},cuota,{pagado:totalAbonos,estado:newSt})})
+  }
+  syncing=false;toast('Pago actualizado ✓');await loadData()
+}
+
+async function eliminarAbono(abonoId, cuotaId, monto){
+  if(!confirm('¿Eliminar este pago de $'+monto+'? La cuota se recalculará.'))return
+  const cuota=data.cuotas.find(function(c){return c.id===cuotaId})
+  syncing=true;syncMsg='Eliminando...';draw()
+  await apiPost({action:'eliminar',tabla:'Abonos',id:abonoId})
+  // Recalculate cuota.pagado
+  if(cuota){
+    const totalAbonos=(data.abonos||[]).filter(function(a){return a.cuotaId===cuotaId&&a.id!==abonoId})
+      .reduce(function(s,a){return s+parseFloat(a.monto||0)},0)
+    const newSt=totalAbonos>=parseFloat(cuota.acordado||0)?'pagado':totalAbonos>0?'parcial':'pendiente'
+    await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:Object.assign({},cuota,{pagado:totalAbonos,estado:newSt})})
+  }
+  syncing=false;toast('Pago eliminado ✓');await loadData()
+}
+
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
 draw()
