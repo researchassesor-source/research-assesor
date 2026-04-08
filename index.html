@@ -446,18 +446,32 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
 const fmt=n=>{const x=parseFloat(n)||0;return x%1===0?String(Math.round(x)):x.toFixed(2)}
 
 function bdg(t,c){const m={green:'bg',blue:'bb',amber:'ba',red:'br',violet:'bv'};return'<span class="b '+(m[c]||'bx')+'">'+esc(t)+'</span>'}
+// Compute real paid per cuota from abonos (authoritative source)
+function abonoPaid(cuotaId){
+  return(data.abonos||[]).reduce(function(s,a){
+    return a.cuotaId===cuotaId?s+parseFloat(a.monto||0):s
+  },0)
+}
+// Use abonos as source of truth; fallback to c.pagado if no abonos recorded
+function realPaid(c){
+  var fromAbonos=abonoPaid(c.id)
+  // If abonos exist for this cuota, use that sum; else use c.pagado field
+  return fromAbonos>0?fromAbonos:parseFloat(c.pagado||0)
+}
 function cStat(c){
-  if(parseFloat(c.pagado||0)>=parseFloat(c.acordado||0)&&parseFloat(c.acordado||0)>0)return'pagado'
-  if(parseFloat(c.pagado||0)>0)return'parcial'
+  var paid=realPaid(c),acordado=parseFloat(c.acordado||0)
+  if(paid>=acordado&&acordado>0)return'pagado'
+  if(paid>0)return'parcial'
   if(c.fechaVencimiento&&new Date(c.fechaVencimiento)<new Date())return'vencido'
   return'pendiente'
 }
 function cColor(s){return{pagado:'green',parcial:'blue',vencido:'red',pendiente:'amber'}[s]||'gray'}
 function wBal(t){
   const cs=data.cuotas.filter(c=>c.trabajoId===t.id)
-  const paid=cs.reduce((s,c)=>s+parseFloat(c.pagado||0),0)
+  const paid=cs.reduce((s,c)=>s+realPaid(c),0)
   const total=parseFloat(t.total||0)
-  return{total,paid,bal:total-paid,pct:total>0?Math.round(paid/total*100):0}
+  const bal=Math.max(total-paid,0)
+  return{total,paid,bal,pct:total>0?Math.min(Math.round(paid/total*100),100):0}
 }
 function waUrl(phone,msg){
   const c=String(phone||'').replace(/\D/g,'')
@@ -671,7 +685,7 @@ function htmlDash(){
   // ── KPI calcs ──
   const cobrado    =abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
   const totalFact  =cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
-  const pendiente  =cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const pendiente  =cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0),0)
   const vencidas   =cuotas.filter(c=>cStat(c)==='vencido')
   const activos    =trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').length
   const completados=trabajos.filter(t=>t.estado==='Completado').length
@@ -1150,8 +1164,8 @@ function htmlCobros(){
     .sort((a,b)=>{const o={vencido:0,parcial:1,pendiente:2,pagado:3};return o[a._st]-o[b._st]||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
 
   const cobrado=data.abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
-  const pendiente=data.cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
-  const vencido=data.cuotas.filter(c=>cStat(c)==='vencido').reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0)
+  const pendiente=data.cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0),0)
+  const vencido=data.cuotas.filter(c=>cStat(c)==='vencido').reduce((s,c)=>s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0),0)
   const total=data.cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
 
   let h='<div class="kpis">'
@@ -1166,7 +1180,7 @@ function htmlCobros(){
     +htmlCobrosFilterBadge()
   if(!rows.length)return h+'<div class="card"><p class="empty">Sin resultados</p></div>'
   rows.forEach(c=>{
-    const st=c._st,saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
+    const st=c._st,_rp=realPaid(c),saldo=Math.max(parseFloat(c.acordado||0)-_rp,0)
     const today=new Date(),due=new Date(c.fechaVencimiento)
     const days=Math.ceil((due-today)/86400000)
     const bgc={pagado:'#dcfce7',parcial:'#dbeafe',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
@@ -1177,7 +1191,7 @@ function htmlCobros(){
       +'<div style="flex:1;min-width:150px"><strong style="font-size:13px">'+esc(c._cl&&c._cl.nombre||c.clienteNombre||'—')+'</strong>'
       +'<div style="font-size:11px;color:var(--text3)">'+esc(c._t&&c._t.titulo||c.trabajoTitulo||'—')+' — '+esc(c.label||'—')+'</div></div>'
       +'<div style="text-align:center;min-width:80px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
-      +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+'</div>':'')
+      +(_rp>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(_rp)+'</div>':'')
       +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;font-weight:600;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
       +'</div>'
       +'<div style="text-align:center;min-width:85px"><div style="font-size:12px">'+fmtDCorto(c.fechaVencimiento||'')+'</div>'
@@ -2342,8 +2356,8 @@ function htmlCobrosFilterBadge(){
   var filtRows=data.cuotas.filter(function(c){return cStat(c)===cSt})
   if(!filtRows.length)return''
   var filtTotal=filtRows.reduce(function(s,c){return s+parseFloat(c.acordado||0)},0)
-  var filtSaldo=filtRows.reduce(function(s,c){return s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0))},0)
-  var filtPagado=filtRows.reduce(function(s,c){return s+parseFloat(c.pagado||0)},0)
+  var filtSaldo=filtRows.reduce(function(s,c){return s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0)},0)
+  var filtPagado=filtRows.reduce(function(s,c){return s+realPaid(c)},0)
   var bg=cSt==='vencido'?'#fee2e2':cSt==='pagado'?'#dcfce7':'#fef3c7'
   var label={vencido:'vencidas',pendiente:'pendientes',parcial:'parciales',pagado:'pagadas'}[cSt]||cSt
   var h='<div style="display:flex;gap:16px;padding:8px 14px;background:'+bg+';border-radius:8px;font-size:13px;flex-wrap:wrap;align-items:center;margin-top:4px">'
