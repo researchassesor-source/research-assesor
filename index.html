@@ -63,7 +63,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
 
 /* ── COMPONENTS ── */
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-.kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(26,37,64,.13);border-color:var(--brand)}
 .kpi-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .kpi-value{font-size:28px;font-weight:800;line-height:1;color:var(--text)}
 .kpi-sub{font-size:12px;color:var(--text3);margin-top:4px}
@@ -161,6 +162,7 @@ textarea{resize:vertical;min-height:64px}
 .alert-venc{background:#fee2e2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--red);display:flex;align-items:center;justify-content:space-between}
 
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
 .spin{display:inline-block;animation:spin .8s linear infinite}
 @media(max-width:700px){aside{display:none}.fg{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.page{padding:14px}.dash-grid,.dash-grid.three{grid-template-columns:1fr}}
 </style>
@@ -226,18 +228,21 @@ function toISO(s){
   s=String(s).trim()
   // Already ISO: 2026-03-15
   if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10)
-  // Google Sheets locale formats: M/D/YYYY or MM/DD/YYYY (US)
+  // Google Sheets US format: M/D/YYYY or MM/DD/YYYY
   const m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-  if(m1){
-    // Sheets always uses M/D/YYYY (US format)
-    return m1[3]+'-'+m1[1].padStart(2,'0')+'-'+m1[2].padStart(2,'0')
-  }
+  if(m1)return m1[3]+'-'+m1[1].padStart(2,'0')+'-'+m1[2].padStart(2,'0')
   // DD-MM-YYYY
   const m2=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
   if(m2)return m2[3]+'-'+m2[2].padStart(2,'0')+'-'+m2[1].padStart(2,'0')
-  // Try native parse as fallback
-  try{const d=new Date(s);if(!isNaN(d.getTime()))return d.toISOString().slice(0,10)}catch(e){}
-  return s.slice(0,10)
+  // Sheets Date object string: "Sun Apr 07 2026 00:00:00 GMT..."
+  const m3=s.match(/(\d{4}) (\d{2}:\d{2}:\d{2})/)
+  if(m3){try{const d=new Date(s);if(!isNaN(d.getTime())){const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');return y+'-'+mo+'-'+dy}}catch(e){}}
+  // ISO with time: 2026-04-07T10:30:00
+  const m4=s.match(/^(\d{4}-\d{2}-\d{2})T/)
+  if(m4)return m4[1]
+  // Native parse fallback
+  try{const d=new Date(s);if(!isNaN(d.getTime())){const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');return y+'-'+mo+'-'+dy}}catch(e){}
+  return''
 }
 
 // Formatea fecha larga: "Lunes, 30 de marzo 2026"
@@ -702,10 +707,19 @@ function htmlDash(){
   const pastMonths   = allMonths.filter(x=>x.isPast||x.isCurrent)
   const futureMonths = allMonths.filter(x=>x.isFuture)
 
-  // Ingresos reales del mes actual
-  const _cur=allMonths.find(x=>x.isCurrent);const ingresoMesActual=(_cur&&_cur.real)||0
+  // Ingresos reales del mes actual — calculado directamente para mayor confiabilidad
+  const ingresoMesActual=abonos.reduce((s,a)=>{
+    const _af=toISO(a.fecha||'');if(!_af)return s
+    const ad=new Date(_af+'T12:00:00')
+    return(ad.getMonth()===mesActual&&ad.getFullYear()===anioActual)?s+parseFloat(a.monto||0):s
+  },0)
   // Ingresos mes anterior
-  const _prev=allMonths.find((_,i,a)=>a[i].isCurrent&&i>0?false:a[i+1]&&a[i+1].isCurrent);const ingresoMesAnterior=(_prev&&_prev.real)||0
+  const _prevM=mesActual===0?11:mesActual-1, _prevY=mesActual===0?anioActual-1:anioActual
+  const ingresoMesAnterior=abonos.reduce((s,a)=>{
+    const _af=toISO(a.fecha||'');if(!_af)return s
+    const ad=new Date(_af+'T12:00:00')
+    return(ad.getMonth()===_prevM&&ad.getFullYear()===_prevY)?s+parseFloat(a.monto||0):s
+  },0)
   // Proyección total futura
   const proyeccionTotal=futureMonths.reduce((s,x)=>s+x.proj,0)
   // Mejor mes futuro
@@ -739,15 +753,16 @@ function htmlDash(){
   const tipoDist={}
   trabajos.forEach(t=>{const k=t.tipo||'Otro';tipoDist[k]=(tipoDist[k]||0)+1})
   const topTipos=Object.entries(tipoDist).sort((a,b)=>b[1]-a[1]).slice(0,5)
-
   let h=''
 
-  // Alert vencidas
-  if(vencidas.length){
-    h+='<div class="alert-venc">⚠️ <strong>'+vencidas.length+' cuota'+(vencidas.length>1?'s':'')+' vencida'+(vencidas.length>1?'s':'')+' — $'+fmt(vencidas.reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0))+' pendiente</strong>'
-      +'<button class="btn btn-r btn-sm" onclick="goTo(\'cobros\')">Ver cobros →</button></div>'
-  }
-
+  h+='<div class="kpis">'
+    +'<div class="kpi" style="cursor:pointer" onclick="goTo(\'clientes\')"><div class="kpi-label">Clientes</div><div class="kpi-value">'+clientes.length+'</div><div class="kpi-sub">'+activos+' con trabajos activos</div><div class="kpi-icon">👥</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="goTo(\'trabajos\')"><div class="kpi-label">Trabajos activos</div><div class="kpi-value" style="color:var(--brand)">'+activos+'</div><div class="kpi-sub">'+completados+' completados</div><div class="kpi-icon">💼</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="goTo(\'cobros\')"><div class="kpi-label">Total cobrado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(cobrado)+'</div><div class="kpi-sub">de $'+fmt(totalFact)+' facturado</div><div class="kpi-icon">💰</div><div class="kpi-bar"><div class="kpi-bar-f" style="width:'+cobPct+'%;background:var(--green)"></div></div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'Todos\';goTo(\'cobros\')"><div class="kpi-label">Mes '+MESES[mesActual]+'</div><div class="kpi-value" style="color:var(--brand)">$'+fmt(ingresoMesActual)+'</div><div class="kpi-sub"><span style="color:'+(variacion>=0?'var(--green)':'var(--red)')+'">'+(variacion>=0?'▲':'▼')+' '+Math.abs(variacion)+'%</span> vs mes anterior</div><div class="kpi-icon">📈</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';goTo(\'cobros\')"><div class="kpi-label">Proyección futura</div><div class="kpi-value" style="color:var(--violet)">$'+fmt(proyeccionTotal)+'</div><div class="kpi-sub">próximos 5 meses</div><div class="kpi-icon">🔮</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'vencido\';goTo(\'cobros\')"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">'+(vencidas.length>0?'<span style="color:var(--red)">⚠ '+vencidas.length+' vencidas — clic para ver</span>':'✅ al día')+'</div><div class="kpi-icon">⏰</div></div>'
+    +'</div>'
   // ── KPIs row ──
   h+='<div class="kpis">'
     +'<div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-value">'+clientes.length+'</div><div class="kpi-sub">registrados</div><div class="kpi-icon">👥</div></div>'
@@ -1142,10 +1157,10 @@ function htmlCobros(){
   const total=data.cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
 
   let h='<div class="kpis">'
-    +'<div class="kpi"><div class="kpi-label">Total facturado</div><div class="kpi-value">$'+fmt(total)+'</div><div class="kpi-icon">📋</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Cobrado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(cobrado)+'</div><div class="kpi-icon">✅</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-icon">⏰</div></div>'
-    +(vencido>0?'<div class="kpi"><div class="kpi-label">Vencido</div><div class="kpi-value" style="color:var(--red)">$'+fmt(vencido)+'</div><div class="kpi-icon">⚠️</div></div>':'')
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'Todos\';draw()"><div class="kpi-label">Total facturado</div><div class="kpi-value">$'+fmt(total)+'</div><div class="kpi-sub">'+data.cuotas.length+' cuotas</div><div class="kpi-icon">📋</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pagado\';draw()"><div class="kpi-label">Cobrado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(cobrado)+'</div><div class="kpi-sub">clic para ver pagadas</div><div class="kpi-icon">✅</div></div>'
+    +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';draw()"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">clic para ver pendientes</div><div class="kpi-icon">⏰</div></div>'
+    +(vencido>0?'<div class="kpi" style="cursor:pointer;animation:pulse 2s infinite" onclick="cSt=\'vencido\';draw()"><div class="kpi-label">⚠️ Vencido</div><div class="kpi-value" style="color:var(--red)">$'+fmt(vencido)+'</div><div class="kpi-sub">clic para ver vencidas</div><div class="kpi-icon">🚨</div></div>':'')
     +'</div>'
   h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'" style="max-width:240px"/>'
     +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
