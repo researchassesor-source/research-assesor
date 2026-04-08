@@ -1693,7 +1693,8 @@ function submitCuota(trabajoId,cuotaId){
 }
 
 function mAbono(d){
-  const saldo=parseFloat(d.acordado||0)-parseFloat(d.pagado||0)
+  const _rp=abonoPaid(d.cuotaId||'')||parseFloat(d.pagado||0)
+  const saldo=Math.max(parseFloat(d.acordado||0)-_rp,0)
   return'<h3>Registrar pago — '+esc(d.label||'Cuota')+'</h3>'
     +'<div style="background:#f0f6ff;border:1px solid #dbeafe;border-radius:9px;padding:12px;margin-bottom:14px;display:flex;gap:16px;font-size:13px">'
     +'<span>Acordado: <strong style="color:var(--brand)">$'+fmt(d.acordado)+'</strong></span>'
@@ -1709,11 +1710,17 @@ function mAbono(d){
 }
 async function submitAbono(cuotaId,trabajoId,acordado,pagadoPrev){
   const monto=parseFloat(v('a0'));if(!monto||monto<=0){alert('Monto inválido');return}
+  // ── Read ALL values BEFORE draw() destroys the modal DOM ──
+  const fechaAbono   = v('a1') || new Date().toISOString().split('T')[0]
+  const comprobante  = v('a2')
+  const nota         = v('a3')
+  // ── Now safe to close modal and update UI ──
   const newPagado=parseFloat(pagadoPrev||0)+monto
   const newSt=newPagado>=parseFloat(acordado||0)?'pagado':newPagado>0?'parcial':'pendiente'
   const cuota=data.cuotas.find(c=>c.id===cuotaId)
   modal=null;syncing=true;syncMsg='Guardando...';draw()
-  await apiPost({action:'insertar',tabla:'Abonos',fila:{id:uid(),cuotaId,trabajoId,fecha:v('a1'),monto,nota:v('a3'),comprobante:v('a2')}})
+  // ── Send to Sheets with captured values ──
+  await apiPost({action:'insertar',tabla:'Abonos',fila:{id:uid(),cuotaId,trabajoId,fecha:fechaAbono,monto,nota,comprobante}})
   await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:{...cuota,pagado:newPagado,estado:newSt}})
   syncing=false;toast('Pago registrado ✓');await loadData()
 }
