@@ -763,34 +763,49 @@ function htmlDash(){
     +'<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">'
     +'<div><div class="chart-title">Ingresos reales vs Proyección de cobros</div>'
     +'<div class="chart-sub">Últimos 6 meses cobrados · Mes actual · Próximos 5 meses proyectados</div></div>'
-    +'<div style="display:flex;gap:16px;font-size:11px;align-items:center">'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:var(--brand);display:inline-block"></span>Cobrado real</span>'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:var(--violet);opacity:.6;display:inline-block;border:2px dashed var(--violet)"></span>Proyectado</span>'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:1px;height:20px;background:#e5eaf3;display:inline-block"></span>Hoy</span>'
-    +'</div></div>'
+    
 
-    // Chart area
-    +'<div style="display:flex;gap:0;align-items:flex-end;height:140px;position:relative;padding:0 4px">'
-    +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">'
-    +[100,75,50,25,0].map(p=>'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:var(--text3);width:36px;text-align:right">$'+fmt(maxVal*p/100/1000>1?maxVal*p/100:maxVal*p/100)+'</span><div style="flex:1;height:1px;background:#f1f5f9"></div></div>').join('')
+    // ── CHART: two independent rows (real top, projected bottom) ──
+    // Row 1: Cobrado real — scale = maxReal
+    +'<div style="margin-bottom:4px">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+    +'<span style="width:10px;height:10px;border-radius:2px;background:var(--brand);display:inline-block"></span>'
+    +'<span style="font-size:10px;font-weight:700;color:var(--text3)">COBRADO REAL (escala: $'+fmt(maxReal)+')</span>'
     +'</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:3px;flex:1;padding-left:44px;height:100%;position:relative">'
-    +allMonths.map((m,i)=>{
-      const realPct=m.real>0?Math.max(Math.round(m.real/realScale*100),3):0
-      const projPct=maxVal>0?Math.round(m.proj/maxVal*100):0
-      const divider=m.isCurrent?'border-left:2px dashed #e5eaf3;':'';
-      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;'+divider+'">'
-        // Real bar
-        +(m.isPast||m.isCurrent?'<div title="Cobrado: $'+m.real+'" style="width:60%;border-radius:4px 4px 0 0;background:'+(m.isCurrent?'var(--brand)':'rgba(26,86,219,.35)')+';height:'+(realPct||1)+'%;transition:height .5s ease;cursor:default"></div>':'<div style="width:60%;height:1px"></div>')
-        // Projected bar (dashed border style)
-        +(m.proj>0?'<div title="Proyectado: $'+m.proj+'" style="width:60%;border-radius:4px 4px 0 0;background:'+(m.isFuture?'rgba(126,58,242,.2)':'rgba(26,86,219,.12)')+';border:2px dashed '+(m.isFuture?'var(--violet)':'var(--brand)')+';border-bottom:none;height:'+(projPct||1)+'%;transition:height .5s ease;cursor:default;position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:35%"></div>':'')
+    +'<div style="display:flex;align-items:flex-end;gap:2px;height:90px;background:#f8faff;border-radius:8px;padding:6px 6px 0">'
+    +allMonths.map(m=>{
+      const pct=m.real>0?Math.max(Math.round(m.real/maxReal*100),4):0
+      const isC=m.isCurrent
+      const col=isC?'var(--brand)':m.isPast?'rgba(26,86,219,.6)':'#e2e8f0'
+      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:1px">'
+        +(pct>0?'<div style="font-size:8px;color:'+(isC?'var(--brand)':'var(--text3)')+';font-weight:700">$'+fmt(m.real)+'</div>':'')
+        +'<div title="Cobrado: $'+m.real+'" style="width:80%;min-height:'+(pct>0?pct:1)+'%;border-radius:3px 3px 0 0;background:'+col+';transition:height .4s"></div>'
         +'</div>'
     }).join('')
     +'</div></div>'
 
-    // Month labels
-    +'<div style="display:flex;gap:3px;padding-left:44px;margin-top:4px">'
+    // Row 2: Proyectado — scale = maxProj
+    +'<div style="margin-bottom:4px">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+    +'<span style="width:10px;height:10px;border-radius:2px;background:var(--violet);opacity:.7;display:inline-block"></span>'
+    +'<span style="font-size:10px;font-weight:700;color:var(--text3)">PROYECCIÓN (escala: $'+fmt(maxProj)+')</span>'
+    +'</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:2px;height:70px;background:#faf8ff;border-radius:8px;padding:6px 6px 0">'
+    +allMonths.map(m=>{
+      const pct=m.proj>0?Math.max(Math.round(m.proj/maxProj*100),4):0
+      const col=m.isFuture?'rgba(126,58,242,.5)':m.isCurrent?'rgba(126,58,242,.3)':'rgba(200,200,200,.4)'
+      const brd=m.isFuture?'2px dashed var(--violet)':'1px dashed #c4b5fd'
+      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:1px">'
+        +(pct>0?'<div style="font-size:8px;color:var(--violet);font-weight:700">$'+fmt(m.proj)+'</div>':'')
+        +'<div title="Proyectado: $'+m.proj+'" style="width:80%;min-height:'+(pct>0?pct:1)+'%;border-radius:3px 3px 0 0;background:'+col+';border:'+brd+';border-bottom:none;transition:height .4s"></div>'
+        +'</div>'
+    }).join('')
+    +'</div></div>'
+
+    // Month labels (shared)
+    +'<div style="display:flex;gap:2px;margin-top:4px">'
     +allMonths.map(m=>'<div style="flex:1;text-align:center;font-size:9px;font-weight:'+(m.isCurrent?700:500)+';color:'+(m.isCurrent?'var(--brand)':m.isFuture?'var(--violet)':'var(--text3)')+'">'+m.label+(m.isCurrent?' ●':'')+'</div>').join('')
+    +'</div>'
     +'</div>'
 
     // Summary row
@@ -1077,12 +1092,18 @@ function htmlTrabajos(){
               +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.4px;margin-bottom:5px">PAGOS REGISTRADOS</div>'
               +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
             abs.forEach(function(a){
-              h+='<div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:6px 10px;font-size:12px;min-width:160px">'
-                +'<div style="font-weight:700;color:var(--green)">💸 $'+fmt(a.monto)+'</div>'
-                +'<div style="color:var(--text3)">'+fmtDCorto(a.fecha||'')+'</div>'
-                +(a.comprobante?'<div style="font-weight:600;color:#0369a1">📋 '+esc(a.comprobante)+'</div>':'')
-                +(a.nota?'<div style="color:var(--text3)">'+esc(a.nota)+'</div>':'')
-                +'</div>'
+              var _fd2=toISO(a.fecha||'');var _fl2=_fd2?fmtDCorto(a.fecha):'—'
+              h+='<div style="background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:9px 12px;min-width:160px">'
+                +'<div style="font-size:15px;font-weight:800;color:var(--green);margin-bottom:5px">💸 $'+fmt(a.monto)+'</div>'
+                +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 7px;font-size:11px">'
+                +'<span style="font-weight:700;color:var(--text3)">📅 FECHA</span>'
+                +'<span style="font-weight:600;color:var(--text2)">'+_fl2+'</span>'
+                +(a.comprobante
+                  ?'<span style="font-weight:700;color:var(--text3)">🆔 REF</span>'
+                   +'<span style="font-weight:700;color:#0369a1;background:#dbeafe;border-radius:4px;padding:1px 4px">'+esc(a.comprobante)+'</span>'
+                  :'')
+                +(a.nota?'<span style="color:var(--text3)">📝</span><span style="color:var(--text3)">'+esc(a.nota)+'</span>':'')
+                +'</div></div>'
             })
             h+='</div></div>'
           }
@@ -1159,13 +1180,17 @@ function htmlCobros(){
         +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.4px;margin-bottom:6px">PAGOS REGISTRADOS</div>'
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
         +abs.map(a=>{
-          return'<div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:7px 11px;display:flex;align-items:center;gap:8px;min-width:200px">'
-            +'<div style="width:32px;height:32px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">💸</div>'
-            +'<div style="flex:1">'
-            +'<div style="font-size:13px;font-weight:700;color:var(--green)">$'+fmt(a.monto)+'</div>'
-            +'<div style="font-size:11px;color:var(--text3)">'+fmtDCorto(a.fecha||'')+'</div>'
-            +(a.comprobante?'<div style="font-size:11px;font-weight:600;color:#0369a1">📋 '+esc(a.comprobante)+'</div>':'')
-            +(a.nota?'<div style="font-size:11px;color:var(--text3)">'+esc(a.nota)+'</div>':'')
+          const _fd=toISO(a.fecha||'');const _fl=_fd?fmtDCorto(a.fecha):'—'
+          return'<div style="background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;min-width:170px;max-width:220px">'
+            +'<div style="font-size:18px;font-weight:800;color:var(--green);margin-bottom:6px">💸 $'+fmt(a.monto)+'</div>'
+            +'<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px">'
+            +'<span style="font-weight:700;color:var(--text3)">📅 FECHA</span>'
+            +'<span style="font-weight:600;color:var(--text2)">'+_fl+'</span>'
+            +(a.comprobante
+              ?'<span style="font-weight:700;color:var(--text3)">🆔 REF</span>'
+               +'<span style="font-weight:700;color:#0369a1;background:#dbeafe;border-radius:4px;padding:1px 5px">'+esc(a.comprobante)+'</span>'
+              :'')
+            +(a.nota?'<span style="color:var(--text3)">📝</span><span style="color:var(--text3)">'+esc(a.nota)+'</span>':'')
             +'</div></div>'
         }).join('')
         +'</div></div>'
