@@ -614,18 +614,21 @@ function doLogin(){
 
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
 const NAV_MAIN=[
-  {id:'dashboard',l:'Dashboard',ic:'▦'},
-  {id:'clientes', l:'Clientes', ic:'◉'},
-  {id:'trabajos', l:'Trabajos', ic:'◈'},
-  {id:'cobros',   l:'Cobros',   ic:'◎'},
-  {id:'reuniones',l:'Reuniones',ic:'◷'},
+  {id:'dashboard',    l:'Dashboard',      ic:'▦'},
+  {id:'clientes',     l:'Clientes',       ic:'◉'},
+  {id:'trabajos',     l:'Trabajos',       ic:'◈'},
+  {id:'cobros',       l:'Cobros',         ic:'◎'},
+  {id:'reuniones',    l:'Reuniones',      ic:'◷'},
+  {id:'colaboradores',l:'Colaboradores',  ic:'👥'},
+  {id:'usuarios',     l:'Usuarios',       ic:'◑'},
+  {id:'mensajes',     l:'Mensajes WA',    ic:'◌'},
 ]
 const NAV_ADMIN=[{id:'usuarios',l:'Usuarios',ic:'◐'},{id:'mensajes',l:'Mensajes WA',ic:'💬'}]
 const NAV_CLIENTE=[
   {id:'mi_progreso',l:'Mis trabajos',ic:'📋'},
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
 ]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
+const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
 const VERSION='v6.0'
 
 function htmlApp(){
@@ -671,6 +674,7 @@ function htmlPage(){
   if(page==='cobros')   return htmlCobros()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
+  if(page==='colaboradores') return htmlColaboradores()
   if(page==='mensajes') return htmlMensajes()
   return''
 }
@@ -1495,7 +1499,9 @@ function htmlModal(){
   if(modal.type==='tpl')         c=mTpl(modal.rec)
   if(modal.type==='preview_tpl') c=mPreviewTpl(modal.rec)
   if(modal.type==='portal_user') c=mPortalUser(modal.rec)
-  if(modal.type==='edit_abono')   c=mEditAbono(modal.rec)
+  if(modal.type==='edit_abono')     c=mEditAbono(modal.rec)
+  if(modal.type==='colaborador')    c=mColaborador(modal.rec)
+  if(modal.type==='asignacion')     c=mAsignacion(modal.rec)
   if(!c)return''
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">'+c+'</div></div>'
 }
@@ -2727,6 +2733,284 @@ function drawPage(){
     }
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// COLABORADORES — gestión de usuarios internos y asignaciones
+// ════════════════════════════════════════════════════════════════
+function htmlColaboradores(){
+  var tab=window._colTab||'colab'
+  var h='<div class="tb" style="gap:8px">'
+    +'<button class="btn '+(tab==='colab'?'btn-p':'btn-g')+'" onclick="window._colTab=\'colab\';drawPage()">👥 Colaboradores</button>'
+    +'<button class="btn '+(tab==='asig'?'btn-p':'btn-g')+'" onclick="window._colTab=\'asig\';drawPage()">📋 Asignaciones</button>'
+    +'</div>'
+  if(tab==='colab') h+=htmlColabList()
+  else              h+=htmlAsigList()
+  return h
+}
+
+// ── Lista de colaboradores ────────────────────────────────────
+function htmlColabList(){
+  var cols=data.colaboradores||[]
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<div style="font-size:13px;color:var(--text3)">'+cols.length+' colaboradores registrados</div>'
+    +'<button class="btn btn-p" onclick="openModal(\'colaborador\',{})">+ Nuevo colaborador</button>'
+    +'</div>'
+
+  if(!cols.length){
+    return h+'<div class="card" style="text-align:center;padding:40px;color:var(--text3)">'
+      +'<div style="font-size:32px;margin-bottom:8px">👥</div>'
+      +'<div style="font-weight:600">Sin colaboradores aún</div>'
+      +'<div style="font-size:13px;margin-top:4px">Agrega colaboradores para asignarles trabajos</div>'
+      +'</div>'
+  }
+
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">'
+  cols.forEach(function(c){
+    var asigs=(data.asignaciones||[]).filter(function(a){return a.colaboradorId===c.id})
+    var pendientes=asigs.filter(function(a){return a.estado==='pendiente'||a.estado==='completado'})
+    var totalMes=pendientes.reduce(function(s,a){return s+parseFloat(a.valorAsignado||0)},0)
+    var activo=c.activo==='true'||c.activo===true
+
+    h+='<div class="card" style="position:relative">'
+      // Status badge
+      +'<div style="position:absolute;top:14px;right:14px">'
+      +'<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+(activo?'#dcfce7':'#f1f5f9')+';color:'+(activo?'#15803d':'#94a3b8')+'">'+(activo?'● Activo':'○ Inactivo')+'</span>'
+      +'</div>'
+      // Main info
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0">'
+      +esc((c.nombre||'?')[0].toUpperCase())
+      +'</div>'
+      +'<div>'
+      +'<div style="font-weight:700;font-size:15px">'+esc(c.nombre||'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+esc(c.especialidad||'Sin especialidad')+'</div>'
+      +'</div></div>'
+      // Contact
+      +(c.email?'<div style="font-size:12px;color:var(--text3);margin-bottom:3px">✉️ '+esc(c.email)+'</div>':'')
+      +(c.telefono?'<div style="font-size:12px;color:var(--text3);margin-bottom:8px">📱 '+esc(c.telefono)+'</div>':'')
+      // Stats
+      +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+      +'<div style="flex:1;background:#f8faff;border-radius:8px;padding:8px;text-align:center">'
+      +'<div style="font-size:18px;font-weight:800;color:var(--brand)">'+asigs.length+'</div>'
+      +'<div style="font-size:10px;color:var(--text3)">Asignaciones</div>'
+      +'</div>'
+      +'<div style="flex:1;background:#f0fdf4;border-radius:8px;padding:8px;text-align:center">'
+      +'<div style="font-size:18px;font-weight:800;color:var(--green)">$'+fmt(totalMes)+'</div>'
+      +'<div style="font-size:10px;color:var(--text3)">Por pagar</div>'
+      +'</div>'
+      +'</div>'
+      // Buttons
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn btn-g btn-sm" style="flex:1" onclick="window._colTab=\'asig\';window._filtColId=\''+c.id+'\';drawPage()">Ver asignaciones</button>'
+      +'<button class="btn btn-g btn-sm" onclick="openModal(\'colaborador\','+jss(c)+')">✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Colaboradores\',\''+c.id+'\',\'¿Eliminar colaborador '+esc(c.nombre)+'?\')">🗑</button>'
+      +'</div>'
+      +'</div>'
+  })
+  h+='</div>'
+  return h
+}
+
+// ── Lista de asignaciones ─────────────────────────────────────
+function htmlAsigList(){
+  var filtColId=window._filtColId||''
+  var cols=data.colaboradores||[]
+  var asigs=data.asignaciones||[]
+
+  // Mes filter
+  var now=new Date()
+  var mesFilt=window._filtMes||''
+
+  // Filters bar
+  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">'
+    +'<select onchange="window._filtColId=this.value;drawPage()" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px">'
+    +'<option value="">Todos los colaboradores</option>'
+    +cols.map(function(c){return'<option value="'+esc(c.id)+'"'+(filtColId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>'}).join('')
+    +'</select>'
+    +'<input type="month" value="'+esc(mesFilt)+'" onchange="window._filtMes=this.value;drawPage()" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px"/>'
+    +'<button class="btn btn-p btn-sm" onclick="openModal(\'asignacion\',{})">+ Nueva asignación</button>'
+    +'<button class="btn btn-g btn-sm" onclick="window._filtColId=\'\';window._filtMes=\'\';drawPage()">✕ Limpiar</button>'
+    +'</div>'
+
+  // Filter asignaciones
+  var lista=asigs.filter(function(a){
+    var mc=!filtColId||a.colaboradorId===filtColId
+    // When no month filter active, show all asignaciones
+    var mm=!mesFilt||a.mes===mesFilt||(a.fechaAsignacion&&a.fechaAsignacion.slice(0,7)===mesFilt)||(!a.mes&&!a.fechaAsignacion)
+    return mc&&mm
+  })
+
+  // Summary bar
+  var totAsig =lista.reduce(function(s,a){return s+parseFloat(a.valorAsignado||0)},0)
+  var totPag  =lista.filter(function(a){return a.estado==='pagado'}).reduce(function(s,a){return s+parseFloat(a.valorAsignado||0)},0)
+  var totPend =totAsig-totPag
+
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +'<div class="kpi" style="flex:1;padding:12px 16px"><div class="kpi-label">Total asignado</div><div class="kpi-value" style="font-size:20px">$'+fmt(totAsig)+'</div></div>'
+    +'<div class="kpi" style="flex:1;padding:12px 16px"><div class="kpi-label">Pagado</div><div class="kpi-value" style="font-size:20px;color:var(--green)">$'+fmt(totPag)+'</div></div>'
+    +'<div class="kpi" style="flex:1;padding:12px 16px"><div class="kpi-label">Por pagar</div><div class="kpi-value" style="font-size:20px;color:var(--amber)">$'+fmt(totPend)+'</div></div>'
+    +'</div>'
+
+  if(!lista.length){
+    return h+'<div class="empty">Sin asignaciones para este período</div>'
+  }
+
+  // Table
+  h+='<div class="card" style="padding:0;overflow:hidden">'
+    +'<table><thead><tr>'
+    +'<th>Colaborador</th><th>Trabajo / Cliente</th><th>Descripción</th>'
+    +'<th style="text-align:right">Valor</th><th>Estado</th><th>Límite</th><th></th>'
+    +'</tr></thead><tbody>'
+
+  lista.forEach(function(a){
+    var stCol={pendiente:'#f59e0b',completado:'#3b82f6',pagado:'#22c55e'}
+    var stBg ={pendiente:'#fffbeb',completado:'#eff6ff',pagado:'#f0fdf4'}
+    var st=a.estado||'pendiente'
+    h+='<tr>'
+      +'<td><strong>'+esc(a.colaboradorNombre||'—')+'</strong></td>'
+      +'<td><div style="font-size:12px">'+esc(a.trabajoTitulo||'—')+'</div>'
+       +'<div style="font-size:11px;color:var(--text3)">'+esc(a.clienteNombre||'')+'</div></td>'
+      +'<td style="font-size:12px;max-width:180px">'+esc(a.descripcion||'—')+'</td>'
+      +'<td style="text-align:right;font-weight:700">$'+fmt(a.valorAsignado)+'</td>'
+      +'<td><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:'+stBg[st]+';color:'+stCol[st]+'">'+st+'</span></td>'
+      +'<td style="font-size:12px;color:var(--text3)">'+fmtDCorto(a.fechaLimite||'')+'</td>'
+      +'<td><div style="display:flex;gap:4px">'
+      +(st!=='pagado'?'<button class="btn btn-green btn-sm" title="Marcar pagado" onclick="marcarPagadoAsig(\''+a.id+'\','+parseFloat(a.valorAsignado||0)+')">✅ Pagar</button>':'')
+      +(st==='pendiente'?'<button class="btn btn-g btn-sm" title="Marcar completado" onclick="marcarCompletadoAsig(\''+a.id+'\')" style="font-size:10px">✓ Listo</button>':'')
+      +'<button class="btn btn-g btn-sm" onclick="openModal(\'asignacion\','+jss(a)+')">✏️</button>'
+      +'<button class="btn btn-r btn-sm" onclick="delRec(\'Asignaciones\',\''+a.id+'\',\'¿Eliminar esta asignación?\')">🗑</button>'
+      +'</div></td>'
+      +'</tr>'
+  })
+  h+='</tbody></table></div>'
+  return h
+}
+
+// ── Modal: Nuevo/Editar Colaborador ──────────────────────────
+function mColaborador(d){
+  return'<h3>'+(d.id?'✏️ Editar':'👥 Nuevo')+' colaborador</h3>'
+    +'<div class="fg">'
+    +'<div class="full"><label>Nombre completo *</label><input id="col0" value="'+esc(d.nombre||'')+'" placeholder="Ej: María Rodríguez"/></div>'
+    +'<div><label>Especialidad</label><input id="col1" value="'+esc(d.especialidad||'')+'" placeholder="Estadística, Redacción..."/></div>'
+    +'<div><label>Email</label><input id="col2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@ejemplo.com"/></div>'
+    +'<div><label>Teléfono</label><input id="col3" value="'+esc(d.telefono||'')+'" placeholder="09XXXXXXXX"/></div>'
+    +'<div><label>Usuario (para login)</label><input id="col4" value="'+esc(d.usuario||'')+'" placeholder="usuario123"/></div>'
+    +'<div><label>Contraseña</label><input id="col5" type="password" value="'+esc(d.password||'')+'" placeholder="Mínimo 6 caracteres"/></div>'
+    +'<div class="full"><label>Notas</label><input id="col6" value="'+esc(d.notas||'')+'" placeholder="Observaciones..."/></div>'
+    +'<div class="full"><label>Estado</label>'
+    +'<select id="col7"><option value="true"'+(d.activo==='true'||!d.id?' selected':'')+'>Activo</option><option value="false"'+(d.activo==='false'?' selected':'')+'>Inactivo</option></select>'
+    +'</div>'
+    +'</div>'
+    +'<div class="ma">'
+    +'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitColaborador(\''+esc(d.id||'')+'\')">'+(d.id?'Guardar cambios':'Crear colaborador')+'</button>'
+    +'</div>'
+}
+
+async function submitColaborador(id){
+  var nombre=v('col0');if(!nombre){alert('El nombre es obligatorio');return}
+  var especialidad=v('col1'),email=v('col2'),telefono=v('col3')
+  var usuario=v('col4'),password=v('col5'),notas=v('col6'),activo=v('col7')
+  modal=null;syncing=true;syncMsg='Guardando...';draw()
+  var fila={nombre,especialidad,email,telefono,usuario,password,notas,activo,createdAt:new Date().toISOString().slice(0,10)}
+  if(id){
+    await apiPost({action:'actualizar',tabla:'Colaboradores',id,fila:Object.assign({id},fila)})
+    toast('Colaborador actualizado ✓')
+  } else {
+    await apiPost({action:'insertar',tabla:'Colaboradores',fila:Object.assign({id:uid()},fila)})
+    toast('Colaborador creado ✓')
+  }
+  syncing=false;await loadData()
+}
+
+// ── Modal: Nueva/Editar Asignación ───────────────────────────
+function mAsignacion(d){
+  var cols=data.colaboradores||[]
+  var trabs=data.trabajos||[]
+  var now=new Date()
+  var mesDef=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')
+  return'<h3>'+(d.id?'✏️ Editar':'📋 Nueva')+'  asignación</h3>'
+    +'<div class="fg">'
+    +'<div><label>Colaborador *</label>'
+    +'<select id="as0"><option value="">Seleccionar...</option>'
+    +cols.map(function(c){return'<option value="'+esc(c.id)+'"'+(d.colaboradorId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>'}).join('')
+    +'</select></div>'
+    +'<div><label>Trabajo *</label>'
+    +'<select id="as1" onchange="_asigAutoFill(this.value)"><option value="">Seleccionar...</option>'
+    +trabs.map(function(t){return'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo)+' — '+esc(t.clienteNombre||'')+'</option>'}).join('')
+    +'</select></div>'
+    +'<div class="full"><label>Descripción de la tarea *</label>'
+    +'<input id="as2" value="'+esc(d.descripcion||'')+'" placeholder="Ej: Análisis estadístico capítulo 3"/></div>'
+    +'<div><label>Valor a pagar ($) *</label>'
+    +'<input id="as3" type="number" min="0" step="0.01" value="'+esc(d.valorAsignado||'')+'"/></div>'
+    +'<div><label>Mes de pago</label>'
+    +'<input id="as4" type="month" value="'+esc(d.mes||mesDef)+'"/></div>'
+    +'<div><label>Fecha límite</label>'
+    +'<input id="as5" type="date" value="'+esc(toISO(d.fechaLimite||''))+'"/></div>'
+    +'<div class="full"><label>Notas</label>'
+    +'<input id="as6" value="'+esc(d.notas||'')+'" placeholder="Instrucciones adicionales..."/></div>'
+    +'</div>'
+    +'<div class="ma">'
+    +'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
+    +'<button class="btn btn-p" onclick="submitAsignacion(\''+esc(d.id||'')+'\')">'+(d.id?'Guardar':'Asignar trabajo')+'</button>'
+    +'</div>'
+}
+
+function _asigAutoFill(trabajoId){
+  var t=data.trabajos.find(function(x){return x.id===trabajoId})
+  if(!t)return
+  // Auto-fill description hint
+}
+
+async function submitAsignacion(id){
+  var colId=v('as0');if(!colId){alert('Selecciona un colaborador');return}
+  var trabId=v('as1');if(!trabId){alert('Selecciona un trabajo');return}
+  var desc=v('as2');if(!desc){alert('Ingresa una descripción');return}
+  var valor=parseFloat(v('as3'));if(!valor||valor<=0){alert('Ingresa un valor válido');return}
+  var mes=v('as4'),fechaLimite=v('as5'),notas=v('as6')
+  var col=data.colaboradores.find(function(c){return c.id===colId})
+  var trab=data.trabajos.find(function(t){return t.id===trabId})
+  modal=null;syncing=true;syncMsg='Guardando...';draw()
+  var fila={
+    colaboradorId:colId,
+    colaboradorNombre:col?col.nombre:'',
+    trabajoId:trabId,
+    trabajoTitulo:trab?trab.titulo:'',
+    clienteNombre:trab?trab.clienteNombre:'',
+    descripcion:desc,
+    valorAsignado:valor,
+    estado:'pendiente',
+    fechaAsignacion:new Date().toISOString().slice(0,10),
+    fechaLimite,mes,notas,pagado:'0'
+  }
+  if(id){
+    await apiPost({action:'actualizar',tabla:'Asignaciones',id,fila:Object.assign({id},fila)})
+    toast('Asignación actualizada ✓')
+  } else {
+    await apiPost({action:'insertar',tabla:'Asignaciones',fila:Object.assign({id:uid()},fila)})
+    toast('Asignación creada ✓')
+  }
+  syncing=false;await loadData()
+}
+
+async function marcarCompletadoAsig(id){
+  var a=data.asignaciones.find(function(x){return x.id===id})
+  if(!a)return
+  syncing=true;syncMsg='Actualizando...';draw()
+  await apiPost({action:'actualizar',tabla:'Asignaciones',id,fila:Object.assign({},a,{estado:'completado'})})
+  syncing=false;toast('Marcado como completado ✓');await loadData()
+}
+
+async function marcarPagadoAsig(id,valor){
+  if(!confirm('¿Confirmar pago de $'+valor+' al colaborador?'))return
+  var a=data.asignaciones.find(function(x){return x.id===id})
+  if(!a)return
+  syncing=true;syncMsg='Registrando pago...';draw()
+  var fechaPago=new Date().toISOString().slice(0,10)
+  await apiPost({action:'actualizar',tabla:'Asignaciones',id,fila:Object.assign({},a,{estado:'pagado',pagado:String(valor),fechaPago})})
+  syncing=false;toast('Pago registrado ✓');await loadData()
+}
+
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
 draw()
