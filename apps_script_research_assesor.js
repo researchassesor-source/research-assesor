@@ -1,401 +1,342 @@
-// ============================================================
-//  RESEARCH ASSESOR — Google Apps Script
-//  Copia este código completo en:
-//  Google Sheets → Extensiones → Apps Script
-// ============================================================
+// ================================================================
+// Research Assesor — Apps Script v6
+// Novedades v6:
+//   • Nueva hoja: Colaboradores (usuarios internos del sistema)
+//   • Nueva hoja: Asignaciones (trabajos asignados a colaboradores + valor/pago)
+//   • getData incluye colaboradores y asignaciones
+//   • repararHojas crea ambas hojas automáticamente
+// Novedades v6.1:
+//   • Nueva hoja: Usuarios (administradores del sistema, persistente)
+//   • getData incluye usuarios
+// ================================================================
 
-// ── CONFIGURACIÓN ──────────────────────────────────────────
-const CONFIG = {
-  HOJA_TRABAJOS:  'Trabajos',
-  HOJA_PAGOS:     'Pagos',
-  HOJA_SESIONES:  'Sesiones Zoom',
-  HOJA_CLIENTES:  'Clientes',
-  COLOR_HEADER:   '#1a6fb5',
-  COLOR_HEADER_TXT: '#ffffff',
+var SS_ID = '1ILRbM7sLA3Tsk54PNbGbDrwBMMZqUSts6V-0-v-dai8';
+
+var ESQUEMA = {
+  Clientes:       ['id','nombre','cedula','telefono','email','direccion','institucion','ciudad','createdAt','notas'],
+  Trabajos:       ['id','clienteId','clienteNombre','titulo','tipo','estado','total','progreso','notas','fechaInicio','fechaFin','carpeta','createdAt'],
+  Cuotas:         ['id','trabajoId','clienteId','clienteNombre','trabajoTitulo','label','fechaVencimiento','acordado','pagado','estado'],
+  Abonos:         ['id','cuotaId','trabajoId','fecha','monto','nota','comprobante'],
+  Reuniones:      ['id','clienteId','trabajoId','titulo','fecha','hora','plataforma','link','notas'],
+  UsuariosCliente:['id','clienteId','nombre','usuario','password','role','activo'],
+  // ── NUEVO v6 ──
+  Colaboradores:  ['id','nombre','email','telefono','especialidad','usuario','password','activo','createdAt','notas'],
+  Asignaciones:   ['id','colaboradorId','colaboradorNombre','trabajoId','trabajoTitulo','clienteNombre','descripcion','valorAsignado','estado','fechaAsignacion','fechaLimite','fechaPago','pagado','mes','notas'],
+  // ── NUEVO v6.1 ──
+  Usuarios:       ['id','usuario','password','nombre','role','activo']
 };
 
-// ── MENÚ PERSONALIZADO ─────────────────────────────────────
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('📋 Research Assesor')
-    .addItem('✅ Crear / Resetear hojas', 'crearHojas')
-    .addSeparator()
-    .addItem('📊 Ver resumen del mes', 'mostrarResumenMes')
-    .addItem('⚠️  Ver pagos vencidos', 'mostrarPagosVencidos')
-    .addItem('📅 Ver sesiones de hoy', 'mostrarSesionesHoy')
-    .addSeparator()
-    .addItem('📱 Enviar recordatorios WhatsApp (lista)', 'listarRecordatorios')
-    .addItem('🔄 Actualizar estados automáticamente', 'actualizarEstados')
-    .addToUi();
-}
+// ── Estado de Asignaciones ────────────────────────────────────────
+// pendiente  → asignado pero no completado
+// completado → el colaborador terminó su parte
+// pagado     → el admin ya pagó al colaborador
 
-// ── CREAR HOJAS CON ENCABEZADOS ────────────────────────────
-function crearHojas() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Hoja: TRABAJOS
-  crearHoja(ss, CONFIG.HOJA_TRABAJOS, [
-    'ID', 'Cliente', 'Teléfono', 'Email',
-    'Tipo de Servicio', 'Título del Trabajo',
-    'Valor Total (USD)', 'Total Pagado (USD)', 'Saldo Pendiente (USD)', '% Avance',
-    'Estado', 'Fecha Inicio', 'Fecha Límite', 'Notas'
-  ], [30, 140, 120, 160, 160, 220, 100, 100, 120, 70, 120, 100, 100, 200]);
-
-  // Hoja: PAGOS
-  crearHoja(ss, CONFIG.HOJA_PAGOS, [
-    'ID Pago', 'ID Trabajo', 'Cliente', 'Tipo de Servicio',
-    'Fecha Pago', 'Monto (USD)', 'Método de Pago', 'Nota / Referencia'
-  ], [60, 70, 140, 160, 100, 100, 120, 200]);
-
-  // Hoja: SESIONES ZOOM
-  crearHoja(ss, CONFIG.HOJA_SESIONES, [
-    'ID', 'Cliente', 'Teléfono', 'Tipo de Sesión',
-    'Fecha', 'Hora', 'Duración (min)', 'ID Meeting Zoom',
-    'Link Zoom', 'Estado', 'ID Trabajo Relacionado', 'Notas'
-  ], [30, 140, 120, 160, 90, 70, 90, 140, 260, 110, 120, 200]);
-
-  // Hoja: CLIENTES
-  crearHoja(ss, CONFIG.HOJA_CLIENTES, [
-    'ID', 'Nombre Completo', 'Teléfono', 'Email',
-    'Ciudad', 'Tipo de Cliente', 'Fecha Registro', 'Notas'
-  ], [30, 160, 120, 180, 100, 130, 110, 200]);
-
-  // Hoja: RESUMEN (dashboard)
-  crearHojaResumen(ss);
-
-  SpreadsheetApp.getUi().alert(
-    '✅ Hojas creadas correctamente.\n\n' +
-    'Puedes empezar a ingresar datos en:\n' +
-    '• Trabajos\n• Pagos\n• Sesiones Zoom\n• Clientes\n\n' +
-    'El Resumen se actualiza automáticamente.'
-  );
-}
-
-function crearHoja(ss, nombre, headers, anchos) {
-  let hoja = ss.getSheetByName(nombre);
-  if (!hoja) {
-    hoja = ss.insertSheet(nombre);
-  } else {
-    // Si ya existe, solo actualiza encabezados sin borrar datos
-    const respuesta = SpreadsheetApp.getUi().alert(
-      `La hoja "${nombre}" ya existe.\n¿Deseas resetear solo los encabezados (sin borrar datos)?`,
-      SpreadsheetApp.getUi().ButtonSet.YES_NO
-    );
-    if (respuesta !== SpreadsheetApp.getUi().Button.YES) return;
+function doGet(e) {
+  var action   = e.parameter.action || 'getData';
+  var callback = e.parameter.callback || '';
+  var result;
+  try {
+    var ss = SpreadsheetApp.openById(SS_ID);
+    if (action === 'getData') {
+      result = {
+        ok: true,
+        clientes:        leer(ss, 'Clientes'),
+        trabajos:        leer(ss, 'Trabajos'),
+        cuotas:          leer(ss, 'Cuotas'),
+        abonos:          leer(ss, 'Abonos'),
+        reuniones:       leer(ss, 'Reuniones'),
+        usuariosCliente: leer(ss, 'UsuariosCliente'),
+        colaboradores:   leer(ss, 'Colaboradores'),
+        asignaciones:    leer(ss, 'Asignaciones'),
+        usuarios:        leer(ss, 'Usuarios')
+      };
+    } else if (action === 'write') {
+      var body = JSON.parse(e.parameter.payload || '{}');
+      if      (body.action === 'insertar')   { insertar(ss, body.tabla, body.fila); }
+      else if (body.action === 'actualizar') { actualizar(ss, body.tabla, body.id, body.fila); }
+      else if (body.action === 'eliminar')   { eliminar(ss, body.tabla, body.id); }
+      else { throw new Error('Op desconocida: ' + body.action); }
+      result = { ok: true };
+    } else if (action === 'ping') {
+      result = { ok: true, msg: 'OK', script: 'v6' };
+    } else if (action === 'createMeet') {
+      var title    = (e.parameter.title    || 'Reunión Research Assesor');
+      var date     = (e.parameter.date     || '');
+      var time     = (e.parameter.time     || '10:00');
+      var duration = parseInt(e.parameter.duration || '60');
+      result = crearGoogleMeet(title, date, time, duration);
+    } else if (action === 'repararHojas') {
+      result = { ok: true, reparado: repararHojas(ss) };
+    } else if (action === 'resumenColaborador') {
+      // Resumen mensual de un colaborador: asignaciones + totales
+      var colId = e.parameter.colaboradorId || '';
+      var mes   = e.parameter.mes || '';       // formato YYYY-MM
+      result = resumenColaborador(ss, colId, mes);
+    } else {
+      result = { ok: false, error: 'Accion desconocida: ' + action };
+    }
+  } catch(err) {
+    result = { ok: false, error: err.toString() };
   }
+  var json = JSON.stringify(result);
+  return ContentService
+    .createTextOutput(callback ? callback + '(' + json + ')' : json)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
 
-  // Encabezado
-  const rango = hoja.getRange(1, 1, 1, headers.length);
-  rango.setValues([headers]);
-  rango.setBackground(CONFIG.COLOR_HEADER);
-  rango.setFontColor(CONFIG.COLOR_HEADER_TXT);
-  rango.setFontWeight('bold');
-  rango.setFontSize(11);
-  hoja.setFrozenRows(1);
-
-  // Anchos de columna
-  anchos.forEach((w, i) => hoja.setColumnWidth(i + 1, w));
-
-  // Formato especial por hoja
-  if (nombre === CONFIG.HOJA_TRABAJOS) {
-    aplicarFormatoTrabajos(hoja);
-  } else if (nombre === CONFIG.HOJA_PAGOS) {
-    aplicarFormatoPagos(hoja);
-  } else if (nombre === CONFIG.HOJA_SESIONES) {
-    aplicarFormatoSesiones(hoja);
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.openById(SS_ID);
+    var b  = JSON.parse(e.postData.contents);
+    if      (b.action === 'insertar')   { insertar(ss, b.tabla, b.fila); }
+    else if (b.action === 'actualizar') { actualizar(ss, b.tabla, b.id, b.fila); }
+    else if (b.action === 'eliminar')   { eliminar(ss, b.tabla, b.id); }
+    else { throw new Error('Accion no reconocida: ' + b.action); }
+    return respJson({ ok: true });
+  } catch(err) {
+    return respJson({ ok: false, error: err.toString() });
   }
-
-  hoja.setTabColor(CONFIG.COLOR_HEADER);
 }
 
-function aplicarFormatoTrabajos(hoja) {
-  // Validación de Estado (col 11)
-  const reglaEstado = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['En proceso', 'Pendiente pago', 'Completado', 'Cancelado'], true)
-    .build();
-  hoja.getRange('K2:K1000').setDataValidation(reglaEstado);
-
-  // Formato moneda cols G, H, I
-  hoja.getRange('G2:I1000').setNumberFormat('"$"#,##0.00');
-
-  // Formato porcentaje col J
-  hoja.getRange('J2:J1000').setNumberFormat('0"%"');
-
-  // Formato fecha cols L, M
-  hoja.getRange('L2:M1000').setNumberFormat('dd/mm/yyyy');
-
-  // Color condicional: Completado = verde, Pendiente = amarillo, Cancelado = rojo
-  const reglasColor = [
-    { valor: 'Completado',     fondo: '#d9ead3', texto: '#274e13' },
-    { valor: 'En proceso',     fondo: '#dde5f7', texto: '#1c3a6e' },
-    { valor: 'Pendiente pago', fondo: '#fff2cc', texto: '#7d4e00' },
-    { valor: 'Cancelado',      fondo: '#fce5cd', texto: '#7f0000' },
-  ];
-
-  reglasColor.forEach(r => {
-    const regla = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(r.valor)
-      .setBackground(r.fondo)
-      .setFontColor(r.texto)
-      .setRanges([hoja.getRange('K2:K1000')])
-      .build();
-    const reglas = hoja.getConditionalFormatRules();
-    reglas.push(regla);
-    hoja.setConditionalFormatRules(reglas);
-  });
+// ════════════════════════════════════════════════════════════════
+// CRUD BASE
+// ════════════════════════════════════════════════════════════════
+function leer(ss, nombre) {
+  var hoja = ss.getSheetByName(nombre);
+  if (!hoja || hoja.getLastRow() < 2) return [];
+  var datos = hoja.getDataRange().getValues();
+  var cab   = datos[0];
+  return datos.slice(1)
+    .map(function(f) {
+      var o = {};
+      cab.forEach(function(h, i) {
+        var val = f[i];
+        if (val instanceof Date) {
+          var y = val.getFullYear();
+          if (y === 1899 || y === 1900) {
+            // Sheets time-only cell → HH:MM
+            var hh = String(val.getHours()).padStart(2, '0');
+            var mn = String(val.getMinutes()).padStart(2, '0');
+            o[String(h)] = hh + ':' + mn;
+          } else {
+            // Normal date → YYYY-MM-DD
+            var m = String(val.getMonth() + 1).padStart(2, '0');
+            var d = String(val.getDate()).padStart(2, '0');
+            o[String(h)] = y + '-' + m + '-' + d;
+          }
+        } else {
+          o[String(h)] = val != null ? String(val) : '';
+        }
+      });
+      return o;
+    })
+    .filter(function(o) { return o.id && o.id.trim() !== ''; });
 }
 
-function aplicarFormatoPagos(hoja) {
-  // Formato moneda col F
-  hoja.getRange('F2:F1000').setNumberFormat('"$"#,##0.00');
-  // Formato fecha col E
-  hoja.getRange('E2:E1000').setNumberFormat('dd/mm/yyyy');
-  // Validación método de pago col G
-  const reglaPago = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Transferencia', 'Efectivo', 'PayPal', 'Nequi', 'Binance', 'Otro'], true)
-    .build();
-  hoja.getRange('G2:G1000').setDataValidation(reglaPago);
+function insertar(ss, nombre, fila) {
+  var hoja = ss.getSheetByName(nombre);
+  if (!hoja) throw new Error('Hoja no existe: ' + nombre);
+  var cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  hoja.appendRow(cab.map(function(h) {
+    return fila[h] !== undefined ? String(fila[h]) : '';
+  }));
 }
 
-function aplicarFormatoSesiones(hoja) {
-  // Formato fecha col E
-  hoja.getRange('E2:E1000').setNumberFormat('dd/mm/yyyy');
-  // Validación Estado col J
-  const reglaEstado = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Programada', 'Completada', 'Cancelada'], true)
-    .build();
-  hoja.getRange('J2:J1000').setDataValidation(reglaEstado);
-  // Validación Tipo sesión col D
-  const reglaTipo = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Asesoría inicial','Revisión de avance','Correcciones','Asesoría metodológica','Entrega de borradores','Entrega final','Seguimiento','Otro'], true)
-    .build();
-  hoja.getRange('D2:D1000').setDataValidation(reglaTipo);
-  // Link zoom en azul col I
-  hoja.getRange('I2:I1000').setFontColor('#1155cc');
+function actualizar(ss, nombre, id, fila) {
+  var hoja = ss.getSheetByName(nombre);
+  if (!hoja) throw new Error('Hoja no existe: ' + nombre);
+  var datos = hoja.getDataRange().getValues();
+  var cab   = datos[0];
+  var colId = cab.indexOf('id');
+  if (colId === -1) throw new Error(nombre + ' sin columna id');
+  for (var i = 1; i < datos.length; i++) {
+    if (String(datos[i][colId]) === String(id)) {
+      hoja.getRange(i + 1, 1, 1, cab.length).setValues([
+        cab.map(function(h, j) {
+          return fila[h] !== undefined
+            ? String(fila[h])
+            : String(datos[i][j] != null ? datos[i][j] : '');
+        })
+      ]);
+      return;
+    }
+  }
+  throw new Error('No encontrado id=' + id + ' en ' + nombre);
 }
 
-// ── HOJA RESUMEN (dashboard automático) ────────────────────
-function crearHojaResumen(ss) {
-  let hoja = ss.getSheetByName('📊 Resumen');
-  if (!hoja) hoja = ss.insertSheet('📊 Resumen');
-  else hoja.clear();
+function eliminar(ss, nombre, id) {
+  var hoja = ss.getSheetByName(nombre);
+  if (!hoja) throw new Error('Hoja no existe: ' + nombre);
+  var datos = hoja.getDataRange().getValues();
+  var colId = datos[0].indexOf('id');
+  if (colId === -1) throw new Error(nombre + ' sin columna id');
+  for (var i = 1; i < datos.length; i++) {
+    if (String(datos[i][colId]) === String(id)) {
+      hoja.deleteRow(i + 1);
+      return;
+    }
+  }
+}
 
-  hoja.setTabColor('#1D9E75');
-
-  const datos = [
-    ['RESEARCH ASSESOR — Panel de Control', '', ''],
-    ['Última actualización:', new Date(), ''],
-    ['', '', ''],
-    ['── TRABAJOS ─────────────────', '', ''],
-    ['Total trabajos registrados',    `=COUNTA(Trabajos!B2:B)`,                                         ''],
-    ['En proceso',                    `=COUNTIF(Trabajos!K2:K,"En proceso")`,                           ''],
-    ['Pendiente pago',                `=COUNTIF(Trabajos!K2:K,"Pendiente pago")`,                       ''],
-    ['Completados',                   `=COUNTIF(Trabajos!K2:K,"Completado")`,                           ''],
-    ['Cancelados',                    `=COUNTIF(Trabajos!K2:K,"Cancelado")`,                            ''],
-    ['', '', ''],
-    ['── FINANZAS ────────────────', '', ''],
-    ['Total facturado (USD)',          `=IFERROR(SUM(Trabajos!G2:G),0)`,                                 ''],
-    ['Total cobrado (USD)',            `=IFERROR(SUM(Trabajos!H2:H),0)`,                                 ''],
-    ['Total pendiente (USD)',          `=IFERROR(SUM(Trabajos!I2:I),0)`,                                 ''],
-    ['% Cobrado',                     `=IFERROR(SUM(Trabajos!H2:H)/SUM(Trabajos!G2:G)*100,0)`,          '%'],
-    ['', '', ''],
-    ['── MES ACTUAL ─────────────', '', ''],
-    ['Mes',                           `=TEXT(TODAY(),"MMMM YYYY")`,                                     ''],
-    ['Pagos recibidos este mes',       `=IFERROR(SUMPRODUCT((MONTH(Pagos!E2:E1000)=MONTH(TODAY()))*(YEAR(Pagos!E2:E1000)=YEAR(TODAY()))*Pagos!F2:F1000),0)`, ''],
-    ['Nro. pagos este mes',            `=IFERROR(SUMPRODUCT((MONTH(Pagos!E2:E1000)=MONTH(TODAY()))*(YEAR(Pagos!E2:E1000)=YEAR(TODAY()))*(Pagos!F2:F1000>0)),0)`, ''],
-    ['', '', ''],
-    ['── SESIONES ZOOM ──────────', '', ''],
-    ['Total sesiones programadas',     `=COUNTIF('Sesiones Zoom'!J2:J,"Programada")`,                  ''],
-    ['Sesiones completadas',           `=COUNTIF('Sesiones Zoom'!J2:J,"Completada")`,                  ''],
-    ['Sesiones hoy',                   `=COUNTIF('Sesiones Zoom'!E2:E,TODAY())`,                       ''],
-    ['', '', ''],
-    ['── CLIENTES ───────────────', '', ''],
-    ['Total clientes',                 `=COUNTA(Clientes!B2:B)`,                                       ''],
-  ];
-
-  hoja.getRange(1, 1, datos.length, 3).setValues(datos);
-
-  // Formato título
-  const titulo = hoja.getRange('A1');
-  titulo.setFontSize(14).setFontWeight('bold').setFontColor(CONFIG.COLOR_HEADER);
-
-  // Formato secciones
-  [4,11,17,22,27].forEach(fila => {
-    hoja.getRange(fila, 1).setFontWeight('bold').setFontColor('#555');
+// ════════════════════════════════════════════════════════════════
+// RESUMEN MENSUAL DE COLABORADOR
+// Devuelve: asignaciones del mes, total a pagar, estado de pago
+// ════════════════════════════════════════════════════════════════
+function resumenColaborador(ss, colaboradorId, mes) {
+  var asignaciones = leer(ss, 'Asignaciones');
+  var filtradas = asignaciones.filter(function(a) {
+    var matchCol = !colaboradorId || a.colaboradorId === colaboradorId;
+    var matchMes = !mes || a.mes === mes || (a.fechaAsignacion && a.fechaAsignacion.slice(0, 7) === mes);
+    return matchCol && matchMes;
   });
 
-  // Formato moneda
-  [12,13,14].forEach(fila => {
-    hoja.getRange(fila, 2).setNumberFormat('"$"#,##0.00');
+  var totalAsignado  = filtradas.reduce(function(s, a) { return s + parseFloat(a.valorAsignado || 0); }, 0);
+  var totalPagado    = filtradas.filter(function(a) { return a.estado === 'pagado'; })
+                                .reduce(function(s, a) { return s + parseFloat(a.valorAsignado || 0); }, 0);
+  var totalPendiente = totalAsignado - totalPagado;
+
+  return {
+    ok: true,
+    colaboradorId: colaboradorId,
+    mes: mes,
+    asignaciones: filtradas,
+    totalAsignado: totalAsignado,
+    totalPagado: totalPagado,
+    totalPendiente: totalPendiente,
+    cantidadTrabajos: filtradas.length
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// repararHojas — NUNCA borra datos
+// Solo crea hojas faltantes y agrega columnas nuevas al final
+// ════════════════════════════════════════════════════════════════
+function repararHojas(ss) {
+  var resultado = [];
+
+  Object.keys(ESQUEMA).forEach(function(nombre) {
+    var colsEsperadas = ESQUEMA[nombre];
+    var hoja = ss.getSheetByName(nombre);
+
+    // Crear hoja si no existe
+    if (!hoja) {
+      hoja = ss.insertSheet(nombre);
+      hoja.getRange(1, 1, 1, colsEsperadas.length)
+          .setValues([colsEsperadas])
+          .setFontWeight('bold')
+          .setBackground('#1E6FC8')
+          .setFontColor('#fff');
+      hoja.setFrozenRows(1);
+      resultado.push('CREADA: ' + nombre);
+      return;
+    }
+
+    // Hoja vacía — solo poner headers
+    var lastCol = hoja.getLastColumn();
+    if (lastCol === 0) {
+      hoja.getRange(1, 1, 1, colsEsperadas.length)
+          .setValues([colsEsperadas])
+          .setFontWeight('bold')
+          .setBackground('#1E6FC8')
+          .setFontColor('#fff');
+      hoja.setFrozenRows(1);
+      resultado.push('HEADERS AÑADIDOS: ' + nombre);
+      return;
+    }
+
+    var colsActuales = hoja.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+
+    // Agregar solo columnas que faltan (nunca modificar existentes)
+    var faltantes = colsEsperadas.filter(function(c) {
+      return colsActuales.indexOf(c) === -1;
+    });
+
+    if (faltantes.length === 0) {
+      resultado.push('OK: ' + nombre + ' (' + colsActuales.length + ' cols)');
+      return;
+    }
+
+    faltantes.forEach(function(colNombre) {
+      var nuevaCol = hoja.getLastColumn() + 1;
+      hoja.getRange(1, nuevaCol)
+          .setValue(colNombre)
+          .setFontWeight('bold')
+          .setBackground('#1E6FC8')
+          .setFontColor('#fff');
+    });
+
+    resultado.push('COLUMNAS AGREGADAS a ' + nombre + ': ' + faltantes.join(', '));
   });
-  hoja.getRange(15, 2).setNumberFormat('0.00"%"');
-  hoja.getRange(19, 2).setNumberFormat('"$"#,##0.00');
-  hoja.getRange(2, 2).setNumberFormat('dd/mm/yyyy hh:mm');
 
-  hoja.setColumnWidth(1, 220);
-  hoja.setColumnWidth(2, 160);
-  hoja.setFrozenRows(1);
+  return resultado;
 }
 
-// ── FUNCIONES DE CONSULTA ──────────────────────────────────
+// ── inicializar ───────────────────────────────────────────────────
+function inicializar() {
+  var ss  = SpreadsheetApp.openById(SS_ID);
+  var res = repararHojas(ss);
+  Logger.log(res.join('\n'));
+  Logger.log('✅ v6 — datos existentes preservados');
+}
 
-function mostrarResumenMes() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hPagos = ss.getSheetByName(CONFIG.HOJA_PAGOS);
-  if (!hPagos) { SpreadsheetApp.getUi().alert('Hoja de Pagos no encontrada. Ejecuta "Crear hojas" primero.'); return; }
-
-  const datos = hPagos.getDataRange().getValues();
-  const mesActual = new Date().getMonth();
-  const anioActual = new Date().getFullYear();
-
-  let totalMes = 0, countMes = 0;
-  for (let i = 1; i < datos.length; i++) {
-    if (!datos[i][4]) continue;
-    const fecha = new Date(datos[i][4]);
-    if (fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual) {
-      totalMes += parseFloat(datos[i][5]) || 0;
-      countMes++;
+// ════════════════════════════════════════════════════════════════
+// Google Meet via Calendar API v3
+// ════════════════════════════════════════════════════════════════
+function crearGoogleMeet(title, dateStr, timeStr, duration) {
+  try {
+    var hh = 10, mm = 0;
+    if (timeStr) {
+      var parts = timeStr.split(':');
+      hh = parseInt(parts[0]) || 10;
+      mm = parseInt(parts[1]) || 0;
     }
-  }
-
-  const mesNombre = new Date().toLocaleDateString('es-EC', {month:'long', year:'numeric'});
-  SpreadsheetApp.getUi().alert(
-    `📊 Resumen de ${mesNombre}\n\n` +
-    `💰 Total cobrado: $${totalMes.toFixed(2)}\n` +
-    `📝 Número de pagos: ${countMes}\n\n` +
-    `Ver hoja "📊 Resumen" para más detalles.`
-  );
-}
-
-function mostrarPagosVencidos() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hTrabajos = ss.getSheetByName(CONFIG.HOJA_TRABAJOS);
-  if (!hTrabajos) { SpreadsheetApp.getUi().alert('Hoja Trabajos no encontrada.'); return; }
-
-  const datos = hTrabajos.getDataRange().getValues();
-  const hoy = new Date();
-  let lista = [];
-
-  for (let i = 1; i < datos.length; i++) {
-    if (!datos[i][1]) continue;
-    const estado = datos[i][10];
-    if (estado === 'Completado' || estado === 'Cancelado') continue;
-    const pendiente = parseFloat(datos[i][8]) || 0;
-    if (pendiente <= 0) continue;
-    const fechaLimite = datos[i][12] ? new Date(datos[i][12]) : null;
-    if (!fechaLimite) continue;
-    const diasRestantes = Math.ceil((fechaLimite - hoy) / 86400000);
-    if (diasRestantes <= 30) {
-      lista.push(`• ${datos[i][1]} | $${pendiente.toFixed(2)} | Vence: ${fechaLimite.toLocaleDateString('es-EC')} (${diasRestantes >= 0 ? diasRestantes + ' días' : 'VENCIDO'})`);
+    var startDate = new Date();
+    if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      var dp = dateStr.split('-');
+      startDate = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]), hh, mm, 0);
+    } else {
+      startDate.setHours(hh, mm, 0, 0);
     }
-  }
+    var endDate = new Date(startDate.getTime() + (duration || 60) * 60000);
 
-  if (lista.length === 0) {
-    SpreadsheetApp.getUi().alert('✅ No hay pagos próximos a vencer en los próximos 30 días.');
-  } else {
-    SpreadsheetApp.getUi().alert(`⚠️ Pagos próximos a vencer (30 días):\n\n${lista.join('\n')}`);
-  }
-}
+    var calId    = CalendarApp.getDefaultCalendar().getId();
+    var resource = {
+      summary: title,
+      start:   { dateTime: startDate.toISOString(), timeZone: Session.getScriptTimeZone() },
+      end:     { dateTime: endDate.toISOString(),   timeZone: Session.getScriptTimeZone() },
+      conferenceData: {
+        createRequest: {
+          requestId: 'ra-' + Date.now(),
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
+        }
+      },
+      description: 'Reunión creada desde Research Assesor'
+    };
 
-function mostrarSesionesHoy() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hSesiones = ss.getSheetByName(CONFIG.HOJA_SESIONES);
-  if (!hSesiones) { SpreadsheetApp.getUi().alert('Hoja Sesiones no encontrada.'); return; }
-
-  const datos = hSesiones.getDataRange().getValues();
-  const hoy = new Date();
-  const hoyStr = `${hoy.getDate()}/${hoy.getMonth()+1}/${hoy.getFullYear()}`;
-  let lista = [];
-
-  for (let i = 1; i < datos.length; i++) {
-    if (!datos[i][1]) continue;
-    if (datos[i][9] !== 'Programada') continue;
-    const fecha = datos[i][4] ? new Date(datos[i][4]) : null;
-    if (!fecha) continue;
-    const fechaStr = `${fecha.getDate()}/${fecha.getMonth()+1}/${fecha.getFullYear()}`;
-    if (fechaStr === hoyStr) {
-      lista.push(`• ${datos[i][5]} — ${datos[i][1]}\n  Tipo: ${datos[i][3]}\n  Link: ${datos[i][8]}`);
+    var created  = Calendar.Events.insert(resource, calId, { conferenceDataVersion: 1 });
+    var meetLink = '';
+    if (created.conferenceData && created.conferenceData.entryPoints) {
+      for (var i = 0; i < created.conferenceData.entryPoints.length; i++) {
+        if (created.conferenceData.entryPoints[i].entryPointType === 'video') {
+          meetLink = created.conferenceData.entryPoints[i].uri;
+          break;
+        }
+      }
     }
-  }
+    if (!meetLink && created.hangoutLink) meetLink = created.hangoutLink;
 
-  if (lista.length === 0) {
-    SpreadsheetApp.getUi().alert('📅 No tienes sesiones Zoom programadas para hoy.');
-  } else {
-    SpreadsheetApp.getUi().alert(`🎥 Sesiones Zoom de hoy:\n\n${lista.join('\n\n')}`);
-  }
-}
+    return meetLink
+      ? { ok: true, meetLink: meetLink }
+      : { ok: false, error: 'Evento creado sin enlace Meet. Revisa Google Calendar.' };
 
-function listarRecordatorios() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hTrabajos = ss.getSheetByName(CONFIG.HOJA_TRABAJOS);
-  if (!hTrabajos) return;
-
-  const datos = hTrabajos.getDataRange().getValues();
-  const hoy = new Date();
-  let lista = [];
-
-  for (let i = 1; i < datos.length; i++) {
-    if (!datos[i][1]) continue;
-    const estado = datos[i][10];
-    if (estado === 'Completado' || estado === 'Cancelado') continue;
-    const pendiente = parseFloat(datos[i][8]) || 0;
-    const tel = datos[i][2] || '';
-    if (pendiente <= 0 || !tel) continue;
-    const fechaLimite = datos[i][12] ? new Date(datos[i][12]).toLocaleDateString('es-EC') : 'sin fecha';
-    lista.push(`${datos[i][1]} | ${tel} | $${pendiente.toFixed(2)} | Vence: ${fechaLimite}`);
-  }
-
-  if (lista.length === 0) {
-    SpreadsheetApp.getUi().alert('✅ No hay recordatorios pendientes.');
-  } else {
-    SpreadsheetApp.getUi().alert(
-      `📱 Clientes con saldo pendiente (${lista.length}):\n\n` +
-      lista.join('\n') +
-      '\n\nCopia el número y envía el recordatorio desde la app.'
-    );
+  } catch(err) {
+    return { ok: false, error: 'Error Meet: ' + err.toString() +
+      '. Verifica Google Calendar API en Servicios Avanzados.' };
   }
 }
 
-function actualizarEstados() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hTrabajos = ss.getSheetByName(CONFIG.HOJA_TRABAJOS);
-  if (!hTrabajos) return;
-
-  const datos = hTrabajos.getDataRange().getValues();
-  let actualizados = 0;
-
-  for (let i = 1; i < datos.length; i++) {
-    if (!datos[i][1]) continue;
-    const total = parseFloat(datos[i][6]) || 0;
-    const pagado = parseFloat(datos[i][7]) || 0;
-    const estadoActual = datos[i][10];
-    if (estadoActual === 'Cancelado') continue;
-
-    let nuevoEstado = estadoActual;
-    if (pagado >= total && total > 0) {
-      nuevoEstado = 'Completado';
-    } else if (pagado > 0 && pagado < total) {
-      nuevoEstado = 'En proceso';
-    } else if (pagado === 0) {
-      nuevoEstado = 'Pendiente pago';
-    }
-
-    if (nuevoEstado !== estadoActual) {
-      hTrabajos.getRange(i + 1, 11).setValue(nuevoEstado);
-      actualizados++;
-    }
-  }
-
-  SpreadsheetApp.getUi().alert(
-    actualizados > 0
-      ? `✅ Se actualizaron ${actualizados} estado(s) automáticamente.`
-      : '✅ Todos los estados ya están correctos.'
-  );
+function respJson(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
-
-// ── TRIGGER AUTOMÁTICO ─────────────────────────────────────
-// Ejecutar esto UNA VEZ para activar el resumen automático diario:
-// function activarTriggerDiario() {
-//   ScriptApp.newTrigger('actualizarEstados')
-//     .timeBased().everyDays(1).atHour(8).create();
-// }
