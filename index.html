@@ -427,7 +427,7 @@ async function apiPost(body){
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 let user=null,page='dashboard',modal=null
-let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[]}
+let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[],colaboradores:[],asignaciones:[]}
 let loading=false,syncing=false,syncMsg='',syncErr=false
 let search='',wExp=null,wSt='Todos',cSt='Todos',mvw='upcoming'
 let calM=new Date().getMonth(),calY=new Date().getFullYear()
@@ -532,7 +532,7 @@ async function saveRec(tabla,rec,isNew){
       // Silent background reload - don't block UI
       apiGet('getData').then(function(rd){
         if(rd&&!rd.error){
-          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[]}
+          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[],colaboradores:rd.colaboradores||[],asignaciones:rd.asignaciones||[]}
           syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
           draw()
         }
@@ -560,7 +560,7 @@ async function delRec(tabla,id,msg){
       toast('Eliminado ✓');syncMsg='✓ Eliminado'
       apiGet('getData').then(function(rd){
         if(rd&&!rd.error){
-          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[]}
+          data={clientes:rd.clientes||[],trabajos:rd.trabajos||[],cuotas:rd.cuotas||[],abonos:rd.abonos||[],reuniones:rd.reuniones||[],colaboradores:rd.colaboradores||[],asignaciones:rd.asignaciones||[]}
           draw()
         }
       })
@@ -626,7 +626,7 @@ const NAV_CLIENTE=[
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
-const VERSION='v5.0'
+const VERSION='v6.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -654,7 +654,7 @@ function htmlApp(){
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
     +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
     +'</div>'
-    +'<div class="page">'+htmlPage()+'</div>'
+    +'<div class="page"><div id="page-content">'+htmlPage()+'</div></div>'
     +'</main></div>'
 }
 
@@ -958,7 +958,7 @@ function htmlDash(){
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
-  let h='<div class="tb"><input placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;draw()" value="'+esc(search)+'" style="max-width:300px"/>'
+  let h='<div class="tb"><input placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
@@ -1051,7 +1051,7 @@ function htmlTrabajos(){
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
     +'<div><strong style="font-size:16px">Trabajos</strong><span style="font-size:12px;color:var(--text3);margin-left:8px">'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</span></div>'
     +'<button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
-  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'" style="max-width:240px"/>'
+  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
     +['Todos',...ESTADOS].map(s=>'<button class="btn btn-sm '+(wSt===s?'btn-p':'btn-g')+'" onclick="wSt=\''+s+'\';draw()">'+s+'</button>').join('')
     +'</div>'
   if(!list.length)return h+'<div class="card"><p class="empty">Sin trabajos</p></div>'
@@ -1174,8 +1174,8 @@ function htmlCobros(){
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';draw()"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">clic para ver pendientes</div><div class="kpi-icon">⏰</div></div>'
     +(vencido>0?'<div class="kpi" style="cursor:pointer;animation:pulse 2s infinite" onclick="cSt=\'vencido\';draw()"><div class="kpi-label">⚠️ Vencido</div><div class="kpi-value" style="color:var(--red)">$'+fmt(vencido)+'</div><div class="kpi-sub">clic para ver vencidas</div><div class="kpi-icon">🚨</div></div>':'')
     +'</div>'
-  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;draw()" value="'+esc(search)+'" style="max-width:240px"/>'
-    +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';draw()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
+  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
+    +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';drawPage()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
     +'<button class="btn btn-g btn-sm" style="margin-left:auto" onclick="exportCobros()">⬇ CSV</button></div>'
     +htmlCobrosFilterBadge()
   if(!rows.length)return h+'<div class="card"><p class="empty">Sin resultados</p></div>'
@@ -2708,6 +2708,25 @@ async function eliminarAbono(abonoId, cuotaId, monto){
   syncing=false;toast('Pago eliminado ✓');await loadData()
 }
 
+
+function drawPage(){
+  var pc=document.getElementById('page-content')
+  if(!pc){draw();return}
+  var ae=document.activeElement
+  var sid=ae?ae.id:null
+  var ss=ae&&ae.selectionStart!==undefined?ae.selectionStart:null
+  var se=ae&&ae.selectionEnd!==undefined?ae.selectionEnd:null
+  pc.innerHTML=htmlPage()
+  if(sid){
+    var el=document.getElementById(sid)
+    if(el){
+      el.focus()
+      if(ss!==null&&el.setSelectionRange){
+        try{el.setSelectionRange(ss,se)}catch(e){}
+      }
+    }
+  }
+}
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
 draw()
