@@ -216,6 +216,20 @@ const USERS=[
   {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
   {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
 ]
+// Convierte una fila de la hoja "Usuarios" (usuario/password/nombre) al shape interno (u/p/name)
+function normalizarUsuarioAdmin(r){
+  return{
+    id:r.id,
+    name:r.nombre||r.name||'',
+    nombre:r.nombre||r.name||'',
+    u:r.usuario||r.u||'',
+    username:r.usuario||r.u||'',
+    p:r.password||r.p||'',
+    password:r.password||r.p||'',
+    role:r.role||'admin',
+    activo:r.activo
+  }
+}
 const TIPOS=['Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
 const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -496,14 +510,19 @@ async function loadData(){
   const r=await apiGet('getData')
   if(r&&!r.error){
     data={
-      clientes:  r.clientes  ||[],
-      trabajos:  r.trabajos  ||[],
-      cuotas:    r.cuotas    ||[],
-      abonos:    r.abonos    ||[],
-      reuniones: r.reuniones ||[],
+      clientes:      r.clientes      ||[],
+      trabajos:      r.trabajos      ||[],
+      cuotas:        r.cuotas        ||[],
+      abonos:        r.abonos        ||[],
+      reuniones:     r.reuniones     ||[],
+      colaboradores: r.colaboradores ||[],
+      asignaciones:  r.asignaciones  ||[],
     }
     // Cache client portal users for login checks
     if(r.usuariosCliente) window._clientUsers=r.usuariosCliente||[]
+    // Cache admin users for login checks (persisted in hoja "Usuarios").
+    // Si la hoja aún no existe, r.usuarios viene vacío/undefined y seguimos con el USERS hardcodeado.
+    if(r.usuarios&&r.usuarios.length) window._appUsers=r.usuarios.map(normalizarUsuarioAdmin)
     syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
     syncErr=false
   }else{
@@ -598,7 +617,7 @@ function doLogin(){
   const u=v('lu'),p=v('lp')
   // Check admin users first
   const adminUsers=window._appUsers||USERS
-  const foundAdmin=adminUsers.find(x=>x.u===u&&x.p===p)
+  const foundAdmin=adminUsers.find(x=>x.u===u&&x.p===p&&x.activo!=='0')
   if(foundAdmin){user=foundAdmin;loadData();return}
   // Check client portal users (loaded from Sheets)
   const clientUsers=window._clientUsers||[]
@@ -1474,7 +1493,7 @@ function htmlUsuarios(){
       +'</span></td></tr>'
   })
   h+='</tbody></table></div>'
-  h+='<div class="card" style="padding:16px;margin-top:12px"><p style="font-size:12px;color:var(--text3);line-height:1.6">Las credenciales se guardan durante la sesión. Para cambios permanentes edita el arreglo USERS en el código fuente.</p></div>'
+  h+='<div class="card" style="padding:16px;margin-top:12px"><p style="font-size:12px;color:var(--text3);line-height:1.6">Los cambios se guardan en la hoja "Usuarios" del Sheet. Requiere que esa hoja exista con columnas: id, usuario, password, nombre, role, activo.</p></div>'
   return h
 }
 function editUsuario(id){
@@ -1482,9 +1501,14 @@ function editUsuario(id){
   const rec=id?allU.find(u=>u.id===id)||{}:{}
   openModal('usuario',rec)
 }
-function delUsuario(id){
+async function delUsuario(id){
   if(!confirm('¿Eliminar este usuario?'))return
-  window._appUsers=(window._appUsers||USERS.slice()).filter(u=>u.id!==id);draw();toast('Usuario eliminado')
+  const r=await apiPost({action:'eliminar',tabla:'Usuarios',id:id})
+  if(r&&r.ok){
+    window._appUsers=(window._appUsers||USERS.slice()).filter(u=>u.id!==id);draw();toast('Usuario eliminado')
+  }else{
+    toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
+  }
 }
 
 // ─── MODALES ──────────────────────────────────────────────────────────────────
@@ -1786,13 +1810,20 @@ function mUsuario(d){
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitUsuario(\''+esc(d.id||'')+'\')">'+(e?'Actualizar':'Crear')+'</button></div>'
 }
-function submitUsuario(id){
+async function submitUsuario(id){
   const nombre=v('u0'),usr=v('u1'),pass=v('u2'),rol=v('u3')
   if(!nombre||!usr||!pass){alert('Completa todos los campos');return}
-  const users=(window._appUsers||USERS).slice()
-  if(id){const idx=users.findIndex(u=>u.id===id);if(idx>-1)users[idx]=Object.assign({},users[idx],{name:nombre,u:usr,username:usr,p:pass,password:pass,role:rol})}
-  else users.push({id:uid(),name:nombre,u:usr,username:usr,p:pass,password:pass,role:rol})
-  window._appUsers=users;modal=null;draw();toast(id?'Actualizado ✓':'Creado ✓')
+  const rec={id:id||uid(),name:nombre,nombre:nombre,u:usr,usuario:usr,username:usr,p:pass,password:pass,role:rol,activo:'1'}
+  modal=null;syncMsg='Guardando usuario...';draw()
+  const r=await apiPost({action:id?'actualizar':'insertar',tabla:'Usuarios',fila:rec,id:rec.id})
+  if(r&&r.ok){
+    const users=(window._appUsers||USERS).slice()
+    if(id){const idx=users.findIndex(u=>u.id===id);if(idx>-1)users[idx]=rec;else users.push(rec)}
+    else users.push(rec)
+    window._appUsers=users;draw();toast(id?'Actualizado ✓':'Creado ✓')
+  }else{
+    toast('Error: '+(r&&r.error||'Sin respuesta'),'err');draw()
+  }
 }
 
 // ── TEST desde consola del navegador ─────────────────────────────
