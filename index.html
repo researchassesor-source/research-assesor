@@ -677,6 +677,9 @@ function htmlApp(){
   const nVenc=data.cuotas.filter(c=>cStat(c)==='vencido').length
   const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='colaborador'?NAV_COLABORADOR:user&&user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
   const initials=(user.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
+  // htmlPage() puede normalizar `page` como efecto secundario (portales de cliente/colaborador
+  // fuerzan su página inicial), así que se evalúa antes de usar `page` para el título/nav activo.
+  const pageHtml=htmlPage()
 
   return'<div class="app">'
     +'<aside>'
@@ -698,7 +701,7 @@ function htmlApp(){
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
     +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
     +'</div>'
-    +'<div class="page"><div id="page-content">'+htmlPage()+'</div></div>'
+    +'<div class="page"><div id="page-content">'+pageHtml+'</div></div>'
     +'</main></div>'
 }
 
