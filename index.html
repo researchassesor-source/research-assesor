@@ -694,7 +694,7 @@ function htmlDash(){
   const activos    =trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').length
   const completados=trabajos.filter(t=>t.estado==='Completado').length
   const cobPct     =totalFact>0?Math.round(cobrado/totalFact*100):0
-  const proxR      =reuniones.filter(r=>r.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3)
+  const proxR      =reuniones.filter(r=>toISO(r.fecha||'')>=hoy).sort((a,b)=>toISO(a.fecha||'').localeCompare(toISO(b.fecha||''))).slice(0,3)
 
   // ── 12 meses de datos (6 pasados + mes actual + 5 futuros) ──
   const allMonths = Array.from({length:14},(_,i)=>{
@@ -927,11 +927,14 @@ function htmlDash(){
   h+='<div class="card"><div class="card-hd"><h3>Próximas reuniones</h3><button class="btn btn-g btn-sm" onclick="goTo(\'reuniones\')">Ver todas →</button></div><div style="padding:4px 0">'
     +(proxR.length?proxR.map(r=>{
       const cl=clientes.find(c=>c.id===r.clienteId)
-      const dObj=new Date(r.fecha+'T12:00:00'),isToday=r.fecha===hoy
+      const _fechaISO=toISO(r.fecha||'')
+      const dObj=_fechaISO?new Date(_fechaISO+'T12:00:00'):null
+      const _fechaOk=dObj&&!isNaN(dObj.getTime())
+      const isToday=_fechaISO===hoy
       return'<div class="activity-item" style="padding:9px 18px">'
         +'<div class="act-dot" style="background:'+(isToday?'var(--green)':'var(--brand)')+'"></div>'
         +'<div style="flex:1"><div style="font-weight:600;font-size:13px">'+esc(r.titulo)+'</div>'
-        +'<div style="color:var(--text3);font-size:12px">'+esc(cl&&cl.nombre||'—')+' · '+(isToday?'<strong style="color:var(--green)">Hoy</strong>':MESES_FULL[dObj.getMonth()]+' '+dObj.getDate())+' '+esc(r.hora||'')+'</div></div>'
+        +'<div style="color:var(--text3);font-size:12px">'+esc(cl&&cl.nombre||'—')+' · '+(isToday?'<strong style="color:var(--green)">Hoy</strong>':(_fechaOk?MESES_FULL[dObj.getMonth()]+' '+dObj.getDate():'Sin fecha'))+' '+esc(cleanHora(r.hora)||'')+'</div></div>'
         +(r.link?'<a href="'+esc(r.link)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">🎥</a>':'')
         +'</div>'
     }).join('')
