@@ -589,7 +589,7 @@ function htmlLogin(){
     +'<div class="lb-title">Iniciar sesión</div>'
     +'<div class="lb-sub">Ingresa tus credenciales de acceso</div>'
     +'<div id="lerr" class="l-err"></div>'
-    +'<div class="lf-group"><span class="lf-label">Usuario</span><input class="lf-input" id="lu" value="admin" placeholder="admin" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Usuario</span><input id="srch" class="lf-input" id="lu" value="admin" placeholder="admin" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
     +'<div class="lf-group"><span class="lf-label">Contraseña</span><input class="lf-input" id="lp" type="password" value="research2024" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
     +'<button class="l-btn" onclick="doLogin()">Ingresar →</button>'
     +'</div></div>'
@@ -962,7 +962,7 @@ function htmlDash(){
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
-  let h='<div class="tb"><input placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
+  let h='<div class="tb"><input id="srch" placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
@@ -1055,7 +1055,7 @@ function htmlTrabajos(){
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
     +'<div><strong style="font-size:16px">Trabajos</strong><span style="font-size:12px;color:var(--text3);margin-left:8px">'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</span></div>'
     +'<button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
-  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
+  h+='<div class="tb"><input id="srch" placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
     +['Todos',...ESTADOS].map(s=>'<button class="btn btn-sm '+(wSt===s?'btn-p':'btn-g')+'" onclick="wSt=\''+s+'\';draw()">'+s+'</button>').join('')
     +'</div>'
   if(!list.length)return h+'<div class="card"><p class="empty">Sin trabajos</p></div>'
@@ -1178,7 +1178,7 @@ function htmlCobros(){
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';draw()"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">clic para ver pendientes</div><div class="kpi-icon">⏰</div></div>'
     +(vencido>0?'<div class="kpi" style="cursor:pointer;animation:pulse 2s infinite" onclick="cSt=\'vencido\';draw()"><div class="kpi-label">⚠️ Vencido</div><div class="kpi-value" style="color:var(--red)">$'+fmt(vencido)+'</div><div class="kpi-sub">clic para ver vencidas</div><div class="kpi-icon">🚨</div></div>':'')
     +'</div>'
-  h+='<div class="tb"><input placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
+  h+='<div class="tb"><input id="srch" placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
     +['Todos','vencido','pendiente','parcial','pagado'].map(s=>'<button class="btn btn-sm '+(cSt===s?'btn-p':'btn-g')+'" onclick="cSt=\''+s+'\';drawPage()">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('')
     +'<button class="btn btn-g btn-sm" style="margin-left:auto" onclick="exportCobros()">⬇ CSV</button></div>'
     +htmlCobrosFilterBadge()
@@ -2718,18 +2718,22 @@ async function eliminarAbono(abonoId, cuotaId, monto){
 function drawPage(){
   var pc=document.getElementById('page-content')
   if(!pc){draw();return}
+  // Capture active element before re-render
   var ae=document.activeElement
-  var sid=ae?ae.id:null
-  var ss=ae&&ae.selectionStart!==undefined?ae.selectionStart:null
-  var se=ae&&ae.selectionEnd!==undefined?ae.selectionEnd:null
+  var sid=ae&&ae.id?ae.id:'srch'  // fallback to 'srch' (search box)
+  var isInput=ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')
+  var ss=isInput&&ae.selectionStart!=null?ae.selectionStart:null
+  var se=isInput&&ae.selectionEnd!=null?ae.selectionEnd:null
+  var curVal=isInput?ae.value:null
+  // Re-render only the content area
   pc.innerHTML=htmlPage()
-  if(sid){
-    var el=document.getElementById(sid)
-    if(el){
-      el.focus()
-      if(ss!==null&&el.setSelectionRange){
-        try{el.setSelectionRange(ss,se)}catch(e){}
-      }
+  // Restore focus and cursor
+  var el=document.getElementById(sid)
+  if(!el&&isInput) el=document.getElementById('srch')
+  if(el&&isInput){
+    el.focus()
+    if(ss!=null&&el.setSelectionRange){
+      try{el.setSelectionRange(ss,se)}catch(e){}
     }
   }
 }
@@ -2920,7 +2924,10 @@ async function submitColaborador(id){
     await apiPost({action:'insertar',tabla:'Colaboradores',fila:Object.assign({id:uid()},fila)})
     toast('Colaborador creado ✓')
   }
-  syncing=false;await loadData()
+  syncing=false
+  await loadData()
+  // Force re-render on colaboradores page after load
+  if(page==='colaboradores') draw()
 }
 
 // ── Modal: Nueva/Editar Asignación ───────────────────────────
