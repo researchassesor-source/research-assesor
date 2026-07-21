@@ -613,21 +613,40 @@ function htmlLogin(){
     +'<button class="l-btn" onclick="doLogin()">Ingresar →</button>'
     +'</div></div>'
 }
-function doLogin(){
+async function doLogin(){
   const u=v('lu'),p=v('lp')
-  // Check admin users first
-  const adminUsers=window._appUsers||USERS
-  const foundAdmin=adminUsers.find(x=>x.u===u&&x.p===p&&x.activo!=='0')
-  if(foundAdmin){user=foundAdmin;loadData();return}
+  const e=document.getElementById('lerr')
+  const tryAdmin=()=>(window._appUsers||USERS).find(x=>x.u===u&&x.p===p&&x.activo!=='0')
+  let found=tryAdmin(),loaded=false
+
+  // Las credenciales de cliente/colaborador solo existen en el Sheet. loadData() antes
+  // solo corría DESPUÉS de un login exitoso, así que en una sesión nueva (recién abierta,
+  // sin haber iniciado sesión como admin antes) window._clientUsers/data.colaboradores
+  // seguían vacíos y CUALQUIER cliente o colaborador recibía "Credenciales incorrectas"
+  // sin importar si la contraseña era correcta. Forzamos una carga si aún no tenemos esos datos.
+  if(!found&&(!window._clientUsers||!(data.colaboradores&&data.colaboradores.length))){
+    e.textContent='Verificando…';e.style.display='block'
+    await loadData();loaded=true
+    found=tryAdmin()
+  }
+  if(found){user=found;loaded?draw():loadData();return}
+
   // Check client portal users (loaded from Sheets)
-  const clientUsers=window._clientUsers||[]
-  const foundClient=clientUsers.find(x=>x.usuario===u&&x.password===p&&x.activo!=='0')
+  const foundClient=(window._clientUsers||[]).find(x=>x.usuario===u&&x.password===p&&x.activo!=='0')
   if(foundClient){
     user={id:foundClient.id,u:foundClient.usuario,name:foundClient.nombre,
           role:'cliente',clienteId:foundClient.clienteId}
-    loadData();return
+    loaded?draw():loadData();return
   }
-  const e=document.getElementById('lerr')
+
+  // Check colaborador users (loaded from Sheets)
+  const foundColab=(data.colaboradores||[]).find(x=>x.usuario===u&&x.password===p&&String(x.activo)!=='0'&&String(x.activo)!=='false')
+  if(foundColab){
+    user={id:foundColab.id,u:foundColab.usuario,name:foundColab.nombre,
+          role:'colaborador',colaboradorId:foundColab.id}
+    loaded?draw():loadData();return
+  }
+
   e.textContent='Credenciales incorrectas';e.style.display='block'
 }
 
@@ -647,13 +666,16 @@ const NAV_CLIENTE=[
   {id:'mi_progreso',l:'Mis trabajos',ic:'📋'},
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
 ]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp'}
+const NAV_COLABORADOR=[
+  {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
+]
+const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
 const VERSION='v6.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
   const nVenc=data.cuotas.filter(c=>cStat(c)==='vencido').length
-  const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
+  const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='colaborador'?NAV_COLABORADOR:user&&user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
   const initials=(user.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
 
   return'<div class="app">'
@@ -667,7 +689,7 @@ function htmlApp(){
     }).join('')
     +'</nav>'
     +'<div class="a-foot">'
-    +'<div class="a-user"><div class="a-avatar">'+initials+'</div><div><div class="a-uname">'+esc(user.name)+'</div><div class="a-urole">'+esc(user.role==='admin'?'Administrador':'Lector')+'</div></div></div>'
+    +'<div class="a-user"><div class="a-avatar">'+initials+'</div><div><div class="a-uname">'+esc(user.name)+'</div><div class="a-urole">'+esc({admin:'Administrador',cliente:'Cliente',colaborador:'Colaborador'}[user.role]||'Lector')+'</div></div></div>'
     +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Cerrar sesión</button>'
     +'</div>'
     +'</aside>'
@@ -686,6 +708,10 @@ function htmlPage(){
     if(page==='mi_progreso') return htmlPortalProgreso()
     if(page==='mis_cuentas') return htmlPortalCuentas()
     page='mi_progreso'; return htmlPortalProgreso()
+  }
+  // Colaborador portal - restricted view
+  if(user&&user.role==='colaborador'){
+    page='mis_asignaciones'; return htmlPortalColaborador()
   }
   if(page==='dashboard')return htmlDash()
   if(page==='clientes') return htmlClientes()
@@ -2558,6 +2584,47 @@ function htmlPortalCuentas(){
         +'</div>'
     })
   })
+  return h
+}
+
+function htmlPortalColaborador(){
+  const asigsCol=(data.asignaciones||[]).filter(function(a){return a.colaboradorId===user.colaboradorId})
+  let h=htmlPortalHeader()
+  const totAsig=asigsCol.reduce(function(s,a){return s+parseFloat(a.valorAsignado||0)},0)
+  const totPag =asigsCol.filter(function(a){return a.estado==='pagado'}).reduce(function(s,a){return s+parseFloat(a.valorAsignado||0)},0)
+  const totPend=totAsig-totPag
+  h+='<div class="kpis" style="margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total asignado</div><div class="kpi-value">$'+fmt(totAsig)+'</div><div class="kpi-icon">📋</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Pagado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(totPag)+'</div><div class="kpi-icon">✅</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(totPend)+'</div><div class="kpi-icon">⏳</div></div>'
+    +'</div>'
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">📋 Mis asignaciones</div>'
+  if(!asigsCol.length){
+    return h+'<div class="card"><p class="empty">No tienes asignaciones registradas aún.</p></div>'
+  }
+  const stCol={pendiente:'#f59e0b',completado:'#3b82f6',pagado:'#22c55e'}
+  const stBg ={pendiente:'#fffbeb',completado:'#eff6ff',pagado:'#f0fdf4'}
+  asigsCol
+    .sort(function(a,b){return(b.fechaAsignacion||'').localeCompare(a.fechaAsignacion||'')})
+    .forEach(function(a){
+      const st=a.estado||'pendiente'
+      h+='<div class="card" style="margin-bottom:12px;padding:16px 20px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+        +'<div>'
+        +'<div style="font-size:15px;font-weight:700;margin-bottom:2px">'+esc(a.trabajoTitulo||'—')+'</div>'
+        +'<div style="font-size:12px;color:var(--text3)">'+esc(a.clienteNombre||'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:'+stBg[st]+';color:'+stCol[st]+'">'+st.toUpperCase()+'</span>'
+        +'</div>'
+        +(a.descripcion?'<div style="font-size:13px;color:var(--text2);margin-top:10px">'+esc(a.descripcion)+'</div>':'')
+        +'<div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text3)">'
+        +'<span>💰 Valor: <strong style="color:var(--text)">$'+fmt(a.valorAsignado)+'</strong></span>'
+        +(a.fechaLimite?'<span>🏁 Límite: <strong>'+fmtDCorto(a.fechaLimite)+'</strong></span>':'')
+        +'</div>'
+        +(a.notas?'<div style="font-size:12px;color:var(--text3);margin-top:6px">📝 '+esc(a.notas)+'</div>':'')
+        +(st==='pendiente'?'<div style="margin-top:12px"><button class="btn btn-p btn-sm" onclick="marcarCompletadoAsig(\''+a.id+'\')">✓ Marcar como completado</button></div>':'')
+        +'</div>'
+    })
   return h
 }
 
