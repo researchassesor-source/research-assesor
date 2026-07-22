@@ -863,17 +863,25 @@ function htmlDash(){
     +'<div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#fff;border:2px dashed var(--violet);display:inline-block"></span><span style="font-size:10px;font-weight:700;color:var(--text3)">PROYECTADO</span></div>'
     +'<span style="margin-left:auto;font-size:10px;color:var(--text3)">escala: $'+fmt(maxVal)+'</span>'
     +'</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:3px;height:130px;background:#f8faff;border-radius:8px;padding:8px 6px 0">'
+    +'<div style="display:flex;align-items:flex-end;gap:3px;height:130px;background:#f8faff;border-radius:8px;padding:8px 6px 10px">'
     +allMonths.map(m=>{
       const isProj=m.isFuture
       const val=isProj?m.proj:m.real
       const hasVal=val>0
-      const pct=hasVal?Math.max(Math.round(val/maxVal*100),4):4
-      const col=!hasVal?'#e2e8f0':isProj?'rgba(126,58,242,.45)':(m.isCurrent?'var(--brand)':'rgba(26,86,219,.65)')
-      const brd=hasVal&&isProj?'2px dashed var(--violet)':'none'
       const lblCol=!hasVal?'var(--text3)':isProj?'var(--violet)':(m.isCurrent?'var(--brand)':'var(--text3)')
+      if(!hasVal){
+        // Sin dato ese mes: marcador visible (punto + guía vertical) en vez de una barra casi invisible
+        return'<div title="Sin '+(isProj?'proyección':'cobros')+' registrados" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px">'
+          +'<div style="font-size:8px;color:'+lblCol+';font-weight:700">—</div>'
+          +'<div style="width:1px;height:14px;background:#cbd5e1;border-left:1px dashed #94a3b8"></div>'
+          +'<div style="width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #94a3b8"></div>'
+          +'</div>'
+      }
+      const pct=Math.max(Math.round(val/maxVal*100),4)
+      const col=isProj?'rgba(126,58,242,.45)':(m.isCurrent?'var(--brand)':'rgba(26,86,219,.65)')
+      const brd=isProj?'2px dashed var(--violet)':'none'
       return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px">'
-        +'<div style="font-size:8px;color:'+lblCol+';font-weight:700">'+(hasVal?'$'+fmt(val):'—')+'</div>'
+        +'<div style="font-size:8px;color:'+lblCol+';font-weight:700">$'+fmt(val)+'</div>'
         +'<div title="'+(isProj?'Proyectado':'Cobrado')+': $'+val+'" style="width:78%;min-height:'+pct+'%;border-radius:4px 4px 0 0;background:'+col+';border:'+brd+(brd!=='none'?';border-bottom:none':'')+';transition:height .4s"></div>'
         +'</div>'
     }).join('')
