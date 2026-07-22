@@ -457,7 +457,17 @@ let calM=new Date().getMonth(),calY=new Date().getFullYear()
 function draw(){
   const el=document.getElementById('R')
   if(!el)return
-  el.innerHTML=user?(htmlApp()+htmlModal()):htmlLogin()
+  try{
+    el.innerHTML=user?(htmlApp()+htmlModal()):htmlLogin()
+  }catch(err){
+    console.error('Error al dibujar la pantalla:',err)
+    el.innerHTML='<div style="max-width:640px;margin:60px auto;padding:24px;font-family:sans-serif">'
+      +'<h2 style="color:#dc2626">⚠️ Error al mostrar esta pantalla</h2>'
+      +'<p style="color:#4b5563">Ocurrió un error inesperado. Copia este mensaje y compártelo para poder corregirlo:</p>'
+      +'<pre style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:14px;white-space:pre-wrap;font-size:12px;color:#1f2937">'+esc((err&&err.stack)||String(err))+'</pre>'
+      +'<button style="margin-top:12px;padding:8px 16px;border-radius:6px;border:none;background:#1a56db;color:#fff;font-weight:600;cursor:pointer" onclick="page=\'dashboard\';draw()">Volver al Dashboard</button>'
+      +'</div>'
+  }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -678,7 +688,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v6.0'
+const VERSION='v6.2'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
