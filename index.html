@@ -739,6 +739,14 @@ function htmlPage(){
 
 
 function htmlDash(){
+  // Primera carga (aún sin datos): mostrar skeleton en vez de KPIs y gráfico en $0.
+  // En refrescos posteriores (loading=true pero ya hay datos) se sigue mostrando lo último cargado.
+  if(loading&&!data.clientes.length&&!data.trabajos.length){
+    return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 20px;color:var(--text3)">'
+      +'<div class="spin" style="font-size:30px;margin-bottom:14px">⟳</div>'
+      +'<div style="font-size:14px;font-weight:600">Cargando dashboard…</div>'
+      +'</div>'
+  }
   const {clientes,trabajos,cuotas,abonos,reuniones}=data
   const now=new Date()
   const hoy=now.toISOString().split('T')[0]
