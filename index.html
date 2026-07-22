@@ -1149,7 +1149,7 @@ function htmlTrabajos(){
       +ESTADOS.map(function(s){return'<option value="'+s+'"'+(t.estado===s?' selected':'')+'>'+s+'</option>'}).join('')
       +'</select>'
       +'<button class="btn btn-g btn-sm" title="Descargar Word" onclick=\'event.stopPropagation();descargarReporteTrabajo("'+t.id+'")\'>📄</button>'
-      +'<button class="btn btn-g btn-sm" title="Descargar acuerdo de pago" onclick=\'event.stopPropagation();descargarAcuerdo("'+t.id+'")\'>📝</button>'
+      +'<button class="btn btn-g btn-sm" title="Descargar contrato de prestación de servicios" onclick=\'event.stopPropagation();descargarAcuerdo("'+t.id+'")\'>📝</button>'
       +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')" >🗑</button>'
       +'</div><span style="color:var(--text3);font-size:16px">'+(isExp?'▲':'▼')+'</span></div></div>'
@@ -2291,56 +2291,40 @@ function descargarAcuerdo(trabajoId){
   _cargarJSZip(function(){_generarAcuerdoDocx(cl,t,cuotas)})
 }
 
+const CLAUSULAS_NUM=['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','SÉPTIMA','OCTAVA','NOVENA','DÉCIMA']
+function _clausula(n,titulo){
+  return _p('CLÁUSULA '+CLAUSULAS_NUM[n-1]+'.- '+titulo,{sz:21,bold:true,color:'1E6FC8',before:140,after:50})
+}
+function _clausulaTexto(txt){
+  return _p(txt,{sz:20,color:'222222',align:'both',after:80})
+}
 function _generarAcuerdoDocx(cl,t,cuotas){
   const fecha=_fmtFecha()
   const total=parseFloat(t.total||0)
+  const nombreCl=(cl&&cl.nombre||'EL CONTRATANTE').toUpperCase()
+  const idCl=cl&&cl.cedula?', portador(a) de la cédula de ciudadanía / RUC N.° '+cl.cedula:''
   let body=''
 
   body+=_p('Research Assesor',{sz:28,bold:true,color:'1E6FC8',align:'right',before:0,after:40})
   body+=_p('Coordinación de Investigación',{sz:18,color:'555555',align:'right',after:20})
   body+=_p('Fecha: '+fecha,{sz:18,color:'555555',align:'right',after:0})
   body+=_hline()
-  body+=_p('ACUERDO DE PRESTACIÓN DE SERVICIOS Y PLAN DE PAGOS',{sz:28,bold:true,color:'1E6FC8',align:'center',before:80,after:60})
+  body+=_p('CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES',{sz:28,bold:true,color:'1E6FC8',align:'center',before:80,after:80})
 
-  body+=_p('Entre Research Assesor (en adelante "el prestador del servicio") y el cliente detallado a continuación, se acuerda la prestación del servicio descrito, su valor total y las fechas de pago comprometidas por ambas partes.',{sz:20,color:'333333',after:100})
+  body+=_p('COMPARECIENTES',{sz:21,bold:true,color:'1E6FC8',before:60,after:50})
+  body+=_clausulaTexto('Comparecen a la celebración del presente contrato, por una parte, el señor EDISON BONIFAZ, en calidad de prestador de servicios profesionales de asesoría e investigación, a quien en adelante y para efectos de este instrumento se denominará "EL PRESTADOR"; y, por otra parte, '+nombreCl+idCl+', a quien en adelante se denominará "EL CONTRATANTE". Ambas partes, por sus propios y personales derechos, en pleno uso de sus facultades y libre y voluntariamente, convienen en celebrar el presente contrato de prestación de servicios profesionales, al tenor de las siguientes cláusulas:')
 
-  body+=_p('CLIENTE',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
-  body+=_hline()
-  const campos=[
-    ['Nombre',cl&&cl.nombre||'—'],['Cédula / RUC',cl&&cl.cedula||'—'],
-    ['Teléfono',cl&&cl.telefono||'—'],['Email',cl&&cl.email||'—'],
-    ['Institución',cl&&cl.institucion||'—']
-  ].filter(function(r){return r[1]&&r[1]!=='—'})
-  if(campos.length){
-    body+=_tblStart([2200,4000,2200,4000])
-    for(var ci=0;ci<campos.length;ci+=2){
-      body+='<w:tr>'
-      body+=_cell(campos[ci][0],2200,{bold:true,gray:true})
-      body+=_cell(campos[ci][1],4000,{})
-      if(campos[ci+1]){
-        body+=_cell(campos[ci+1][0],2200,{bold:true,gray:true})
-        body+=_cell(campos[ci+1][1],4000,{})
-      }else{
-        body+=_cell('',6200,{})
-      }
-      body+='</w:tr>'
-    }
-    body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
-  }
+  body+=_clausula(1,'ANTECEDENTES')
+  body+=_clausulaTexto('EL CONTRATANTE requiere de los servicios profesionales de asesoría e investigación que presta EL PRESTADOR, quien manifiesta contar con la experiencia, conocimientos y capacidad técnica necesarios para la correcta ejecución del trabajo detallado en la cláusula segunda.')
 
-  body+=_p('SERVICIO',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
-  body+=_hline()
-  body+=_tblStart([2200,4000,2200,4000])
-  body+='<w:tr>'+_cell('Trabajo',2200,{bold:true,gray:true})+_cell(t.titulo,4000,{})
-    +_cell('Tipo',2200,{bold:true,gray:true})+_cell(t.tipo||'—',4000,{})+'</w:tr>'
-  body+='<w:tr>'+_cell('Fecha inicio',2200,{bold:true,gray:true})+_cell(t.fechaInicio?fmtDCorto(t.fechaInicio):'—',4000,{})
-    +_cell('Entrega estimada',2200,{bold:true,gray:true})+_cell(t.fechaFin?fmtDCorto(t.fechaFin):'—',4000,{})+'</w:tr>'
-  body+='<w:tr>'+_cell('Valor total',2200,{bold:true,gray:true})+_cell(_fmtM(total),4000,{bold:true,color:'1E6FC8'})
-    +_cell('',2200,{gray:true})+_cell('',4000,{})+'</w:tr>'
-  body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
+  body+=_clausula(2,'OBJETO DEL CONTRATO')
+  body+=_clausulaTexto('EL PRESTADOR se obliga a ejecutar en favor de EL CONTRATANTE el siguiente servicio: "'+t.titulo+'"'+(t.tipo?' ('+t.tipo+')':'')+', conforme a los términos, condiciones, valor y plazos establecidos en el presente instrumento.')
 
-  body+=_p('PLAN DE PAGOS',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
-  body+=_hline()
+  body+=_clausula(3,'VALOR DEL CONTRATO')
+  body+=_clausulaTexto('Las partes acuerdan, de manera libre y voluntaria, como valor total y definitivo del presente contrato la cantidad de '+_fmtM(total)+' (dólares de los Estados Unidos de América), suma que EL CONTRATANTE se obliga a cancelar a favor de EL PRESTADOR en la forma y plazos establecidos en la cláusula cuarta.')
+
+  body+=_clausula(4,'FORMA Y PLAZO DE PAGO')
+  body+=_clausulaTexto('El valor señalado en la cláusula anterior será cancelado por EL CONTRATANTE a EL PRESTADOR de conformidad con el siguiente plan de pagos:')
   if(cuotas.length){
     body+=_tblStart([700,3500,2500,3300])
     body+='<w:tr>'+_cell('N°',700,{head:true,align:'center'})+_cell('Cuota',3500,{head:true})
@@ -2356,22 +2340,48 @@ function _generarAcuerdoDocx(cl,t,cuotas){
     })
     body+='<w:tr>'+_cell('',700,{gray:true})+_cell('TOTAL',3500,{bold:true,gray:true})
       +_cell('',2500,{gray:true})+_cell(_fmtM(total),3300,{bold:true,gray:true,align:'right'})+'</w:tr>'
-    body+='</w:tbl>'
+    body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="80"/></w:pPr></w:p>'
   }else{
-    body+=_p('Sin plan de pagos registrado para este trabajo.',{sz:20,color:'999999',after:60})
+    body+=_p('Sin plan de pagos registrado para este trabajo.',{sz:20,color:'999999',after:80})
   }
-  body+='<w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
+  body+=_clausulaTexto('El incumplimiento en el pago de cualquiera de los valores señalados, en la fecha establecida, faculta a EL PRESTADOR para suspender la ejecución del servicio hasta la regularización del pago correspondiente, sin que ello genere responsabilidad alguna para EL PRESTADOR.')
 
-  body+=_p('El incumplimiento de las fechas de pago acordadas podrá afectar la continuidad del servicio. Cualquier modificación al valor o al plan de pagos deberá ser acordada por ambas partes.',{sz:18,color:'666666',after:200})
+  body+=_clausula(5,'PLAZO DE EJECUCIÓN')
+  body+=_clausulaTexto('El servicio contratado se ejecutará dentro del plazo comprendido entre el '+(t.fechaInicio?fmtDCorto(t.fechaInicio):'la fecha de suscripción del presente contrato')+' y el '+(t.fechaFin?fmtDCorto(t.fechaFin):'la fecha de entrega acordada entre las partes')+', plazo que podrá ser modificado de mutuo acuerdo entre las partes mediante comunicación escrita.')
 
-  body+='<w:p><w:pPr><w:spacing w:before="400" w:after="0"/></w:pPr></w:p>'
+  body+=_clausula(6,'OBLIGACIONES DE EL CONTRATANTE')
+  body+=_clausulaTexto('EL CONTRATANTE se obliga a: a) Cancelar puntualmente los valores acordados en las fechas establecidas en la cláusula cuarta; b) Proporcionar de manera oportuna la información, documentación e insumos necesarios para la correcta ejecución del servicio; y, c) Comunicar oportunamente a EL PRESTADOR cualquier observación respecto del trabajo entregado.')
+
+  body+=_clausula(7,'OBLIGACIONES DE EL PRESTADOR')
+  body+=_clausulaTexto('EL PRESTADOR se obliga a: a) Ejecutar el servicio contratado con diligencia, profesionalismo y bajo los estándares de calidad correspondientes; b) Cumplir con los plazos acordados, salvo causas de fuerza mayor o caso fortuito debidamente justificadas; y, c) Mantener informado a EL CONTRATANTE sobre el avance del trabajo.')
+
+  body+=_clausula(8,'CONFIDENCIALIDAD')
+  body+=_clausulaTexto('Ambas partes se comprometen a mantener absoluta reserva y confidencialidad respecto de la información, documentos y datos a los que tengan acceso con ocasión de la ejecución del presente contrato, obligación que subsistirá aun después de finalizada la relación contractual.')
+
+  body+=_clausula(9,'TERMINACIÓN')
+  body+=_clausulaTexto('El presente contrato terminará por: a) cumplimiento total del objeto contractual; b) mutuo acuerdo entre las partes; o, c) incumplimiento grave de las obligaciones aquí establecidas por cualquiera de las partes.')
+
+  body+=_clausula(10,'ACEPTACIÓN')
+  body+=_clausulaTexto('Las partes declaran conocer y aceptar en todas sus partes el contenido del presente contrato, por así convenir a sus intereses, y en constancia de ello lo suscriben en dos ejemplares de igual tenor y efecto.')
+
+  body+=_p('Lugar y fecha de suscripción: ______________________________, '+fecha,{sz:20,color:'333333',before:160,after:0})
+
+  body+='<w:p><w:pPr><w:spacing w:before="500" w:after="0"/></w:pPr></w:p>'
   body+=_tblStart([4200,600,4200])
   body+='<w:tr>'
     +_cell('_________________________',4200,{align:'center'})+_cell('',600,{})+_cell('_________________________',4200,{align:'center'})
     +'</w:tr>'
   body+='<w:tr>'
+    +_cell('EL PRESTADOR',4200,{align:'center',sz:18,bold:true,color:'333333'})+_cell('',600,{})
+    +_cell('EL CONTRATANTE',4200,{align:'center',sz:18,bold:true,color:'333333'})
+    +'</w:tr>'
+  body+='<w:tr>'
     +_cell('Edison Bonifaz — Research Assesor',4200,{align:'center',sz:18,color:'555555'})+_cell('',600,{})
     +_cell(cl&&cl.nombre||'Cliente',4200,{align:'center',sz:18,color:'555555'})
+    +'</w:tr>'
+  body+='<w:tr>'
+    +_cell('C.I.: ________________',4200,{align:'center',sz:18,color:'555555'})+_cell('',600,{})
+    +_cell('C.I./RUC: '+(cl&&cl.cedula||'________________'),4200,{align:'center',sz:18,color:'555555'})
     +'</w:tr>'
   body+='</w:tbl>'
 
@@ -2381,7 +2391,7 @@ function _generarAcuerdoDocx(cl,t,cuotas){
 
   const nombre=(cl&&cl.nombre||'cliente').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim().replace(/\s+/g,'_')
   const suffix='_'+t.titulo.slice(0,20).replace(/[^a-zA-Z0-9]/g,'_')
-  _descargarDocx(body,'Acuerdo_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx')
+  _descargarDocx(body,'Contrato_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx')
 }
 
 // ── MENSAJES WHATSAPP ─────────────────────────────────────────────
