@@ -60,6 +60,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
 .topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
 .topbar h2{font-size:16px;font-weight:800;flex:1;color:var(--text)}
 .page{padding:24px;flex:1}
+.m-menu-btn{display:none;background:none;border:1px solid var(--border);border-radius:8px;width:34px;height:34px;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--text2);flex-shrink:0}
+.m-overlay{display:none}
 
 /* ── COMPONENTS ── */
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
@@ -164,7 +166,13 @@ textarea{resize:vertical;min-height:64px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
 .spin{display:inline-block;animation:spin .8s linear infinite}
-@media(max-width:700px){aside{display:none}.fg{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.page{padding:14px}.dash-grid,.dash-grid.three{grid-template-columns:1fr}}
+@media(max-width:700px){
+  aside{position:fixed;top:0;left:0;z-index:100;transform:translateX(-100%);transition:transform .25s ease;box-shadow:none}
+  aside.m-open{transform:translateX(0);box-shadow:10px 0 30px rgba(15,23,42,.25)}
+  .m-menu-btn{display:flex}
+  .m-overlay.m-open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99}
+  .fg{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.page{padding:14px}.dash-grid,.dash-grid.three{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -440,7 +448,7 @@ async function apiPost(body){
 
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
-let user=null,page='dashboard',modal=null
+let user=null,page='dashboard',modal=null,mobileNavOpen=false
 let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[],colaboradores:[],asignaciones:[]}
 let loading=false,syncing=false,syncMsg='',syncErr=false
 let search='',wExp=null,wSt='Todos',cSt='Todos',mvw='upcoming'
@@ -661,7 +669,6 @@ const NAV_MAIN=[
   {id:'usuarios',     l:'Usuarios',       ic:'◑'},
   {id:'mensajes',     l:'Mensajes WA',    ic:'◌'},
 ]
-const NAV_ADMIN=[{id:'usuarios',l:'Usuarios',ic:'◐'},{id:'mensajes',l:'Mensajes WA',ic:'💬'}]
 const NAV_CLIENTE=[
   {id:'mi_progreso',l:'Mis trabajos',ic:'📋'},
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
@@ -675,14 +682,14 @@ const VERSION='v6.0'
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
   const nVenc=data.cuotas.filter(c=>cStat(c)==='vencido').length
-  const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='colaborador'?NAV_COLABORADOR:user&&user.role==='admin'?[...NAV_MAIN,...NAV_ADMIN]:NAV_MAIN
+  const allNav=user&&user.role==='cliente'?NAV_CLIENTE:user&&user.role==='colaborador'?NAV_COLABORADOR:NAV_MAIN
   const initials=(user.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
   // htmlPage() puede normalizar `page` como efecto secundario (portales de cliente/colaborador
   // fuerzan su página inicial), así que se evalúa antes de usar `page` para el título/nav activo.
   const pageHtml=htmlPage()
 
   return'<div class="app">'
-    +'<aside>'
+    +'<aside class="'+(mobileNavOpen?'m-open':'')+'">'
     +'<div class="a-logo"><div class="a-logo-text"><span class="a-logo-r">Research</span><span class="a-logo-rest"> Assesor</span></div></div>'
     +'<nav>'
     +'<div class="n-section">Navegación</div>'
@@ -693,11 +700,12 @@ function htmlApp(){
     +'</nav>'
     +'<div class="a-foot">'
     +'<div class="a-user"><div class="a-avatar">'+initials+'</div><div><div class="a-uname">'+esc(user.name)+'</div><div class="a-urole">'+esc({admin:'Administrador',cliente:'Cliente',colaborador:'Colaborador'}[user.role]||'Lector')+'</div></div></div>'
-    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;draw()">Cerrar sesión</button>'
+    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;mobileNavOpen=false;draw()">Cerrar sesión</button>'
     +'</div>'
     +'</aside>'
+    +'<div class="m-overlay '+(mobileNavOpen?'m-open':'')+'" onclick="mobileNavOpen=false;draw()"></div>'
     +'<main>'
-    +'<div class="topbar"><h2>'+TITLES[page]+'</h2><span style="font-size:10px;color:var(--text3);margin-right:4px">'+VERSION+'</span>'
+    +'<div class="topbar"><button class="m-menu-btn" onclick="mobileNavOpen=!mobileNavOpen;draw()">☰</button><h2>'+TITLES[page]+'</h2><span style="font-size:10px;color:var(--text3);margin-right:4px">'+VERSION+'</span>'
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
     +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
     +'</div>'
@@ -2766,6 +2774,7 @@ function goTo(p){
   page=p
   search=''
   wExp=null
+  mobileNavOpen=false
   draw()
 }
 
