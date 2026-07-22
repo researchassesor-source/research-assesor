@@ -803,14 +803,8 @@ function htmlDash(){
   // Variación mes a mes
   const variacion=ingresoMesAnterior>0?Math.round((ingresoMesActual-ingresoMesAnterior)/ingresoMesAnterior*100):0
 
-  // Use separate max for real vs projected so past bars stay visible
-  const maxReal=Math.max(...allMonths.map(x=>x.real),1)
-  const maxProj=Math.max(...allMonths.map(x=>x.proj),1)
-  // Common scale: use the larger of the two so bars are comparable
-  const maxVal=Math.max(maxReal,maxProj,1)
-  // But ensure past months always show at least a visible proportion
-  // by using the higher of maxReal or 50% of maxVal for past month scaling
-  const realScale=Math.max(maxReal, Math.round(maxVal*0.4),1)
+  // Escala única: cada mes aporta un solo valor (real si ya pasó, proyectado si es futuro)
+  const maxVal=Math.max(...allMonths.map(x=>Math.max(x.real,x.proj)),1)
 
   // ── Estado cuotas ──
   const cuotaDist={pagado:0,parcial:0,pendiente:0,vencido:0}
@@ -854,42 +848,28 @@ function htmlDash(){
     +'<div class="chart-sub">Últimos 6 meses cobrados · Mes actual · Próximos 5 meses proyectados</div></div>'
     
 
-    // ── CHART: two independent rows (real top, projected bottom) ──
-    // Row 1: Cobrado real — scale = maxReal
-    +'<div style="margin-bottom:4px">'
-    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
-    +'<span style="width:10px;height:10px;border-radius:2px;background:var(--brand);display:inline-block"></span>'
-    +'<span style="font-size:10px;font-weight:700;color:var(--text3)">COBRADO REAL (escala: $'+fmt(maxReal)+')</span>'
+    // ── CHART: una sola fila combinada — real donde ya pasó, proyectado en el futuro ──
+    // Así ningún mes queda con espacio vacío en los extremos.
+    +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap">'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:var(--brand);display:inline-block"></span><span style="font-size:10px;font-weight:700;color:var(--text3)">COBRADO REAL</span></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#fff;border:2px dashed var(--violet);display:inline-block"></span><span style="font-size:10px;font-weight:700;color:var(--text3)">PROYECTADO</span></div>'
+    +'<span style="margin-left:auto;font-size:10px;color:var(--text3)">escala: $'+fmt(maxVal)+'</span>'
     +'</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:2px;height:90px;background:#f8faff;border-radius:8px;padding:6px 6px 0">'
+    +'<div style="display:flex;align-items:flex-end;gap:3px;height:130px;background:#f8faff;border-radius:8px;padding:8px 6px 0">'
     +allMonths.map(m=>{
-      const pct=m.real>0?Math.max(Math.round(m.real/maxReal*100),4):0
-      const isC=m.isCurrent
-      const col=isC?'var(--brand)':m.isPast?'rgba(26,86,219,.6)':'#e2e8f0'
-      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:1px">'
-        +(pct>0?'<div style="font-size:8px;color:'+(isC?'var(--brand)':'var(--text3)')+';font-weight:700">$'+fmt(m.real)+'</div>':'')
-        +'<div title="Cobrado: $'+m.real+'" style="width:80%;min-height:'+(pct>0?pct:1)+'%;border-radius:3px 3px 0 0;background:'+col+';transition:height .4s"></div>'
+      const isProj=m.isFuture
+      const val=isProj?m.proj:m.real
+      const hasVal=val>0
+      const pct=hasVal?Math.max(Math.round(val/maxVal*100),4):4
+      const col=!hasVal?'#e2e8f0':isProj?'rgba(126,58,242,.45)':(m.isCurrent?'var(--brand)':'rgba(26,86,219,.65)')
+      const brd=hasVal&&isProj?'2px dashed var(--violet)':'none'
+      const lblCol=!hasVal?'var(--text3)':isProj?'var(--violet)':(m.isCurrent?'var(--brand)':'var(--text3)')
+      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px">'
+        +'<div style="font-size:8px;color:'+lblCol+';font-weight:700">'+(hasVal?'$'+fmt(val):'—')+'</div>'
+        +'<div title="'+(isProj?'Proyectado':'Cobrado')+': $'+val+'" style="width:78%;min-height:'+pct+'%;border-radius:4px 4px 0 0;background:'+col+';border:'+brd+(brd!=='none'?';border-bottom:none':'')+';transition:height .4s"></div>'
         +'</div>'
     }).join('')
-    +'</div></div>'
-
-    // Row 2: Proyectado — scale = maxProj
-    +'<div style="margin-bottom:4px">'
-    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
-    +'<span style="width:10px;height:10px;border-radius:2px;background:var(--violet);opacity:.7;display:inline-block"></span>'
-    +'<span style="font-size:10px;font-weight:700;color:var(--text3)">PROYECCIÓN (escala: $'+fmt(maxProj)+')</span>'
     +'</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:2px;height:70px;background:#faf8ff;border-radius:8px;padding:6px 6px 0">'
-    +allMonths.map(m=>{
-      const pct=m.proj>0?Math.max(Math.round(m.proj/maxProj*100),4):0
-      const col=m.isFuture?'rgba(126,58,242,.5)':m.isCurrent?'rgba(126,58,242,.3)':'rgba(200,200,200,.4)'
-      const brd=m.isFuture?'2px dashed var(--violet)':'1px dashed #c4b5fd'
-      return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:1px">'
-        +(pct>0?'<div style="font-size:8px;color:var(--violet);font-weight:700">$'+fmt(m.proj)+'</div>':'')
-        +'<div title="Proyectado: $'+m.proj+'" style="width:80%;min-height:'+(pct>0?pct:1)+'%;border-radius:3px 3px 0 0;background:'+col+';border:'+brd+';border-bottom:none;transition:height .4s"></div>'
-        +'</div>'
-    }).join('')
-    +'</div></div>'
 
     // Month labels (shared)
     +'<div style="display:flex;gap:2px;margin-top:4px">'
