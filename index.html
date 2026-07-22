@@ -664,6 +664,7 @@ const NAV_MAIN=[
   {id:'clientes',     l:'Clientes',       ic:'◉'},
   {id:'trabajos',     l:'Trabajos',       ic:'◈'},
   {id:'cobros',       l:'Cobros',         ic:'◎'},
+  {id:'deudores',     l:'Deudores',       ic:'💸'},
   {id:'reuniones',    l:'Reuniones',      ic:'◷'},
   {id:'colaboradores',l:'Colaboradores',  ic:'👥'},
   {id:'usuarios',     l:'Usuarios',       ic:'◑'},
@@ -676,7 +677,7 @@ const NAV_CLIENTE=[
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
 const VERSION='v6.0'
 
 function htmlApp(){
@@ -728,6 +729,7 @@ function htmlPage(){
   if(page==='clientes') return htmlClientes()
   if(page==='trabajos') return htmlTrabajos()
   if(page==='cobros')   return htmlCobros()
+  if(page==='deudores') return htmlDeudores()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
   if(page==='colaboradores') return htmlColaboradores()
@@ -1147,6 +1149,7 @@ function htmlTrabajos(){
       +ESTADOS.map(function(s){return'<option value="'+s+'"'+(t.estado===s?' selected':'')+'>'+s+'</option>'}).join('')
       +'</select>'
       +'<button class="btn btn-g btn-sm" title="Descargar Word" onclick=\'event.stopPropagation();descargarReporteTrabajo("'+t.id+'")\'>📄</button>'
+      +'<button class="btn btn-g btn-sm" title="Descargar acuerdo de pago" onclick=\'event.stopPropagation();descargarAcuerdo("'+t.id+'")\'>📝</button>'
       +'<button class="btn btn-g btn-sm" onclick=\'event.stopPropagation();openModal("trabajo",'+jss(t)+')\'>✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="event.stopPropagation();delRec(\'Trabajos\',\''+t.id+'\',\'¿Eliminar trabajo?\')" >🗑</button>'
       +'</div><span style="color:var(--text3);font-size:16px">'+(isExp?'▲':'▼')+'</span></div></div>'
@@ -1328,6 +1331,90 @@ function exportCobros(){
   })
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv)
   a.download='cobros_'+new Date().toISOString().slice(0,10)+'.csv';a.click()
+}
+
+// ─── DEUDORES ─────────────────────────────────────────────────────────────────
+function htmlDeudores(){
+  // Agrupa cuotas pendientes/parciales/vencidas por cliente
+  const porCliente={}
+  data.cuotas.forEach(c=>{
+    if(cStat(c)==='pagado')return
+    const t=data.trabajos.find(x=>x.id===c.trabajoId)
+    if(!t||!t.clienteId)return
+    const saldo=Math.max(parseFloat(c.acordado||0)-realPaid(c),0)
+    if(saldo<=0)return
+    const cl=data.clientes.find(x=>x.id===t.clienteId)
+    if(!porCliente[t.clienteId])porCliente[t.clienteId]={cliente:cl,cuotas:[],total:0,vencidas:false}
+    const st=cStat(c)
+    porCliente[t.clienteId].cuotas.push({...c,_t:t,_saldo:saldo,_st:st})
+    porCliente[t.clienteId].total+=saldo
+    if(st==='vencido')porCliente[t.clienteId].vencidas=true
+  })
+  const q=search.toLowerCase()
+  let lista=Object.values(porCliente).filter(d=>d.total>0&&(!q||(d.cliente&&d.cliente.nombre||'').toLowerCase().includes(q)))
+  lista.sort((a,b)=>(b.vencidas-a.vencidas)||(b.total-a.total))
+
+  const totalGeneral=lista.reduce((s,d)=>s+d.total,0)
+  const nVencidos=lista.filter(d=>d.vencidas).length
+
+  let h='<div class="kpis" style="margin-bottom:16px">'
+    +'<div class="kpi"><div class="kpi-label">Clientes con saldo</div><div class="kpi-value">'+lista.length+'</div><div class="kpi-icon">👥</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Total adeudado</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(totalGeneral)+'</div><div class="kpi-icon">💰</div></div>'
+    +(nVencidos>0?'<div class="kpi" style="animation:pulse 2s infinite"><div class="kpi-label">⚠️ Con cuotas vencidas</div><div class="kpi-value" style="color:var(--red)">'+nVencidos+'</div><div class="kpi-icon">🚨</div></div>':'')
+    +'</div>'
+  h+='<div class="tb"><input id="srch" placeholder="Buscar cliente..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:260px"/></div>'
+  if(!lista.length)return h+'<div class="card"><p class="empty">🎉 Ningún cliente tiene saldo pendiente.</p></div>'
+
+  lista.forEach(d=>{
+    const cl=d.cliente
+    h+='<div class="card" style="margin-bottom:12px;overflow:hidden'+(d.vencidas?';border-color:#fecaca':'')+'">'
+      +'<div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:'+(d.vencidas?'#fef2f2':'#fffbeb')+'">'
+      +'<div style="flex:1;min-width:150px">'
+      +'<strong style="font-size:14px">'+esc(cl&&cl.nombre||'—')+'</strong>'
+      +(d.vencidas?' <span class="b br">Vencido</span>':'')
+      +(cl&&cl.telefono?'<div style="font-size:11px;color:var(--text3)">📱 '+esc(cl.telefono)+'</div>':'<div style="font-size:11px;color:var(--red)">Sin teléfono registrado</div>')
+      +'</div>'
+      +'<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--amber)">$'+fmt(d.total)+'</div><div style="font-size:11px;color:var(--text3)">'+d.cuotas.length+' cuota(s) pendiente(s)</div></div>'
+      +(cl&&cl.telefono?'<button class="btn btn-wa btn-sm" onclick="waDeudor(\''+cl.id+'\')">💬 Enviar WhatsApp</button>':'')
+      +'</div>'
+      +'<div style="padding:4px 18px 12px">'
+      +d.cuotas.slice().sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)).map(c=>{
+        const stColor={parcial:'#1d4ed8',vencido:'#dc2626',pendiente:'#b45309'}[c._st]||'#64748b'
+        return'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #f1f5f9;font-size:12px">'
+          +'<div><strong>'+esc(c._t.titulo)+'</strong><span style="color:var(--text3)"> — '+esc(c.label||'Cuota')+'</span></div>'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+          +'<span style="color:var(--text3)">Vence '+fmtDCorto(c.fechaVencimiento||'')+'</span>'
+          +'<span style="font-weight:700;color:'+stColor+'">Saldo $'+fmt(c._saldo)+'</span>'
+          +'</div></div>'
+      }).join('')
+      +'</div></div>'
+  })
+  return h
+}
+
+function waDeudor(clienteId){
+  const cl=data.clientes.find(c=>c.id===clienteId)
+  if(!cl||!cl.telefono){toast('Cliente sin teléfono registrado','err');return}
+  const trabajosCl=data.trabajos.filter(t=>t.clienteId===clienteId)
+  const idsTrab=trabajosCl.map(t=>t.id)
+  const cuotasPend=data.cuotas.filter(c=>idsTrab.includes(c.trabajoId)&&cStat(c)!=='pagado'&&Math.max(parseFloat(c.acordado||0)-realPaid(c),0)>0)
+    .sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
+  if(!cuotasPend.length){toast('Este cliente no tiene saldo pendiente','err');return}
+  let totalSaldo=0
+  const lineas=cuotasPend.map(c=>{
+    const t=trabajosCl.find(x=>x.id===c.trabajoId)
+    const pag=realPaid(c),saldo=Math.max(parseFloat(c.acordado||0)-pag,0)
+    totalSaldo+=saldo
+    return'📚 *'+(t?t.titulo:'')+'* — '+(c.label||'Cuota')
+      +'\n   💰 Valor: $'+fmt(c.acordado)+(pag>0?' · Cancelado: $'+fmt(pag):'')+' · Saldo: $'+fmt(saldo)
+      +'\n   📅 Vence: '+fmtDCorto(c.fechaVencimiento||'')
+  }).join('\n\n')
+  const msg='Hola '+cl.nombre+' 👋\n\nTe escribo para recordarte el estado de tus cuotas pendientes:\n\n'
+    +lineas
+    +'\n\n💵 *Total pendiente: $'+fmt(totalSaldo)+'*'
+    +'\n\nSi ya realizaste algún pago, por favor envíame el comprobante para actualizarlo. Cualquier consulta, aquí estoy. 🙏'
+    +'\n\n— Edison Bonifaz | Research Assesor'
+  window.open(waUrl(cl.telefono,msg),'_blank')
 }
 
 // ─── REUNIONES ────────────────────────────────────────────────────────────────
@@ -1726,6 +1813,7 @@ async function submitTrabajo(id,isEdit){
     }
     await loadData()
     toast('✓ Trabajo y '+cuotasACrear.length+' cuota'+(cuotasACrear.length>1?'s':'')+' creadas')
+    descargarAcuerdo(workId)
   }
 }
 
@@ -2166,7 +2254,13 @@ function _generarDocx(cl,trabajos,modo){
   body+=_p('Documento generado por Research Assesor · '+fecha,{sz:16,color:'999999',align:'center',before:80,after:0})
   body+='<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>'
 
-  // Ensamblar DOCX con JSZip
+  const nombre=(cl&&cl.nombre||'cliente').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim().replace(/\s+/g,'_')
+  const suffix=modo==='trabajo'?('_'+trabajos[0].titulo.slice(0,20).replace(/[^a-zA-Z0-9]/g,'_')):'_todos_trabajos'
+  _descargarDocx(body,'Reporte_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx')
+}
+
+// ── Ensamblado DOCX compartido (JSZip) ─────────────────────────────
+function _docxZipFromBody(body){
   const zip=new window.JSZip()
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>')
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
@@ -2175,17 +2269,119 @@ function _generarDocx(cl,trabajos,modo){
   wf.file('styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/></w:tblBorders></w:tblPr></w:style></w:styles>')
   const docNS='xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" mc:Ignorable="w14"'
   wf.file('document.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document '+docNS+'><w:body>'+body+'</w:body></w:document>')
-
-  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}).then(function(blob){
+  return zip
+}
+function _descargarDocx(body,filename){
+  return _docxZipFromBody(body).generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}).then(function(blob){
     const url=URL.createObjectURL(blob)
     const a=document.createElement('a')
-    const nombre=(cl&&cl.nombre||'cliente').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim().replace(/\s+/g,'_')
-    const suffix=modo==='trabajo'?('_'+trabajos[0].titulo.slice(0,20).replace(/[^a-zA-Z0-9]/g,'_')):'_todos_trabajos'
-    a.href=url;a.download='Reporte_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx'
+    a.href=url;a.download=filename
     document.body.appendChild(a);a.click();document.body.removeChild(a)
     setTimeout(function(){URL.revokeObjectURL(url)},5000)
     toast('✓ Documento descargado')
   }).catch(function(e){toast('Error generando Word: '+e.message,'err')})
+}
+
+// ── ACUERDO DE PAGO (generado al crear un trabajo) ──────────────────
+function descargarAcuerdo(trabajoId){
+  const t=data.trabajos.find(x=>x.id===trabajoId)
+  if(!t){toast('Trabajo no encontrado','err');return}
+  const cl=data.clientes.find(x=>x.id===t.clienteId)
+  const cuotas=data.cuotas.filter(c=>c.trabajoId===trabajoId).slice().sort(function(a,b){return new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
+  _cargarJSZip(function(){_generarAcuerdoDocx(cl,t,cuotas)})
+}
+
+function _generarAcuerdoDocx(cl,t,cuotas){
+  const fecha=_fmtFecha()
+  const total=parseFloat(t.total||0)
+  let body=''
+
+  body+=_p('Research Assesor',{sz:28,bold:true,color:'1E6FC8',align:'right',before:0,after:40})
+  body+=_p('Coordinación de Investigación',{sz:18,color:'555555',align:'right',after:20})
+  body+=_p('Fecha: '+fecha,{sz:18,color:'555555',align:'right',after:0})
+  body+=_hline()
+  body+=_p('ACUERDO DE PRESTACIÓN DE SERVICIOS Y PLAN DE PAGOS',{sz:28,bold:true,color:'1E6FC8',align:'center',before:80,after:60})
+
+  body+=_p('Entre Research Assesor (en adelante "el prestador del servicio") y el cliente detallado a continuación, se acuerda la prestación del servicio descrito, su valor total y las fechas de pago comprometidas por ambas partes.',{sz:20,color:'333333',after:100})
+
+  body+=_p('CLIENTE',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
+  body+=_hline()
+  const campos=[
+    ['Nombre',cl&&cl.nombre||'—'],['Cédula / RUC',cl&&cl.cedula||'—'],
+    ['Teléfono',cl&&cl.telefono||'—'],['Email',cl&&cl.email||'—'],
+    ['Institución',cl&&cl.institucion||'—']
+  ].filter(function(r){return r[1]&&r[1]!=='—'})
+  if(campos.length){
+    body+=_tblStart([2200,4000,2200,4000])
+    for(var ci=0;ci<campos.length;ci+=2){
+      body+='<w:tr>'
+      body+=_cell(campos[ci][0],2200,{bold:true,gray:true})
+      body+=_cell(campos[ci][1],4000,{})
+      if(campos[ci+1]){
+        body+=_cell(campos[ci+1][0],2200,{bold:true,gray:true})
+        body+=_cell(campos[ci+1][1],4000,{})
+      }else{
+        body+=_cell('',6200,{})
+      }
+      body+='</w:tr>'
+    }
+    body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
+  }
+
+  body+=_p('SERVICIO',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
+  body+=_hline()
+  body+=_tblStart([2200,4000,2200,4000])
+  body+='<w:tr>'+_cell('Trabajo',2200,{bold:true,gray:true})+_cell(t.titulo,4000,{})
+    +_cell('Tipo',2200,{bold:true,gray:true})+_cell(t.tipo||'—',4000,{})+'</w:tr>'
+  body+='<w:tr>'+_cell('Fecha inicio',2200,{bold:true,gray:true})+_cell(t.fechaInicio?fmtDCorto(t.fechaInicio):'—',4000,{})
+    +_cell('Entrega estimada',2200,{bold:true,gray:true})+_cell(t.fechaFin?fmtDCorto(t.fechaFin):'—',4000,{})+'</w:tr>'
+  body+='<w:tr>'+_cell('Valor total',2200,{bold:true,gray:true})+_cell(_fmtM(total),4000,{bold:true,color:'1E6FC8'})
+    +_cell('',2200,{gray:true})+_cell('',4000,{})+'</w:tr>'
+  body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
+
+  body+=_p('PLAN DE PAGOS',{sz:24,bold:true,color:'1E6FC8',before:100,after:40})
+  body+=_hline()
+  if(cuotas.length){
+    body+=_tblStart([700,3500,2500,3300])
+    body+='<w:tr>'+_cell('N°',700,{head:true,align:'center'})+_cell('Cuota',3500,{head:true})
+      +_cell('Fecha de pago',2500,{head:true,align:'center'})+_cell('Valor',3300,{head:true,align:'right'})+'</w:tr>'
+    cuotas.forEach(function(c,i){
+      const gray=i%2!==0
+      body+='<w:tr>'
+        +_cell(String(i+1),700,{gray:gray,align:'center'})
+        +_cell(c.label||'Cuota',3500,{gray:gray})
+        +_cell(c.fechaVencimiento?fmtDCorto(c.fechaVencimiento):'—',2500,{gray:gray,align:'center'})
+        +_cell(_fmtM(c.acordado),3300,{gray:gray,align:'right'})
+        +'</w:tr>'
+    })
+    body+='<w:tr>'+_cell('',700,{gray:true})+_cell('TOTAL',3500,{bold:true,gray:true})
+      +_cell('',2500,{gray:true})+_cell(_fmtM(total),3300,{bold:true,gray:true,align:'right'})+'</w:tr>'
+    body+='</w:tbl>'
+  }else{
+    body+=_p('Sin plan de pagos registrado para este trabajo.',{sz:20,color:'999999',after:60})
+  }
+  body+='<w:p><w:pPr><w:spacing w:before="0" w:after="100"/></w:pPr></w:p>'
+
+  body+=_p('El incumplimiento de las fechas de pago acordadas podrá afectar la continuidad del servicio. Cualquier modificación al valor o al plan de pagos deberá ser acordada por ambas partes.',{sz:18,color:'666666',after:200})
+
+  body+='<w:p><w:pPr><w:spacing w:before="400" w:after="0"/></w:pPr></w:p>'
+  body+=_tblStart([4200,600,4200])
+  body+='<w:tr>'
+    +_cell('_________________________',4200,{align:'center'})+_cell('',600,{})+_cell('_________________________',4200,{align:'center'})
+    +'</w:tr>'
+  body+='<w:tr>'
+    +_cell('Edison Bonifaz — Research Assesor',4200,{align:'center',sz:18,color:'555555'})+_cell('',600,{})
+    +_cell(cl&&cl.nombre||'Cliente',4200,{align:'center',sz:18,color:'555555'})
+    +'</w:tr>'
+  body+='</w:tbl>'
+
+  body+=_hline()
+  body+=_p('Documento generado por Research Assesor · '+fecha,{sz:16,color:'999999',align:'center',before:80,after:0})
+  body+='<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>'
+
+  const nombre=(cl&&cl.nombre||'cliente').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim().replace(/\s+/g,'_')
+  const suffix='_'+t.titulo.slice(0,20).replace(/[^a-zA-Z0-9]/g,'_')
+  _descargarDocx(body,'Acuerdo_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx')
 }
 
 // ── MENSAJES WHATSAPP ─────────────────────────────────────────────
