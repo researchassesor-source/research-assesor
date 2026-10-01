@@ -6,7 +6,7 @@
 // • Las llamadas al Apps Script (datos) NUNCA se guardan aquí.
 // Al publicar cambios importantes, sube el número de VERSION.
 // ================================================================
-const VERSION = 'ra-v7.2';
+const VERSION = 'ra-v7.5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,6 +16,14 @@ const APP_SHELL = [
   './icons/apple-touch-icon.png'
 ];
 const CDN_JSZIP = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+// Librerías de los contratos (QR y lectura de firmas electrónicas): se guardan al usarlas
+const CDN_LIBS = [CDN_JSZIP,
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+  'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+  'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Regular.ttf',
+  'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Bold.ttf'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -64,7 +72,7 @@ self.addEventListener('fetch', function (e) {
   }
 
   // Archivos propios y JSZip: caché primero, y se actualiza en segundo plano
-  if (url.origin === self.location.origin || req.url === CDN_JSZIP) {
+  if (url.origin === self.location.origin || CDN_LIBS.indexOf(req.url) > -1) {
     e.respondWith(
       caches.match(req).then(function (hit) {
         const red = fetch(req).then(function (res) {

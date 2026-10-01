@@ -1,4 +1,15 @@
 // ================================================================
+// Research Assessor — Apps Script v7.5
+// Novedades v7.5: el contrato se emite como PDF firmado con el certificado .p12 del prestador
+//   (emitirContrato con formato:'pdf' y firmado:true registra emisión y firma en un solo paso)
+// ----------------------------------------------------------------
+// Research Assessor — Apps Script v7.4
+// Novedades v7.4 (auditoría de contratos):
+//   • Hojas protegidas Contratos y AuditoriaContratos (no editables desde la API genérica)
+//   • emitirContrato / registrarFirmado / anularContrato (requieren usuario administrador)
+//   • verificar (público): registro oficial + cadena de auditoría con HMAC-SHA256
+//   • Huellas SHA-256 calculadas en el servidor; hora oficial del servidor; comprobantes por correo
+// ----------------------------------------------------------------
 // Research Assessor — Apps Script v7.1
 // Novedades v7.1:
 //   • Nueva hoja: Propuestas (proformas con varios artículos, JSON)
@@ -43,10 +54,26 @@ var ESQUEMA = {
   Seguimientos:   ['id','trabajoId','etapa','fecha','nota','responsable','revista','visibleCliente','createdAt'],
   Config:         ['id','valor'],
   // ── NUEVO v7.1 ──
-  Propuestas:     ['id','clienteId','clienteNombre','titulo','area','fecha','validez','estado','articulos','hitos','notas','docUrl','docFecha','createdAt']
+  Propuestas:     ['id','clienteId','clienteNombre','titulo','area','fecha','validez','estado','articulos','hitos','notas','docUrl','docFecha','createdAt'],
+  // ── NUEVO v7.4 (auditoría) ──
+  Contratos:      ['id','trabajoId','clienteId','clienteNombre','titulo','tipo','valor','estado','version','fechaEmision','hashEmitido','urlEmitido',
+                   'fechaFirmaPrestador','hashFirmaPrestador','urlFirmaPrestador','firmasPrestador',
+                   'fechaFirmaAmbos','hashFirmaAmbos','urlFirmaAmbos','firmasAmbos','resumen','reemplazadoPor','createdAt'],
+  AuditoriaContratos: ['id','contratoId','fecha','evento','actor','detalle','hashDocumento','hashPrevio','hashEvento']
 };
 
 var CARPETA_CONTRATOS = 'Research Assessor — Contratos';
+var CARPETA_EMITIDOS  = 'Research Assessor — Contratos emitidos';
+var CARPETA_FIRMADOS  = 'Research Assessor — Contratos firmados';
+// Hojas que solo se escriben mediante las acciones de auditoría (nunca con insertar/actualizar/eliminar)
+var PROTEGIDAS = ['Contratos', 'AuditoriaContratos'];
+// Si la hoja Usuarios está vacía se aceptan los administradores por defecto de la app.
+// Crea tus propios usuarios en la app (Usuarios) para reemplazarlos.
+var ADMINS_POR_DEFECTO = [['admin','research2024'],['edison','asesor2024']];
+
+function verificarTablaEditable(tabla) {
+  if (PROTEGIDAS.indexOf(tabla) > -1) throw new Error('La hoja ' + tabla + ' está protegida (auditoría)');
+}
 
 // ── Estado de Asignaciones ────────────────────────────────────────
 // pendiente  → asignado pero no completado
@@ -73,17 +100,21 @@ function doGet(e) {
         usuarios:        leer(ss, 'Usuarios'),
         seguimientos:    leer(ss, 'Seguimientos'),
         config:          leer(ss, 'Config'),
-        propuestas:      leer(ss, 'Propuestas')
+        propuestas:      leer(ss, 'Propuestas'),
+        contratos:       leer(ss, 'Contratos')
       };
+    } else if (action === 'verificar') {
+      result = verificarContrato(ss, e.parameter.codigo || '');
     } else if (action === 'write') {
       var body = JSON.parse(e.parameter.payload || '{}');
+      verificarTablaEditable(body.tabla);
       if      (body.action === 'insertar')   { insertar(ss, body.tabla, body.fila); }
       else if (body.action === 'actualizar') { actualizar(ss, body.tabla, body.id, body.fila); }
       else if (body.action === 'eliminar')   { eliminar(ss, body.tabla, body.id); }
       else { throw new Error('Op desconocida: ' + body.action); }
       result = { ok: true };
     } else if (action === 'ping') {
-      result = { ok: true, msg: 'OK', script: 'v7.1' };
+      result = { ok: true, msg: 'OK', script: 'v7.5' };
     } else if (action === 'createMeet') {
       var title    = (e.parameter.title    || 'Reunión Research Assessor');
       var date     = (e.parameter.date     || '');
@@ -114,6 +145,10 @@ function doPost(e) {
     var ss = SpreadsheetApp.openById(SS_ID);
     var b  = JSON.parse(e.postData.contents);
     if (b.action === 'guardarContrato') { return respJson(guardarContrato(ss, b)); }
+    if (b.action === 'emitirContrato')   { return respJson(emitirContrato(ss, b)); }
+    if (b.action === 'registrarFirmado') { return respJson(registrarFirmado(ss, b)); }
+    if (b.action === 'anularContrato')   { return respJson(anularContrato(ss, b)); }
+    verificarTablaEditable(b.tabla);
     if      (b.action === 'insertar')   { insertar(ss, b.tabla, b.fila); }
     else if (b.action === 'actualizar') { actualizar(ss, b.tabla, b.id, b.fila); }
     else if (b.action === 'eliminar')   { eliminar(ss, b.tabla, b.id); }
@@ -326,6 +361,252 @@ function inicializar() {
   var res = repararHojas(ss);
   Logger.log(res.join('\n'));
   Logger.log('✅ v7.1 — datos existentes preservados');
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUDITORÍA DE CONTRATOS
+// • Cada contrato emitido recibe un código único y su huella SHA-256
+//   (calculada aquí, en el servidor, sobre los bytes exactos del archivo).
+// • Cada evento (emisión, firmas, anulación) se encadena con el anterior
+//   mediante HMAC-SHA256 con una clave secreta guardada en las propiedades
+//   del script: si alguien edita o borra una fila, la verificación lo detecta.
+// • La hora de cada evento es la del servidor de Google (no la del equipo).
+// ════════════════════════════════════════════════════════════════
+function hex_(bytes) {
+  return bytes.map(function(b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
+}
+function sha256Hex_(bytes) {
+  return hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes));
+}
+function claveAuditoria_() {
+  var props = PropertiesService.getScriptProperties();
+  var k = props.getProperty('AUDIT_KEY');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); props.setProperty('AUDIT_KEY', k); }
+  return k;
+}
+function hmacEvento_(ev) {
+  var base = [ev.hashPrevio, ev.contratoId, ev.fecha, ev.evento, ev.actor, ev.detalle, ev.hashDocumento].join('|');
+  return hex_(Utilities.computeHmacSha256Signature(base, claveAuditoria_()));
+}
+function ahoraISO_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+function validarAdmin_(ss, auth) {
+  auth = auth || {};
+  var u = String(auth.usuario || ''), p = String(auth.password || '');
+  if (!u || !p) throw new Error('Se requiere un usuario administrador');
+  var usuarios = leer(ss, 'Usuarios');
+  var ok;
+  if (usuarios.length) {
+    ok = usuarios.some(function(x) {
+      return x.usuario === u && x.password === p && String(x.activo) !== '0' && (x.role || 'admin') === 'admin';
+    });
+  } else {
+    ok = ADMINS_POR_DEFECTO.some(function(x) { return x[0] === u && x[1] === p; });
+  }
+  if (!ok) throw new Error('Usuario o contraseña de administrador no válidos');
+  return u;
+}
+function filaContrato_(ss, codigo) {
+  var lista = leer(ss, 'Contratos');
+  for (var i = 0; i < lista.length; i++) if (lista[i].id === codigo) return lista[i];
+  return null;
+}
+// Añade un evento encadenado al historial del contrato
+function registrarEvento_(ss, contratoId, evento, actor, detalle, hashDocumento) {
+  var hoja = hojaParaEscribir(ss, 'AuditoriaContratos');
+  var previos = leer(ss, 'AuditoriaContratos').filter(function(e) { return e.contratoId === contratoId; });
+  var ev = {
+    id: Utilities.getUuid(), contratoId: contratoId, fecha: ahoraISO_(), evento: evento,
+    actor: actor || '', detalle: detalle || '', hashDocumento: hashDocumento || '',
+    hashPrevio: previos.length ? previos[previos.length - 1].hashEvento : 'INICIO'
+  };
+  ev.hashEvento = hmacEvento_(ev);
+  // Texto plano ("'") para que Sheets no convierta fechas ni números
+  var cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  hoja.appendRow(cab.map(function(h) { return ev[h] !== undefined ? "'" + String(ev[h]) : ''; }));
+  return ev;
+}
+function guardarArchivo_(carpeta, nombre, base64, mime) {
+  var bytes = Utilities.base64Decode(base64);
+  var blob = Utilities.newBlob(bytes, mime, String(nombre).replace(/[\\\/:*?"<>|]/g, '_'));
+  var file = carpetaContratos(carpeta).createFile(blob);
+  try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  return { file: file, hash: sha256Hex_(bytes), bytes: bytes };
+}
+function enviarComprobante_(para, asunto, html) {
+  if (!para) return;
+  try { MailApp.sendEmail({ to: para, subject: asunto, htmlBody: html, name: 'Research Assessor' }); } catch (e) {}
+}
+function htmlComprobante_(titulo, filas, urlVerificar) {
+  return '<div style="font-family:Arial,sans-serif;max-width:560px;color:#0B2545">'
+    + '<h2 style="color:#0F4C81;margin:0 0 12px">' + titulo + '</h2>'
+    + '<table style="border-collapse:collapse;width:100%;font-size:13px">'
+    + filas.map(function(f) { return '<tr><td style="padding:6px 8px;border:1px solid #E6E3DC;background:#FAFAF7;font-weight:bold;width:38%">' + f[0] + '</td><td style="padding:6px 8px;border:1px solid #E6E3DC;word-break:break-all">' + f[1] + '</td></tr>'; }).join('')
+    + '</table>'
+    + (urlVerificar ? '<p style="font-size:13px">Verifique la autenticidad del documento en:<br><a href="' + urlVerificar + '">' + urlVerificar + '</a></p>' : '')
+    + '<p style="font-size:11px;color:#8C94A3">Guarde este correo: es un comprobante independiente del registro del contrato (código, huella SHA-256 y hora oficial).</p></div>';
+}
+
+// Emite (registra) la versión revisada del contrato, con su código y QR ya incluidos en el archivo
+function emitirContrato(ss, b) {
+  try {
+    var actor = validarAdmin_(ss, b.auth);
+    var codigo = String(b.codigo || '');
+    if (!/^RA-\d{4}-[A-Z0-9]{8}$/.test(codigo)) throw new Error('Código de verificación no válido');
+    if (filaContrato_(ss, codigo)) throw new Error('El código ya existe; vuelve a intentarlo');
+    // v7.5: el contrato llega como PDF ya firmado con el certificado .p12 del prestador
+    var esPdf = b.formato === 'pdf';
+    if (esPdf) {
+      var texto = Utilities.newBlob(Utilities.base64Decode(b.base64)).getDataAsString('ISO-8859-1');
+      if (texto.slice(0, 5) !== '%PDF-') throw new Error('El archivo no es un PDF');
+      if (b.firmado && !/\/ByteRange\s*\[/.test(texto)) throw new Error('El PDF no contiene la firma electrónica');
+    }
+    var r = esPdf
+      ? guardarArchivo_(CARPETA_FIRMADOS, b.nombre || (codigo + '_firmado.pdf'), b.base64, 'application/pdf')
+      : guardarArchivo_(CARPETA_EMITIDOS, b.nombre || (codigo + '.docx'), b.base64, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    var firmado = esPdf && !!b.firmado;
+    var resumen = b.resumen || {};
+    var anteriores = leer(ss, 'Contratos').filter(function(c) {
+      return c.trabajoId === b.trabajoId && c.estado !== 'anulado' && c.estado !== 'reemplazado';
+    });
+    var fecha = ahoraISO_();
+    var fila = {
+      id: codigo, trabajoId: b.trabajoId || '', clienteId: b.clienteId || '', clienteNombre: resumen.cliente ? resumen.cliente.nombre : '',
+      titulo: resumen.titulo || '', tipo: resumen.tipo || '', valor: resumen.valor || '', estado: firmado ? 'firmado_prestador' : 'emitido',
+      version: String(leer(ss, 'Contratos').filter(function(c) { return c.trabajoId === b.trabajoId; }).length + 1),
+      fechaEmision: fecha, hashEmitido: r.hash, urlEmitido: r.file.getUrl(), resumen: JSON.stringify(resumen), createdAt: fecha
+    };
+    if (firmado) {
+      fila.fechaFirmaPrestador = fecha; fila.hashFirmaPrestador = r.hash; fila.urlFirmaPrestador = r.file.getUrl();
+      fila.firmasPrestador = String(b.firmas || '');
+    }
+    insertarInterno_(ss, 'Contratos', fila);
+    registrarEvento_(ss, codigo, 'EMITIDO', actor, 'Versión ' + fila.version + ' revisada y emitida' + (anteriores.length ? ' (reemplaza a ' + anteriores.map(function(a) { return a.id; }).join(', ') + ')' : ''), r.hash);
+    if (firmado) registrarEvento_(ss, codigo, 'FIRMADO_PRESTADOR', actor, 'Firmado electrónicamente en el sistema con certificado .p12' + (b.resumenFirmas ? ' · ' + b.resumenFirmas : ''), r.hash);
+    anteriores.forEach(function(a) {
+      actualizarInterno_(ss, 'Contratos', a.id, { estado: 'reemplazado', reemplazadoPor: codigo });
+      registrarEvento_(ss, a.id, 'REEMPLAZADO', actor, 'Reemplazado por ' + codigo, '');
+    });
+    if (b.trabajoId) actualizar(ss, 'Trabajos', b.trabajoId, { contratoUrl: r.file.getUrl(), contratoFecha: fecha.slice(0, 10) });
+    if (b.notificar) {
+      var html = htmlComprobante_(firmado ? 'Contrato emitido y firmado por el prestador' : 'Contrato emitido', [['Código', codigo], ['Contrato', fila.titulo], ['Cliente', fila.clienteNombre],
+        ['Fecha (servidor)', fecha], ['Huella SHA-256', r.hash]].concat(firmado ? [['Firma', b.resumenFirmas || 'Firma electrónica']] : []), b.urlVerificar);
+      enviarComprobante_(b.emailCliente, 'Contrato ' + codigo + (firmado ? ' firmado' : ' emitido') + ' — Research Assessor', html);
+      enviarComprobante_(Session.getEffectiveUser().getEmail(), '[Copia] Contrato ' + codigo + (firmado ? ' firmado' : ' emitido'), html);
+    }
+    return { ok: true, codigo: codigo, hash: r.hash, url: r.file.getUrl(), fecha: fecha, version: fila.version };
+  } catch (err) {
+    return { ok: false, error: err.toString() };
+  }
+}
+
+// Registra el PDF firmado electrónicamente (por el prestador o por ambas partes)
+function registrarFirmado(ss, b) {
+  try {
+    var actor = validarAdmin_(ss, b.auth);
+    var c = filaContrato_(ss, b.codigo);
+    if (!c) throw new Error('Contrato no encontrado: ' + b.codigo);
+    if (c.estado === 'anulado' || c.estado === 'reemplazado') throw new Error('El contrato está ' + c.estado + '; emite una nueva versión');
+    var etapa = b.etapa === 'ambos' ? 'ambos' : 'prestador';
+    var bytes = Utilities.base64Decode(b.base64);
+    var texto = Utilities.newBlob(bytes).getDataAsString('ISO-8859-1');
+    if (texto.slice(0, 5) !== '%PDF-') throw new Error('El archivo no es un PDF');
+    var tieneFirma = /\/ByteRange\s*\[/.test(texto);
+    if (etapa === 'prestador' && !tieneFirma) throw new Error('El PDF no contiene una firma electrónica. Fírmalo con un certificado de firma electrónica y vuelve a subirlo.');
+    var r = guardarArchivo_(CARPETA_FIRMADOS, b.nombre || (b.codigo + '_firmado.pdf'), b.base64, 'application/pdf');
+    var fecha = ahoraISO_();
+    var firmas = String(b.firmas || '');
+    var cambios = etapa === 'ambos'
+      ? { estado: 'firmado', fechaFirmaAmbos: fecha, hashFirmaAmbos: r.hash, urlFirmaAmbos: r.file.getUrl(), firmasAmbos: firmas }
+      : { estado: 'firmado_prestador', fechaFirmaPrestador: fecha, hashFirmaPrestador: r.hash, urlFirmaPrestador: r.file.getUrl(), firmasPrestador: firmas };
+    actualizarInterno_(ss, 'Contratos', c.id, cambios);
+    // El portal del cliente muestra siempre la última versión firmada
+    if (c.trabajoId) { try { actualizar(ss, 'Trabajos', c.trabajoId, { contratoUrl: r.file.getUrl(), contratoFecha: fecha.slice(0, 10) }); } catch (e) {} }
+    var detalle = (etapa === 'ambos' ? 'PDF firmado por ambas partes' : 'PDF firmado electrónicamente por el prestador')
+      + (tieneFirma ? '' : ' (sin firma digital: firma manuscrita escaneada)') + (b.resumenFirmas ? ' · ' + b.resumenFirmas : '');
+    registrarEvento_(ss, c.id, etapa === 'ambos' ? 'FIRMADO_AMBAS_PARTES' : 'FIRMADO_PRESTADOR', actor, detalle, r.hash);
+    if (b.notificar) {
+      var html = htmlComprobante_(etapa === 'ambos' ? 'Contrato firmado por ambas partes' : 'Contrato firmado por el prestador',
+        [['Código', c.id], ['Contrato', c.titulo], ['Fecha (servidor)', fecha], ['Huella SHA-256 del PDF', r.hash], ['Firmas', b.resumenFirmas || (tieneFirma ? 'Firma digital' : 'Manuscrita')]], b.urlVerificar);
+      enviarComprobante_(b.emailCliente, 'Contrato ' + c.id + (etapa === 'ambos' ? ' firmado' : ' firmado por el prestador') + ' — Research Assessor', html);
+      enviarComprobante_(Session.getEffectiveUser().getEmail(), '[Copia] Contrato ' + c.id + ' firmado (' + etapa + ')', html);
+    }
+    return { ok: true, hash: r.hash, url: r.file.getUrl(), fecha: fecha, tieneFirma: tieneFirma };
+  } catch (err) {
+    return { ok: false, error: err.toString() };
+  }
+}
+
+function anularContrato(ss, b) {
+  try {
+    var actor = validarAdmin_(ss, b.auth);
+    var c = filaContrato_(ss, b.codigo);
+    if (!c) throw new Error('Contrato no encontrado');
+    if (c.estado === 'anulado') return { ok: true };
+    actualizarInterno_(ss, 'Contratos', c.id, { estado: 'anulado' });
+    registrarEvento_(ss, c.id, 'ANULADO', actor, String(b.motivo || 'Sin motivo indicado').slice(0, 300), '');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.toString() };
+  }
+}
+
+// Consulta pública (código QR): datos del registro y validación de la cadena de auditoría
+function enmascarar_(ced) {
+  ced = String(ced || '');
+  return ced.length > 4 ? ced.slice(0, 2) + new Array(ced.length - 3).join('•') + ced.slice(-2) : ced;
+}
+function verificarContrato(ss, codigo) {
+  var c = filaContrato_(ss, String(codigo || '').trim().toUpperCase());
+  if (!c) return { ok: true, encontrado: false };
+  var eventos = leer(ss, 'AuditoriaContratos').filter(function(e) { return e.contratoId === c.id; });
+  var integra = eventos.length > 0, previo = 'INICIO';
+  eventos.forEach(function(e) {
+    if (e.hashPrevio !== previo || hmacEvento_(e) !== e.hashEvento) integra = false;
+    previo = e.hashEvento;
+  });
+  // La última huella registrada debe coincidir con el estado actual del contrato
+  var ultimoDoc = eventos.filter(function(e) { return e.hashDocumento; }).pop();
+  var hashActual = c.hashFirmaAmbos || c.hashFirmaPrestador || c.hashEmitido;
+  if (ultimoDoc && ultimoDoc.hashDocumento !== hashActual) integra = false;
+  var res = {};
+  try { res = JSON.parse(c.resumen || '{}'); } catch (e) {}
+  if (res.cliente) res.cliente.cedula = enmascarar_(res.cliente.cedula);
+  if (res.prestador) res.prestador.cedula = enmascarar_(res.prestador.cedula);
+  return {
+    ok: true, encontrado: true, cadenaIntegra: integra,
+    contrato: {
+      codigo: c.id, estado: c.estado, version: c.version, titulo: c.titulo, tipo: c.tipo, valor: c.valor,
+      fechaEmision: c.fechaEmision, hashEmitido: c.hashEmitido, urlEmitido: c.urlEmitido,
+      fechaFirmaPrestador: c.fechaFirmaPrestador, hashFirmaPrestador: c.hashFirmaPrestador, urlFirmaPrestador: c.urlFirmaPrestador, firmasPrestador: c.firmasPrestador,
+      fechaFirmaAmbos: c.fechaFirmaAmbos, hashFirmaAmbos: c.hashFirmaAmbos, urlFirmaAmbos: c.urlFirmaAmbos, firmasAmbos: c.firmasAmbos,
+      reemplazadoPor: c.reemplazadoPor, resumen: res
+    },
+    eventos: eventos.map(function(e) { return { fecha: e.fecha, evento: e.evento, detalle: e.detalle, hashDocumento: e.hashDocumento }; })
+  };
+}
+// Escritura para hojas protegidas (solo desde las acciones de auditoría).
+// Todo se guarda como texto ("'") para que Sheets no convierta huellas ni fechas.
+function insertarInterno_(ss, nombre, fila) {
+  var hoja = hojaParaEscribir(ss, nombre);
+  var cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  hoja.appendRow(cab.map(function(h) { return fila[h] !== undefined ? "'" + String(fila[h]) : ''; }));
+}
+function actualizarInterno_(ss, nombre, id, fila) {
+  var hoja = hojaParaEscribir(ss, nombre);
+  var datos = hoja.getDataRange().getValues();
+  var cab = datos[0], colId = cab.indexOf('id');
+  for (var i = 1; i < datos.length; i++) {
+    if (String(datos[i][colId]) === String(id)) {
+      hoja.getRange(i + 1, 1, 1, cab.length).setValues([cab.map(function(h, j) {
+        var v = fila[h] !== undefined ? fila[h] : datos[i][j];
+        return v === '' || v === null ? '' : "'" + String(v);
+      })]);
+      return;
+    }
+  }
+  throw new Error('No encontrado id=' + id + ' en ' + nombre);
 }
 
 // ════════════════════════════════════════════════════════════════

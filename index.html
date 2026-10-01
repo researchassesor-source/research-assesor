@@ -598,6 +598,15 @@ var WA_TPLS_DEFAULT=[
   {id:'proforma', nombre:'Envío de propuesta (proforma)', categoria:'contratos',
    msg:'Hola {{nombre}} 👋\n\nTe comparto la *{{trabajo}}*, con {{cantidad}} artículo(s) propuesto(s): revista, cuartil, valor total, valor por autor y tiempo estimado de cada uno.\n\n📄 *Propuesta:* {{link}}\n📅 *Validez:* {{fecha}}\n\nSi quieres ajustar algún artículo o tienes preguntas sobre la forma de pago, con gusto lo conversamos. 🤝\n\n— {{prestador}} | Research Assessor'},
 
+  {id:'contrato_firmado', nombre:'Contrato firmado por mí (para firma del cliente)', categoria:'contratos',
+   msg:'Hola {{nombre}} 👋\n\nTe comparto el contrato de *{{trabajo}}*, ya firmado electrónicamente por mí.\n\n📄 *Contrato (PDF):* {{link}}\n🔐 *Código de verificación:* {{codigo}}\n✅ *Verifica su autenticidad:* {{verificar}}\n\nPor favor fírmalo con tu firma electrónica (o imprímelo, fírmalo a mano y escanéalo) *sin modificar el documento*, y envíamelo por este medio para registrarlo. 🤝\n\n— {{prestador}} | Research Assessor'},
+
+  {id:'contrato_completo', nombre:'Contrato firmado por ambas partes', categoria:'contratos',
+   msg:'Hola {{nombre}} 🎉\n\nEl contrato de *{{trabajo}}* quedó firmado por ambas partes y registrado.\n\n📄 *Copia final (PDF):* {{link}}\n🔐 *Código de verificación:* {{codigo}}\n✅ *Verificar autenticidad:* {{verificar}}\n\nGuárdalo como respaldo. ¡Gracias por tu confianza! 🙌\n\n— {{prestador}} | Research Assessor'},
+
+  {id:'portal', nombre:'Acceso al portal de seguimiento', categoria:'general',
+   msg:'Hola {{nombre}} 👋\n\nYa tienes acceso a tu *portal de seguimiento* de Research Assessor. Ahí podrás ver en todo momento el avance de tus trabajos, el proceso de publicación (etapa, revista e historial), tu contrato y tus pagos.\n\n🔗 *Ingresa aquí:* {{link}}\n👤 *Usuario:* {{usuario}}\n🔑 *Contraseña:* {{clave}}\n\n📲 Consejo: al abrir el enlace puedes tocar *Instalar app* para tenerlo en tu teléfono como una aplicación.\n\nCualquier duda, aquí estoy. 😊\n\n— {{prestador}} | Research Assessor'},
+
   {id:'pub_avance', nombre:'Avance del proceso de publicación', categoria:'publicacion',
    msg:'Hola {{nombre}} 👋\n\nTe comparto una actualización del proceso de publicación de tu artículo *{{trabajo}}*:\n\n📍 *Etapa actual:* {{etapa}}\n📰 *Revista:* {{revista}}\n📅 *Fecha:* {{fecha}}\n📝 {{nota}}\n\n📊 *Avance general:* {{avance}}%\n\nPuedes ver el detalle completo en tu portal de seguimiento. Cualquier consulta, aquí estoy. 😊\n\n— {{prestador}} | Research Assessor'},
 
@@ -688,6 +697,7 @@ function mapData(r){
     seguimientos:  r.seguimientos  ||[],
     config:        r.config        ||[],
     propuestas:    r.propuestas    ||[],
+    contratos:     r.contratos     ||[],  // registro de auditoría (solo lectura; lo escribe el servidor)
   }
 }
 // ── Copia local para trabajar sin conexión (app instalada) ──
@@ -722,7 +732,8 @@ function draw(){
     // Si el mismo formulario sigue abierto (p. ej. llega una recarga en segundo plano),
     // se conserva lo que el usuario ya escribió.
     const snap=modal&&modal===_modalDibujado?_capturarModal():null
-    el.innerHTML=user?(htmlApp()+htmlModal()):htmlLogin()
+    // ?v=CÓDIGO → página pública de verificación de contratos (no requiere iniciar sesión)
+    el.innerHTML=VERIF.activo?htmlVerificacion():user?(htmlApp()+htmlModal()):htmlLogin()
     if(snap)_restaurarModal(snap)
     _modalDibujado=modal
   }catch(err){
@@ -914,6 +925,10 @@ function htmlLogin(){
     +'<button class="l-btn" onclick="doLogin()">Ingresar →</button>'
     +'</div>'
     +'<div id="inst_slot" style="width:100%;max-width:420px;margin-top:14px">'+htmlInstalarLogin()+'</div>'
+    +'<div style="width:100%;max-width:420px;margin-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px">'
+    +'<a href="?v=" style="color:var(--brand);font-weight:600;text-decoration:none">🔎 Verificar un contrato</a>'
+    +(!esStandalone()?'<a href="#" style="color:var(--text3);text-decoration:none" onclick="event.preventDefault();correrDiagnostico(\'diag_login\')">¿No puedes instalar la app?</a>':'')+'</div>'
+    +'<div id="diag_login" style="width:100%;max-width:420px;margin-top:10px"></div>'
     +'</div>'
 }
 async function doLogin(){
@@ -982,7 +997,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.2'
+const VERSION='v7.5'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -2476,7 +2491,8 @@ function _p(text,opts){
   const before=opts.before||0
   const after=opts.after!==undefined?opts.after:80
   const align=opts.align?'<w:jc w:val="'+opts.align+'"/>':''
-  return'<w:p><w:pPr><w:spacing w:before="'+before+'" w:after="'+after+'"/>'+align+'</w:pPr>'
+  const keep=opts.keep?'<w:keepNext/>':''  // no separar este párrafo de lo que sigue (p. ej. una tabla)
+  return'<w:p><w:pPr>'+keep+'<w:spacing w:before="'+before+'" w:after="'+after+'"/>'+align+'</w:pPr>'
     +'<w:r><w:rPr>'+bold+'<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>'+DOC_RF+''+color+'</w:rPr>'
     +'<w:t xml:space="preserve">'+_xml(text)+'</w:t></w:r></w:p>'
 }
@@ -2501,13 +2517,20 @@ function _anclaImg(rid,id,x,y,cx,cy){
     +'</a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>'
 }
 const _NS_HF='xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-function _headerXml(){
+// opts.qrB64: QR de verificación (contrato emitido) → esquina superior derecha de cada página
+function _headerXml(opts){
+  opts=opts||{}
   // Logo 7 cm de ancho, a 1 cm del borde superior e izquierdo
   const cx=2520000,cy=Math.round(2520000*149/420)
+  const q=820000 // QR de 2,3 cm
   return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr '+_NS_HF+'><w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>'
-    +_anclaImg('rIdLogo',101,500000,300000,cx,cy)+'</w:p></w:hdr>'
+    +_anclaImg('rIdLogo',101,500000,300000,cx,cy)
+    +(opts.qrB64?_anclaImg('rIdQR',103,7560310-500000-q,260000,q,q):'')
+    +'</w:p></w:hdr>'
 }
-function _footerXml(){
+// opts.codigo: código de verificación impreso en el pie de todas las páginas
+function _footerXml(opts){
+  opts=opts||{}
   const pr=prestador()
   const lin=[pr.direccion?'Dirección: '+pr.direccion:'',pr.telefono?'Celular: '+pr.telefono:'',pr.web?'Sitio web: '+pr.web:''].filter(Boolean)
   // Ondas de marca: ancho completo de la página, pegadas al borde inferior (A4 = 7560310 × 10692130 EMU)
@@ -2516,8 +2539,10 @@ function _footerXml(){
     return'<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr>'+(img||'')
       +(t?'<w:r><w:rPr><w:rFonts w:ascii="'+DOC_FONT+'" w:hAnsi="'+DOC_FONT+'"/><w:b/><w:color w:val="215E99"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">'+_xml(t)+'</w:t></w:r>':'')+'</w:p>'
   }
+  const ver=opts.codigo?'<w:p><w:pPr><w:spacing w:before="0" w:after="40"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="'+DOC_FONT+'" w:hAnsi="'+DOC_FONT+'"/><w:color w:val="0B2545"/><w:sz w:val="15"/><w:szCs w:val="15"/></w:rPr>'
+    +'<w:t xml:space="preserve">'+_xml('Código de verificación: '+opts.codigo+' · Verifique su autenticidad escaneando el código QR')+'</w:t></w:r></w:p>':''
   const img=_anclaImg('rIdOndas',102,0,10692130-cy,cx,cy)
-  return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr '+_NS_HF+'>'
+  return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr '+_NS_HF+'>'+ver
     +(lin.length?lin.map(function(t,i){return par(t,i===0?img:'')}).join(''):par('',img))+'</w:ftr>'
 }
 
@@ -2552,8 +2577,8 @@ function _cell(text,w,opts){
     +'<w:shd w:val="clear" w:color="auto" w:fill="'+fill+'"/>'
     +'<w:tcMar><w:top w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/>'
     +'<w:bottom w:w="80" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>'
-    +'</w:tcPr><w:p><w:pPr><w:jc w:val="'+align+'"/>'
-    +'<w:spacing w:before="0" w:after="0"/></w:pPr>'
+    +'</w:tcPr><w:p><w:pPr>'+(opts.keep?'<w:keepNext/>':'')
+    +'<w:spacing w:before="0" w:after="0"/><w:jc w:val="'+align+'"/></w:pPr>'
     +'<w:r><w:rPr>'+bold+'<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>'
     +''+DOC_RF+''
     +'<w:color w:val="'+txtColor+'"/></w:rPr>'
@@ -2697,22 +2722,32 @@ function _generarDocx(cl,trabajos,modo){
 }
 
 // ── Ensamblado DOCX compartido (JSZip) ─────────────────────────────
-function _docxZipFromBody(body){
+// opts (contrato emitido): {qrB64, codigo, titulo} → QR en el encabezado, código en el pie y metadatos
+function _docxZipFromBody(body,opts){
+  opts=opts||{}
   const zip=new window.JSZip()
-  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>')
-  zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'+(opts.codigo?'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>':'')+'</Types>')
+  zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'+(opts.codigo?'<Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>':'')+'</Relationships>')
+  // Metadatos: Word los copia al PDF (título, asunto, palabras clave); así se reconoce el contrato al subir el PDF firmado
+  if(opts.codigo)zip.folder('docProps').file('core.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+    +'<dc:title>'+_xml((opts.titulo||'Contrato')+' · '+opts.codigo)+'</dc:title><dc:subject>'+_xml('Código de verificación '+opts.codigo)+'</dc:subject><cp:keywords>'+_xml(opts.codigo)+'</cp:keywords><dc:creator>Research Assessor</dc:creator></cp:coreProperties>')
   const wf=zip.folder('word')
   wf.folder('_rels').file('document.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdHdr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rIdFtr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>')
   // Membrete: encabezado con logo y pie con ondas + contacto
   const relImg=function(id,target){return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="'+id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+target+'"/></Relationships>'}
-  wf.folder('_rels').file('header1.xml.rels',relImg('rIdLogo','media/logo.png'))
+  const relHdr=relImg('rIdLogo','media/logo.png')
+  wf.folder('_rels').file('header1.xml.rels',opts.qrB64?relHdr.replace('</Relationships>','<Relationship Id="rIdQR" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/qr.png"/></Relationships>'):relHdr)
+  if(opts.qrB64)wf.folder('media').file('qr.png',opts.qrB64,{base64:true})
   wf.folder('_rels').file('footer1.xml.rels',relImg('rIdOndas','media/ondas.jpg'))
-  wf.file('header1.xml',_headerXml())
-  wf.file('footer1.xml',_footerXml())
+  wf.file('header1.xml',_headerXml(opts))
+  wf.file('footer1.xml',_footerXml(opts))
   wf.folder('media').file('logo.png',LOGO_B64,{base64:true})
   wf.folder('media').file('ondas.jpg',ONDAS_B64,{base64:true})
   // Un solo formato de página para todos los documentos
   body=body.replace(/<w:sectPr>[\s\S]*?<\/w:sectPr>/g,'')+DOC_SECT
+  // Ninguna fila de tabla se parte entre dos páginas: el visor de Google Drive
+  // dibuja una fila partida en ambas páginas y parece un pago repetido.
+  body=body.replace(/<w:tr>(?!<w:trPr>)/g,'<w:tr><w:trPr><w:cantSplit/></w:trPr>')
   wf.file('styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr>'+DOC_RF+'<w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/></w:tblBorders></w:tblPr></w:style></w:styles>')
   const docNS='xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" mc:Ignorable="w14"'
   wf.file('document.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document '+docNS+'><w:body>'+body+'</w:body></w:document>')
@@ -2748,7 +2783,7 @@ const CLAUSULAS_NUM=['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','S�
 const NUM_TXT=['cero','un','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez']
 const NOMBRE_MODELO={publicacion:'Producción y publicación científica',tesis:'Asesoría de tesis/proyectos',estadistica:'Análisis estadístico',revision:'Revisión bibliográfica / instrumentos',general:'General'}
 function _clausula(n,titulo){
-  return _p('CLÁUSULA '+(CLAUSULAS_NUM[n-1]||String(n))+'.- '+titulo,{sz:21,bold:true,color:'0F4C81',before:140,after:50})
+  return _p('CLÁUSULA '+(CLAUSULAS_NUM[n-1]||String(n))+'.- '+titulo,{sz:21,bold:true,color:'0F4C81',before:140,after:50,keep:true})
 }
 function _clausulaTexto(txt){
   return _p(txt,{sz:20,color:'222222',align:'both',after:80})
@@ -2793,7 +2828,8 @@ function _tituloContrato(modelo,t){
   return'CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES'
 }
 
-function _construirContrato(ctx){
+// em (opcional, contrato emitido): {codigo, url, fecha} → cláusula de firma electrónica y verificación
+function _construirContrato(ctx,em){
   const t=ctx.t,cl=ctx.cl,cuotas=ctx.cuotas,det=ctx.det,modelo=ctx.modelo,pr=ctx.pr
   const fecha=_fmtFecha()
   const total=parseFloat(t.total||0)
@@ -2958,27 +2994,37 @@ function _construirContrato(ctx){
 
   // ── Forma de pago ──
   body+=C('FORMA Y PLAZO DE PAGO')
-  body+=T('El valor señalado será cancelado por EL CONTRATANTE a EL PRESTADOR de conformidad con el siguiente plan de pagos:')
-  if(cuotas.length){
-    body+=_tblStart([700,3500,2500,3300])
-    body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+_cell('N°',700,{head:true,align:'center'})+_cell('Cuota',3500,{head:true})
-      +_cell('Fecha de pago',2500,{head:true,align:'center'})+_cell('Valor',3300,{head:true,align:'right'})+'</w:tr>'
-    cuotas.forEach(function(c,i){
-      const gray=i%2!==0
+  // Publicación: los pagos dependen de hitos editoriales → fechas estimadas
+  const fechasEstimadas=modelo==='publicacion'
+  // Una fila por cuota (por id), aunque la lista llegue con repetidos
+  const vistos={}
+  const cuotasU=cuotas.filter(function(c){const k=c.id||[c.label,c.fechaVencimiento,c.acordado].join('|');if(vistos[k])return false;vistos[k]=1;return true})
+  body+=_p('El valor señalado será cancelado por EL CONTRATANTE a EL PRESTADOR de conformidad con el siguiente plan de pagos'+(fechasEstimadas?' (fechas estimadas)':'')+':',{sz:20,color:'222222',align:'both',after:80,keep:true})
+  if(cuotasU.length){
+    // La tabla se mantiene completa en una misma página (keepNext en todas las filas menos la última)
+    const K={keep:true}
+    body+=_tblStart([700,3900,2300,3100])
+    body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+_cell('N°',700,{head:true,align:'center',keep:true})+_cell('Cuota',3900,{head:true,keep:true})
+      +_cell(fechasEstimadas?'Fecha estimada':'Fecha de pago',2300,{head:true,align:'center',keep:true})+_cell('Valor',3100,{head:true,align:'right',keep:true})+'</w:tr>'
+    cuotasU.forEach(function(c,i){
+      const o=Object.assign({gray:i%2!==0},K)
       body+='<w:tr>'
-        +_cell(String(i+1),700,{gray:gray,align:'center'})
-        +_cell(c.label||'Cuota',3500,{gray:gray})
-        +_cell(c.fechaVencimiento?fmtDCorto(c.fechaVencimiento):'—',2500,{gray:gray,align:'center'})
-        +_cell(_fmtM(c.acordado),3300,{gray:gray,align:'right'})
+        +_cell(String(i+1),700,Object.assign({align:'center'},o))
+        +_cell(c.label||'Cuota',3900,o)
+        +_cell(c.fechaVencimiento?fmtDCorto(c.fechaVencimiento):'—',2300,Object.assign({align:'center'},o))
+        +_cell(_fmtM(c.acordado),3100,Object.assign({align:'right'},o))
         +'</w:tr>'
     })
-    body+='<w:tr>'+_cell('',700,{gray:true})+_cell('TOTAL',3500,{bold:true,gray:true})
-      +_cell('',2500,{gray:true})+_cell(_fmtM(total),3300,{bold:true,gray:true,align:'right'})+'</w:tr>'
+    body+='<w:tr>'+_cell('',700,{gray:true})+_cell('TOTAL',3900,{bold:true,gray:true})
+      +_cell('',2300,{gray:true})+_cell(_fmtM(total),3100,{bold:true,gray:true,align:'right'})+'</w:tr>'
     body+='</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="80"/></w:pPr></w:p>'
   }else{
     body+=_p('Sin plan de pagos registrado para este trabajo.',{sz:20,color:'999999',after:80})
   }
-  body+=T('El incumplimiento en el pago de cualquiera de los valores señalados, en la fecha establecida, faculta a EL PRESTADOR para suspender la ejecución del servicio hasta la regularización del pago correspondiente, sin que ello genere responsabilidad alguna para EL PRESTADOR.')
+  if(fechasEstimadas){
+    body+=T('Las fechas de pago señaladas son estimativas y no constituyen fechas fijas. Los pagos vinculados a hitos del proceso editorial —como el envío del manuscrito, la respuesta de los revisores o la emisión de la carta de aceptación— serán exigibles en la fecha en que cada hito efectivamente se cumpla, la cual depende de los tiempos de evaluación y de las decisiones de la revista. EL PRESTADOR notificará a EL CONTRATANTE, por WhatsApp o correo electrónico, el cumplimiento de cada hito y la fecha del pago correspondiente.')
+  }
+  body+=T('El incumplimiento en el pago de cualquiera de los valores señalados, '+(fechasEstimadas?'en la fecha en que sea exigible':'en la fecha establecida')+', faculta a EL PRESTADOR para suspender la ejecución del servicio hasta la regularización del pago correspondiente, sin que ello genere responsabilidad alguna para EL PRESTADOR.')
 
   // ── Rechazo y reenvío (solo publicación) ──
   if(modelo==='publicacion'){
@@ -3024,13 +3070,19 @@ function _construirContrato(ctx){
     String(det.clausulasExtra).split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(p){body+=T(p)})
   }
 
+  if(em&&em.codigo){
+    body+=C('FIRMA ELECTRÓNICA, VERIFICACIÓN E INTEGRIDAD DEL DOCUMENTO')
+    body+=T('Las partes acuerdan suscribir el presente contrato mediante firma electrónica con certificado vigente, la cual tiene igual validez y efectos jurídicos que la firma manuscrita, conforme a la Ley de Comercio Electrónico, Firmas Electrónicas y Mensajes de Datos del Ecuador. EL CONTRATANTE podrá, alternativamente, suscribirlo con firma manuscrita y remitir el documento escaneado.')
+    body+=T('El presente contrato fue revisado y emitido el '+fmtDCorto(em.fecha)+' con el código de verificación '+em.codigo+', y su huella digital (SHA-256) quedó registrada en el sistema de auditoría de '+marca+' junto con la fecha y hora de cada firma. Su autenticidad e integridad pueden comprobarse en cualquier momento escaneando el código QR impreso en cada página o ingresando a '+em.url+'. Cualquier modificación del documento posterior a su emisión o a su firma impedirá que coincida con el registro oficial y lo invalidará.')
+  }
   body+=C('ACEPTACIÓN')
   body+=T('Las partes declaran conocer y aceptar en todas sus partes el contenido del presente contrato, por así convenir a sus intereses, y en constancia de ello lo suscriben en dos ejemplares de igual tenor y efecto.')
 
   body+=_p('Lugar y fecha de suscripción: '+(pr.ciudad?pr.ciudad:'______________________________')+', '+fecha,{sz:20,color:'333333',before:160,after:0})
 
   // ── Firmas ──
-  body+='<w:p><w:pPr><w:spacing w:before="500" w:after="0"/></w:pPr></w:p>'
+  // Espacio sobre las líneas de firma (allí va el sello de la firma electrónica)
+  body+='<w:p><w:pPr><w:keepNext/><w:spacing w:before="900" w:after="0"/></w:pPr></w:p>'
   body+=_tblStart([4200,600,4200])
   body+='<w:tr>'
     +_cell('_________________________',4200,{align:'center'})+_cell('',600,{})+_cell('_________________________',4200,{align:'center'})
@@ -3055,7 +3107,7 @@ function _construirContrato(ctx){
 
   const nombre=(cl&&cl.nombre||'cliente').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').trim().replace(/\s+/g,'_')
   const suffix='_'+t.titulo.slice(0,20).replace(/[^a-zA-Z0-9]/g,'_')
-  return{body:body,filename:'Contrato_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx'}
+  return{body:body,filename:(em&&em.codigo?em.codigo+'_':'')+'Contrato_'+nombre+suffix+'_'+fecha.replace(/\//g,'-')+'.docx'}
 }
 // "a) ...; b) ...; y, c) ..." (estilo del contrato original)
 function _literales(arr){
@@ -3078,7 +3130,7 @@ function htmlMensajes(){
   h+='<div style="background:#E3ECF6;border:1px solid #C9D9EB;border-radius:12px;padding:14px 18px;margin-bottom:20px">'
     +'<div style="font-size:12px;font-weight:700;color:#0F4C81;margin-bottom:8px">📌 Variables disponibles</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{pagado}}','{{saldo}}','{{saldo_total}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}','{{tipo}}','{{etapa}}','{{revista}}','{{nota}}','{{avance}}','{{prestador}}','{{cantidad}}'].map(function(vr){
+    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{pagado}}','{{saldo}}','{{saldo_total}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}','{{tipo}}','{{etapa}}','{{revista}}','{{nota}}','{{avance}}','{{prestador}}','{{cantidad}}','{{usuario}}','{{clave}}','{{codigo}}','{{verificar}}'].map(function(vr){
       return'<code style="background:#fff;border:1px solid #C9D9EB;border-radius:5px;padding:2px 8px;font-size:12px;color:#0F4C81">'+vr+'</code>'
     }).join('')
     +'</div></div>'
@@ -3189,7 +3241,7 @@ function previewTplForm(){
 function previewVarsExtra(s){
   return s.replace(/{{tipo}}/g,TIPO_PUB).replace(/{{etapa}}/g,'En revisión por pares')
     .replace(/{{revista}}/g,'Revista Iberoamericana de Educación').replace(/{{nota}}/g,'El artículo está con los revisores.')
-    .replace(/{{avance}}/g,'70').replace(/{{prestador}}/g,prestador().nombre).replace(/{{cantidad}}/g,'7')
+    .replace(/{{avance}}/g,'70').replace(/{{prestador}}/g,prestador().nombre).replace(/{{cantidad}}/g,'7').replace(/{{usuario}}/g,'anagarcia').replace(/{{clave}}/g,'clave123').replace(/{{codigo}}/g,'RA-2026-7K3Q9XPM').replace(/{{verificar}}/g,urlVerificacion('RA-2026-7K3Q9XPM'))
 }
 
 function submitTpl(oldId){
@@ -3417,7 +3469,8 @@ function htmlPortalProgreso(){
         +'</div>':'')
       // Contrato
       +(t.contratoUrl?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9">'
-        +'<a href="'+esc(t.contratoUrl)+'" target="_blank" style="font-size:12px;color:var(--brand);font-weight:600;display:inline-flex;align-items:center;gap:5px;text-decoration:none">📄 Ver mi contrato</a></div>':'')
+        +'<a href="'+esc(t.contratoUrl)+'" target="_blank" style="font-size:12px;color:var(--brand);font-weight:600;display:inline-flex;align-items:center;gap:5px;text-decoration:none">📄 Ver mi contrato</a>'
+        +(contratoVigente(t.id)?' <a href="'+esc(urlVerificacion(contratoVigente(t.id).id))+'" target="_blank" style="font-size:12px;color:var(--gold-dk);font-weight:600;margin-left:12px;text-decoration:none">🔐 Verificar autenticidad ('+esc(contratoVigente(t.id).id)+')</a>':'')+'</div>':'')
       // Dates
       +(t.fechaInicio||t.fechaFin?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--text3)">'
         +(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')
@@ -3562,12 +3615,30 @@ function mPortalUser(d){
     +'</select></div>'
     +'</div>'
     +'<div style="background:#E3ECF6;border-radius:8px;padding:10px 13px;font-size:12px;color:#0F4C81;margin-top:8px">'
-    +'<strong>El cliente verá:</strong> progreso de sus trabajos, barras de avance, fechas, y el estado de sus cuotas/pagos'
+    +'<strong>El cliente verá:</strong> sus trabajos con avance y fechas, el proceso de publicación (etapas, revista e historial), su contrato y el estado de sus cuotas y pagos.'
     +'</div>'
+    +(ex?htmlEnviarAcceso(d.clienteId,ex):'<div style="font-size:11px;color:var(--text3);margin-top:8px">Después de crear el acceso podrás enviárselo al cliente por WhatsApp.</div>')
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +(ex?'<button class="btn btn-r" onclick="eliminarPortalUser(\''+esc(ex.id||'')+'\')">🗑 Eliminar acceso</button>':'')
     +'<button class="btn btn-p" onclick="submitPortalUser(\''+esc(d.clienteId)+'\',\''+esc(ex?ex.id:'')+'\')">'+(ex?'Actualizar':'Crear acceso')+'</button>'
     +'</div>'
+}
+
+// Dirección pública de la app (la misma para el administrador y para los clientes)
+function urlApp(){return location.origin+location.pathname.replace(/index\.html$/,'')}
+function msgAccesoPortal(cl,u){
+  return waTpl('portal',{nombre:cl&&cl.nombre||'',link:urlApp(),usuario:u.usuario,clave:u.password,prestador:prestador().nombre})
+}
+function htmlEnviarAcceso(clienteId,u){
+  const cl=data.clientes.find(x=>x.id===clienteId)
+  const datos='Portal: '+urlApp()+'\nUsuario: '+u.usuario+'\nContraseña: '+u.password
+  return'<div style="background:var(--gold-lt);border:1px solid #EAD7B8;border-radius:10px;padding:12px 14px;margin-top:10px">'
+    +'<div style="font-size:12px;font-weight:800;color:var(--gold-dk);margin-bottom:6px">📲 Enviar el acceso al cliente</div>'
+    +'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px">Enlace del portal: <strong style="word-break:break-all">'+esc(urlApp())+'</strong><br/>El cliente entra con su usuario y contraseña en la misma pantalla de inicio de sesión, y también puede instalar la app en su teléfono.</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgAccesoPortal(cl,u)))+'">💬 Enviar acceso por WhatsApp</a>':'<span style="font-size:11px;color:var(--text3)">El cliente no tiene teléfono registrado.</span>')
+    +'<button type="button" class="btn btn-g btn-sm" onclick="copiarTexto(this,'+jss(datos)+')">📋 Copiar datos de acceso</button>'
+    +'</div></div>'
 }
 
 async function submitPortalUser(clienteId, existingId){
@@ -3600,6 +3671,8 @@ async function submitPortalUser(clienteId, existingId){
     window._clientUsers=cache
     toast(existingId?'Usuario actualizado ✓':'Acceso al portal creado ✓')
     await loadData()
+    // Reabre el acceso para enviarlo al cliente por WhatsApp
+    gestionarPortalCliente(clienteId)
   }else{
     toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
   }
@@ -4227,6 +4300,7 @@ function mPubDetalle(d){
     +'<button class="btn btn-gold btn-sm" onclick="openModal(\'seguimiento\',{trabajoId:\''+t.id+'\'})">+ Registrar avance</button>'
     +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgPubAvance(t,null)))+'">💬 Enviar estado por WhatsApp</a>':'')
     +'<button class="btn btn-g btn-sm" onclick="abrirContrato(\''+t.id+'\')">📝 Contrato'+(t.contratoUrl?' ✓':'')+'</button>'
+    +'<button class="btn btn-g btn-sm" title="Crear o enviar el acceso del cliente a su portal de seguimiento" onclick="gestionarPortalCliente(\''+esc(t.clienteId)+'\')">👤 Portal del cliente</button>'
     +'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar datos</button>'
     +(t.carpeta?'<a class="btn btn-g btn-sm" style="text-decoration:none" href="'+esc(t.carpeta)+'" target="_blank">📁 Carpeta</a>':'')
     +'</div>'
@@ -4375,19 +4449,26 @@ function mContrato(d){
   h+='<div class="pub-meta" style="margin-bottom:12px">'+res.map(r=>'<div><span>'+esc(r[0])+'</span><strong>'+esc(r[1])+'</strong></div>').join('')+'</div>'
   if(avisos.length)h+='<div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e">'
     +'<strong>Revisa antes de enviar:</strong><ul style="margin:6px 0 0 18px;line-height:1.6">'+avisos.map(a=>'<li>'+a+'</li>').join('')+'</ul></div>'
-  if(t.contratoUrl){
+  const reg=contratoVigente(t.id)
+  if(reg){
+    // Contrato emitido: el flujo pasa a firma electrónica y auditoría
+    h+=htmlAuditoriaContrato(ctx,reg)
+  }else if(t.contratoUrl){
     h+='<div style="background:var(--green-bg);border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:6px">'
-      +'<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">☁ Contrato guardado en Google Drive'+(t.contratoFecha?' · '+fmtDCorto(t.contratoFecha):'')+'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">☁ Borrador guardado en Google Drive'+(t.contratoFecha?' · '+fmtDCorto(t.contratoFecha):'')+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
       +'<a class="btn btn-g btn-sm" style="text-decoration:none" href="'+esc(t.contratoUrl)+'" target="_blank">🔗 Abrir en Drive</a>'
       +'<button class="btn btn-g btn-sm" onclick="copiarTexto(this,\''+esc(t.contratoUrl)+'\')">📋 Copiar enlace</button>'
-      +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgContrato(ctx,t.contratoUrl)))+'">💬 Enviar por WhatsApp</a>':'')
+      +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgContrato(ctx,t.contratoUrl)))+'">💬 Enviar borrador por WhatsApp</a>':'')
       +'</div></div>'
   }
+  // Firma con el certificado .p12 (primera emisión, nueva versión o contrato anterior sin firma)
+  if(!reg||reg.estado==='emitido'||(modal&&modal.rec&&modal.rec._nueva))h+=htmlBloqueFirma(t,cl,!!reg)
   h+='<div class="ma" style="flex-wrap:wrap">'
     +'<button class="btn btn-g" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Completar datos</button>'
-    +'<button class="btn btn-g" onclick="descargarAcuerdo(\''+t.id+'\')">⬇ Descargar Word</button>'
-    +'<button class="btn btn-p" id="btn_drive" onclick="subirContrato(\''+t.id+'\')">'+(t.contratoUrl?'↻ Regenerar en Drive':'☁ Guardar en Drive para compartir')+'</button>'
+    +'<button class="btn btn-g" onclick="descargarAcuerdo(\''+t.id+'\')">⬇ Borrador Word</button>'
+    +'<button class="btn btn-g" onclick="descargarContratoPdf(\''+t.id+'\')">⬇ Borrador PDF</button>'
+    +(!reg?'<button class="btn btn-g" id="btn_drive" onclick="subirContrato(\''+t.id+'\')">'+(t.contratoUrl?'↻ Borrador en Drive':'☁ Borrador en Drive')+'</button>':'')
     +'</div>'
   return h
 }
@@ -4698,7 +4779,7 @@ function _construirProforma(p){
   body+=_p(String(p.titulo||'Propuesta de publicaciones').toUpperCase(),{sz:28,bold:true,color:'000000',align:'center',before:120,after:60})
   body+=_p((cl?'Dirigida a: '+cl.nombre+(cl.institucion?' — '+cl.institucion:'')+'   ·   ':'')+'Fecha: '+fmtDCorto(p.fecha||fechaHoyLocal())
     +(p.validez?'   ·   Validez: '+p.validez+' días':''),{sz:18,color:'555555',align:'center',after:200})
-  const W=[400,3750,1750,800,1100,1100,1100]
+  const W=[400,3600,1700,1000,1100,1100,1100]
   body+=_tblStart(W,negro)
   body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+['#','Artículo','Revista','Cuartil','Total','Por autor','Tiempo total'].map((x,i)=>celda(x,W[i],{bold:true})).join('')+'</w:tr>'
   arts.forEach(function(a,i){
@@ -4761,6 +4842,7 @@ function mProforma(d){
   h+='<div class="ma" style="flex-wrap:wrap">'
     +'<button class="btn btn-g" onclick="openModal(\'propuesta\','+jss(p)+')">✏️ Editar propuesta</button>'
     +'<button class="btn btn-g" onclick="descargarProforma(\''+p.id+'\')">⬇ Descargar Word</button>'
+    +'<button class="btn btn-g" onclick="descargarProformaPdf(\''+p.id+'\')">⬇ Descargar PDF</button>'
     +'<button class="btn btn-p" id="btn_drive" onclick="subirProforma(\''+p.id+'\')">'+(p.docUrl?'↻ Regenerar en Drive':'☁ Guardar en Drive para compartir')+'</button></div>'
   return h
 }
@@ -4803,9 +4885,14 @@ function htmlConfiguracion(){
     +'<div style="padding:16px 20px"><div class="fg">'
     +CFG_CAMPOS.map(function(f){return'<div'+(f.full?' class="full"':'')+'><label>'+esc(f.l)+'</label><input id="cf_'+f.k+'" value="'+esc(p[f.k]||'')+'" placeholder="'+esc(f.ph||'')+'"/></div>'}).join('')
     +'</div><div class="ma"><button class="btn btn-p" onclick="guardarPrestador()">Guardar datos</button></div></div></div>'
+  h+='<div class="card"><div class="card-hd"><h3>📲 Instalación de la app</h3></div>'
+    +'<div style="padding:16px 20px"><div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Revisa en este equipo por qué no se puede instalar la app y qué hacer.</div>'
+    +'<button class="btn btn-g" onclick="correrDiagnostico(\'diag_cfg\')">🔍 Ejecutar diagnóstico</button>'
+    +(puedeInstalar()?' <button class="btn btn-gold" onclick="instalarApp()">📲 Instalar app</button>':'')
+    +'<div id="diag_cfg" style="margin-top:12px"></div></div></div>'
   h+='<div class="card"><div class="card-hd"><h3>🛠 Mantenimiento de la base de datos</h3></div>'
     +'<div style="padding:16px 20px;font-size:13px;color:var(--text2);line-height:1.6">'
-    +'<p>Después de publicar el Apps Script v7.1, pulsa <strong>Reparar / crear hojas</strong> para crear las hojas <code>Seguimientos</code>, <code>Config</code> y <code>Propuestas</code> y las columnas nuevas de <code>Trabajos</code>, <code>Clientes</code> y <code>Cuotas</code>. Los datos existentes no se modifican.</p>'
+    +'<p>Después de publicar el Apps Script v7.5, pulsa <strong>Reparar / crear hojas</strong> para crear las hojas <code>Seguimientos</code>, <code>Config</code>, <code>Propuestas</code>, <code>Contratos</code> y <code>AuditoriaContratos</code> y las columnas nuevas de <code>Trabajos</code>, <code>Clientes</code> y <code>Cuotas</code>. Los datos existentes no se modifican.</p>'
     +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">'
     +'<button class="btn btn-p" onclick="repararHojas()">🛠 Reparar / crear hojas</button>'
     +'<button class="btn btn-g" onclick="verificarScript()">🔌 Verificar Apps Script</button>'
@@ -4830,9 +4917,830 @@ async function verificarScript(){
   const ver=r&&r.ok?parseFloat(String(r.script||'').replace(/[^\d.]/g,''))||0:0
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
-  el.innerHTML=ver>=7.1
+  el.innerHTML=ver>=7.5
     ?'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — todo listo</span>'
-    :'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.1 para usar Drive, Seguimientos y Propuestas</span>'
+    :'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.5 para usar Drive, Propuestas y la auditoría de contratos</span>'
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUDITORÍA DE CONTRATOS — código QR, firma electrónica y verificación
+// Flujo: revisar → Aprobar y emitir (código + QR + huella SHA-256 en el servidor)
+//   → PDF generado y firmado aquí con el certificado .p12 del prestador → envío al cliente
+//   → enviar al cliente → subir PDF firmado por ambas partes.
+// La página pública ?v=CÓDIGO muestra el registro oficial y compara copias.
+// ════════════════════════════════════════════════════════════════
+const LIB_QR='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'
+const LIB_FORGE='https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js'
+function cargarLib(url,glob){
+  return new Promise(function(res,rej){
+    if(window[glob])return res(window[glob])
+    const s=document.createElement('script');s.src=url
+    s.onload=function(){window[glob]?res(window[glob]):rej(new Error('No se pudo cargar '+glob))}
+    s.onerror=function(){rej(new Error('Sin conexión para cargar '+glob))}
+    document.head.appendChild(s)
+  })
+}
+const cargarJSZipP=()=>new Promise(r=>_cargarJSZip(r))
+const bufHex=buf=>Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')
+async function sha256Hex(u8){return bufHex(await crypto.subtle.digest('SHA-256',u8))}
+function bytesToB64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
+function bytesToLatin1(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return s}
+// Código no adivinable: RA-AAAA-XXXXXXXX (sin letras confundibles)
+function genCodigo(){
+  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=new Uint8Array(8);crypto.getRandomValues(r)
+  return'RA-'+new Date().getFullYear()+'-'+Array.from(r).map(x=>A[x%A.length]).join('')
+}
+const urlVerificacion=codigo=>urlApp()+'?v='+encodeURIComponent(codigo)
+async function qrPngB64(texto){
+  await cargarLib(LIB_QR,'qrcode')
+  const q=qrcode(0,'M');q.addData(texto);q.make()
+  const n=q.getModuleCount(),px=10,m=4,c=document.createElement('canvas')
+  c.width=c.height=(n+2*m)*px
+  const g=c.getContext('2d');g.fillStyle='#FFFFFF';g.fillRect(0,0,c.width,c.height);g.fillStyle='#0B2545'
+  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))g.fillRect((k+m)*px,(r+m)*px,px,px)
+  return c.toDataURL('image/png').split(',')[1]
+}
+const corto=h=>h?String(h).slice(0,12)+'…'+String(h).slice(-6):'—'
+function fmtFechaHora(iso){
+  if(!iso)return'—'
+  const d=new Date(iso);if(isNaN(d.getTime()))return esc(iso)
+  return d.toLocaleString('es-EC',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+}
+const ESTADO_CONTRATO={
+  emitido:{l:'Emitido · pendiente de firma',c:'amber'},
+  firmado_prestador:{l:'Firmado por el prestador',c:'blue'},
+  firmado:{l:'Firmado por ambas partes',c:'green'},
+  reemplazado:{l:'Reemplazado',c:'gray'},
+  anulado:{l:'Anulado',c:'red'}
+}
+const contratosDe=tid=>(data.contratos||[]).filter(c=>c.trabajoId===tid).sort((a,b)=>String(b.createdAt||b.fechaEmision).localeCompare(String(a.createdAt||a.fechaEmision)))
+const contratoVigente=tid=>contratosDe(tid).find(c=>c.estado!=='anulado'&&c.estado!=='reemplazado')||null
+// Las acciones de auditoría se validan en el servidor con el usuario administrador
+const authAdmin=()=>({usuario:user&&user.u||'',password:user&&user.p||''})
+const _json1=s=>{try{return JSON.parse(s||'[]')}catch(e){return[]}}
+function resumenContrato(ctx){
+  const t=ctx.t,cl=ctx.cl||{},pr=ctx.pr,det=ctx.det
+  return{titulo:t.titulo,tipo:t.tipo,valor:fmt(t.total),fechaInicio:t.fechaInicio||'',fechaFin:t.fechaFin||'',revista:det.revista||'',
+    prestador:{nombre:pr.nombre,cedula:pr.cedula||''},cliente:{nombre:cl.nombre||'',cedula:cl.cedula||''},
+    cuotas:ctx.cuotas.map(c=>({label:c.label,fecha:c.fechaVencimiento,monto:fmt(c.acordado)}))}
+}
+
+// ── Firmar con el certificado .p12 y emitir (un solo paso) ──
+// Genera el PDF del contrato con código y QR, lo firma con tu firma electrónica
+// en este equipo y registra la huella del PDF firmado en el servidor.
+function elegirP12(input){
+  const f=input.files&&input.files[0];input.value=''
+  if(!f)return
+  if(!/\.(p12|pfx)$/i.test(f.name)&&!confirm('El archivo no tiene extensión .p12 / .pfx. ¿Usarlo de todas formas?'))return
+  f.arrayBuffer().then(function(b){_p12Cache={nombre:f.name,bytes:new Uint8Array(b)};draw()})
+}
+function _p12Actual(){
+  if(_p12Cache)return _p12Cache
+  const r=p12Recordado()
+  return r?{nombre:r.nombre,bytes:Uint8Array.from(atob(r.b64),c=>c.charCodeAt(0)),recordado:true}:null
+}
+function htmlBloqueFirma(t,cl,nuevaVersion){
+  const a=_p12Actual()
+  return'<div style="border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-top:10px;background:#FFFDF8">'
+    +'<div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:4px">✍️ '+(nuevaVersion?'Emitir una nueva versión firmada':'Firmar con mi firma electrónica y emitir')+'</div>'
+    +'<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:10px">Se genera el PDF del contrato con su código de verificación y QR, se firma con tu certificado <strong>.p12</strong> y se registra su huella con la hora oficial. Tu archivo y tu clave <strong>se usan solo en este equipo</strong>; no se envían a ningún servidor.</div>'
+    +'<div class="fg">'
+    +'<div class="full"><label>Archivo de firma electrónica (.p12 / .pfx)</label>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<label class="btn btn-g btn-sm" style="text-transform:none;letter-spacing:0;margin:0">📁 '+(a?'Cambiar archivo':'Elegir archivo')+'<input type="file" accept=".p12,.pfx,application/x-pkcs12" style="display:none" onchange="elegirP12(this)"/></label>'
+    +(a?'<span style="font-size:12px;color:var(--green);font-weight:600">✓ '+esc(a.nombre)+(a.recordado?' (recordado en este equipo)':'')+'</span>'
+      +(a.recordado?' <button type="button" class="btn btn-g btn-sm" onclick="olvidarP12()">Olvidar</button>':''):'<span style="font-size:12px;color:var(--text3)">Ningún archivo elegido</span>')
+    +'</div></div>'
+    +'<div><label>Clave del certificado</label><input id="p12_clave" type="password" autocomplete="off" placeholder="••••••••"/></div>'
+    +'<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px">'
+    +(a&&!a.recordado?'<label class="chk"><input type="checkbox" id="p12_rec"/> Recordar el archivo en este equipo (la clave nunca se guarda)</label>':'')
+    +(cl&&cl.email?'<label class="chk"><input type="checkbox" id="ct_mail" checked/> Enviar comprobante a '+esc(cl.email)+'</label>':'')
+    +'</div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+    +'<button class="btn btn-g btn-sm" onclick="descargarContratoPdf(\''+esc(t.id)+'\')">👁 Vista previa en PDF</button>'
+    +'<button class="btn btn-gold" id="btn_emitir" onclick="firmarYEmitirUI(\''+esc(t.id)+'\','+(nuevaVersion?'true':'false')+')">✍️ Firmar y emitir</button></div>'
+    +'</div>'
+}
+async function firmarYEmitirUI(tid,nuevaVersion){
+  const ctx=_ctxContrato(tid);if(!ctx)return
+  const arch=_p12Actual(),clave=v('p12_clave'),rec=document.getElementById('p12_rec'),mail=document.getElementById('ct_mail')
+  if(!arch){alert('Elige tu archivo de firma electrónica (.p12).');return}
+  if(!clave){alert('Escribe la clave de tu certificado.');return}
+  const recordar=!!(rec&&rec.checked),notificar=!!(mail&&mail.checked)
+  const btn=document.getElementById('btn_emitir'),reset=function(){if(btn){btn.disabled=false;btn.textContent='✍️ Firmar y emitir'}}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin">⟳</span> Abriendo certificado…'}
+  let cred
+  try{cred=await leerP12(arch.bytes,clave)}catch(e){reset();alert(e.message);return}
+  if(!cred.vigente){reset();alert('Tu certificado no está vigente (válido del '+fmtDCorto(isoLocal(cred.desde))+' al '+fmtDCorto(isoLocal(cred.hasta))+').');return}
+  const pr=prestador()
+  const av=avisosContrato(ctx).map(a=>a.replace(/<[^>]+>/g,''))
+  if(pr.cedula&&cred.cedula&&pr.cedula.indexOf(cred.cedula.slice(0,10))!==0)av.push('La cédula del certificado ('+cred.cedula+') no coincide con tus datos de prestador ('+pr.cedula+').')
+  if(!confirm((nuevaVersion?'Se emitirá una NUEVA VERSIÓN: la actual quedará como "reemplazada" (sigue registrada en la auditoría).\n\n':'')
+    +'Firmante: '+cred.nombre+(cred.cedula?' · C.I. '+cred.cedula:'')+'\nCertificado: '+cred.emisor+' (válido hasta el '+fmtDCorto(isoLocal(cred.hasta))+')'
+    +'\n\n¿Firmar y emitir el contrato?\nDespués de emitirlo, cualquier cambio requiere emitir una nueva versión.'
+    +(av.length?'\n\n⚠ Revisa:\n- '+av.join('\n- '):'')))
+    {reset();return}
+  if(recordar){try{localStorage.setItem(P12_KEY,JSON.stringify({nombre:arch.nombre,b64:bytesToB64(arch.bytes)}))}catch(e){}}
+  try{
+    if(btn)btn.innerHTML='<span class="spin">⟳</span> Generando y firmando…'
+    const codigo=genCodigo(),url=urlVerificacion(codigo),fecha=fechaHoyLocal()
+    const qr=await qrPngB64(url)
+    const c=_construirContrato(ctx,{codigo:codigo,url:url,fecha:fecha})
+    const gen=await generarPdf(c.body,{qrB64:qr,codigo:codigo,titulo:'Contrato '+ctx.t.titulo.slice(0,60)})
+    const u8=await firmarPdf(gen,cred,{motivo:'Firma del contrato '+codigo,lugar:pr.ciudad||'Ecuador',contacto:pr.email||pr.telefono||''})
+    // Autocomprobación: la firma recién hecha debe validar
+    const an=await analizarPdfFirmas(u8,codigo)
+    const f0=an.firmas[0]
+    if(!f0||f0.error||!f0.firmaValida||f0.integridad===false)throw new Error('La autocomprobación de la firma falló'+(f0&&f0.error?': '+f0.error:''))
+    const hashLocal=await sha256Hex(u8)
+    if(btn)btn.innerHTML='<span class="spin">⟳</span> Registrando…'
+    const nombre=codigo+'_'+c.filename.replace(/^RA-[^_]+_/,'').replace(/\.docx$/i,'')+'_firmado.pdf'
+    const r=await apiPost({action:'emitirContrato',auth:authAdmin(),codigo:codigo,trabajoId:tid,clienteId:ctx.t.clienteId,nombre:nombre,formato:'pdf',firmado:true,
+      base64:bytesToB64(u8),firmas:JSON.stringify(an.firmas.map(slimFirma)),resumenFirmas:cred.nombre+' ✓ ('+cred.emisor+')',
+      resumen:resumenContrato(ctx),notificar:notificar,emailCliente:ctx.cl&&ctx.cl.email||'',urlVerificar:url})
+    if(!r||!r.ok)throw new Error(r&&r.error||'Sin respuesta del servidor')
+    if(r.hash&&r.hash!==hashLocal)toast('Aviso: la huella del servidor difiere de la local','err')
+    window._emitidos=window._emitidos||{};window._emitidos[codigo]={u8:u8,nombre:nombre,mime:'application/pdf'}
+    const firmas=JSON.stringify(an.firmas.map(slimFirma))
+    data.contratos=(data.contratos||[]).map(x=>x.trabajoId===tid&&x.estado!=='anulado'&&x.estado!=='reemplazado'?Object.assign({},x,{estado:'reemplazado',reemplazadoPor:codigo}):x)
+      .concat([{id:codigo,trabajoId:tid,clienteId:ctx.t.clienteId,clienteNombre:ctx.cl&&ctx.cl.nombre||'',titulo:ctx.t.titulo,tipo:ctx.t.tipo,valor:fmt(ctx.t.total),
+        estado:'firmado_prestador',version:r.version||'1',fechaEmision:r.fecha,hashEmitido:r.hash,urlEmitido:r.url,
+        fechaFirmaPrestador:r.fecha,hashFirmaPrestador:r.hash,urlFirmaPrestador:r.url,firmasPrestador:firmas,createdAt:r.fecha}])
+    data.trabajos=data.trabajos.map(x=>x.id===tid?Object.assign({},x,{contratoUrl:r.url,contratoFecha:String(r.fecha||'').slice(0,10)}):x)
+    if(modal&&modal.rec){modal.rec._nueva=false;modal.rec._hist=null}
+    descargarEmitido(codigo)
+    toast('Contrato firmado y emitido · '+codigo+' ✓')
+    if(modal&&modal.type==='contrato')draw()
+  }catch(e){
+    reset()
+    alert('No se pudo firmar y emitir el contrato.\n\n'+e.message+'\n\nSi el problema es del servidor, verifica que publicaste el Apps Script v7.5 y que tu usuario es administrador.')
+  }
+}
+function descargarEmitido(codigo){
+  const x=window._emitidos&&window._emitidos[codigo];if(!x)return false
+  const url=URL.createObjectURL(new Blob([x.u8],{type:x.mime||'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}))
+  const a=document.createElement('a');a.href=url;a.download=x.nombre;document.body.appendChild(a);a.click();a.remove()
+  setTimeout(()=>URL.revokeObjectURL(url),5000);return true
+}
+
+// ── Análisis de firmas electrónicas del PDF (PAdES / CMS) ──
+// Lee cada firma: firmante y emisor del certificado, fecha, si el documento no cambió
+// después de firmar y si la firma criptográfica es válida. No valida la cadena de la
+// entidad certificadora (eso lo hacen los validadores oficiales de firma electrónica).
+const OID_HASH={'1.3.14.3.2.26':'SHA-1','2.16.840.1.101.3.4.2.1':'SHA-256','2.16.840.1.101.3.4.2.2':'SHA-384','2.16.840.1.101.3.4.2.3':'SHA-512'}
+const FORGE_MD={'SHA-1':'sha1','SHA-256':'sha256','SHA-384':'sha384','SHA-512':'sha512'}
+function _textosAsn1(n,out){
+  if(!n)return out
+  if(Array.isArray(n.value))n.value.forEach(x=>_textosAsn1(x,out))
+  else if(typeof n.value==='string'&&n.value.length<200)out.push(n.value)
+  return out
+}
+async function analizarPdfFirmas(u8,codigo){
+  const txt=bytesToLatin1(u8)
+  const out={esPdf:txt.slice(0,5)==='%PDF-',firmas:[],codigoEncontrado:false}
+  if(codigo){
+    const u16=Array.from(codigo).map(ch=>'\x00'+ch).join('')
+    const hx=Array.from(codigo).map(ch=>'00'+ch.charCodeAt(0).toString(16).toUpperCase()).join('')
+    out.codigoEncontrado=txt.indexOf(codigo)>-1||txt.indexOf(u16)>-1||txt.toUpperCase().indexOf(hx)>-1
+  }
+  const re=/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g
+  const vistos={};let m
+  while((m=re.exec(txt))){
+    const br=[+m[1],+m[2],+m[3],+m[4]],k=br.join(',')
+    if(vistos[k]||br[2]+br[3]>u8.length)continue
+    vistos[k]=1
+    const f={byteRange:br,cubreFinal:br[2]+br[3]===u8.length}
+    try{await _analizarCMS(f,u8,txt)}catch(e){f.error=e.message||String(e)}
+    out.firmas.push(f)
+  }
+  // En orden de firma: la que termina antes en el archivo es la más antigua
+  out.firmas.sort((a,b)=>(a.byteRange[2]+a.byteRange[3])-(b.byteRange[2]+b.byteRange[3]))
+  out.firmas.forEach((f,i)=>{f.orden=i+1})
+  // Si la última firma no llega al final del archivo, hubo cambios después de firmar
+  const ult=out.firmas.reduce((a,f)=>!a||f.byteRange[2]+f.byteRange[3]>a.byteRange[2]+a.byteRange[3]?f:a,null)
+  out.modificadoDespues=!!ult&&!ult.cubreFinal
+  return out
+}
+async function _analizarCMS(f,u8,txt){
+  await cargarLib(LIB_FORGE,'forge')
+  const A=forge.asn1,br=f.byteRange
+  const hex=txt.slice(br[0]+br[1],br[2]).replace(/[^0-9a-fA-F]/g,'')
+  const ci=A.fromDer(forge.util.createBuffer(forge.util.hexToBytes(hex)),{parseAllBytes:false,strict:false})
+  if(A.derToOid(ci.value[0].value)!=='1.2.840.113549.1.7.2')throw new Error('No es una firma CMS')
+  const sd=ci.value[1].value[0],hijos=sd.value
+  const certsNode=hijos.find(n=>n.tagClass===A.Class.CONTEXT_SPECIFIC&&n.type===0)
+  const si=hijos[hijos.length-1].value[0]
+  const algHash=OID_HASH[A.derToOid(si.value[2].value[0].value)]
+  if(!algHash)throw new Error('Algoritmo de resumen no soportado')
+  const attrs=si.value.find(n=>n.tagClass===A.Class.CONTEXT_SPECIFIC&&n.type===0)
+  const sigNode=si.value.filter(n=>n.tagClass===A.Class.UNIVERSAL&&n.type===A.Type.OCTETSTRING).pop()
+  // Huella del contenido firmado (todo el PDF excepto el hueco de la firma)
+  const cont=new Uint8Array(br[1]+br[3]);cont.set(u8.subarray(br[0],br[0]+br[1]),0);cont.set(u8.subarray(br[2],br[2]+br[3]),br[1])
+  const dig=bufHex(await crypto.subtle.digest(algHash,cont))
+  let md=null,fecha=null
+  if(attrs)attrs.value.forEach(function(a){
+    const oid=A.derToOid(a.value[0].value),v=a.value[1].value[0]
+    if(oid==='1.2.840.113549.1.9.4')md=forge.util.bytesToHex(v.value)
+    if(oid==='1.2.840.113549.1.9.5')fecha=v.type===A.Type.UTCTIME?A.utcTimeToDate(v.value):A.generalizedTimeToDate(v.value)
+  })
+  f.algoritmo=algHash;f.fecha=fecha?fecha.toISOString():''
+  f.integridad=attrs?md===dig:null
+  // Certificado del firmante (por número de serie)
+  const sid=si.value[1]
+  const serial=sid.type===A.Type.SEQUENCE?forge.util.bytesToHex(sid.value[1].value):null
+  let certAsn=null
+  if(certsNode)for(const c of certsNode.value){
+    const tbs=c.value[0],idx=tbs.value[0].tagClass===A.Class.CONTEXT_SPECIFIC?1:0
+    if(!serial||forge.util.bytesToHex(tbs.value[idx].value)===serial){certAsn=c;break}
+  }
+  if(!certAsn&&certsNode)certAsn=certsNode.value[0]
+  if(!certAsn)throw new Error('La firma no incluye el certificado')
+  const cert=forge.pki.certificateFromAsn1(certAsn)
+  const campo=(ent,n)=>{const x=ent.getField(n);return x?String(x.value):''}
+  f.nombre=campo(cert.subject,'CN')
+  f.emisor=campo(cert.issuer,'O')||campo(cert.issuer,'CN')
+  f.validoDesde=cert.validity.notBefore.toISOString();f.validoHasta=cert.validity.notAfter.toISOString()
+  // Identificación (cédula/RUC): en el sujeto o en las extensiones del certificado ecuatoriano
+  const textos=cert.subject.attributes.map(a=>String(a.value))
+  ;(cert.extensions||[]).forEach(function(e){try{_textosAsn1(A.fromDer(e.value,{strict:false}),textos)}catch(x){}})
+  const ced=textos.join(' ').match(/\b(\d{10}(?:001)?)\b/)
+  f.cedula=ced?ced[1]:''
+  // Firma criptográfica (RSA PKCS#1 v1.5) sobre los atributos firmados
+  let digBytes
+  if(attrs){const m2=forge.md[FORGE_MD[algHash]].create();m2.update(A.toDer(A.create(A.Class.UNIVERSAL,A.Type.SET,true,attrs.value)).getBytes());digBytes=m2.digest().getBytes()}
+  else digBytes=forge.util.hexToBytes(dig)
+  try{f.firmaValida=!!cert.publicKey.verify(digBytes,sigNode.value)}catch(e){f.firmaValida=false}
+  if(fecha)f.certVigente=fecha>=cert.validity.notBefore&&fecha<=cert.validity.notAfter
+}
+function textoFirma(f){
+  if(f.error)return'Firma '+f.orden+': no se pudo leer ('+f.error+')'
+  return'Firma '+f.orden+': '+(f.nombre||'—')+(f.cedula?' · C.I. '+f.cedula:'')+(f.emisor?' · emitido por '+f.emisor:'')
+    +(f.fecha?' · '+fmtFechaHora(f.fecha):'')
+    +' · '+(f.firmaValida&&f.integridad!==false?'firma válida':'⚠ firma NO válida')
+    +(f.integridad===false?' (documento modificado)':'')+(f.certVigente===false?' (certificado no vigente)':'')
+}
+const slimFirma=f=>({orden:f.orden,nombre:f.nombre||'',cedula:f.cedula||'',emisor:f.emisor||'',fecha:f.fecha||'',valida:!!(f.firmaValida&&f.integridad!==false),error:f.error||''})
+
+// ── Subir PDF firmado ──
+async function subirFirmadoUI(codigo,etapa,input){
+  const file=input.files&&input.files[0];input.value=''
+  if(!file)return
+  if(file.size>20*1024*1024){alert('El PDF supera los 20 MB');return}
+  const reg=(data.contratos||[]).find(c=>c.id===codigo);if(!reg)return
+  const t=data.trabajos.find(x=>x.id===reg.trabajoId),cl=t&&data.clientes.find(c=>c.id===t.clienteId),pr=prestador()
+  toast('Analizando el PDF y sus firmas…')
+  let an
+  try{const u8=new Uint8Array(await file.arrayBuffer());an=await analizarPdfFirmas(u8,codigo);an.u8=u8}catch(e){alert('No se pudo leer el archivo: '+e.message);return}
+  if(!an.esPdf){alert('El archivo no es un PDF.');return}
+  if(etapa==='prestador'&&!an.firmas.length){alert('Este PDF no tiene firma electrónica.\n\nFírmalo con un certificado de firma electrónica y vuelve a subirlo.');return}
+  const avisos=[]
+  if(!an.codigoEncontrado)avisos.push('No se pudo confirmar el código '+codigo+' dentro del PDF. Revisa que el PDF muestre el QR y ese código en el pie de página: si el cliente generó un documento nuevo, no es el contrato emitido.')
+  if(an.firmas.some(f=>f.error||!f.firmaValida||f.integridad===false))avisos.push('Hay firmas que no se pudieron validar o que no son válidas.')
+  if(an.modificadoDespues)avisos.push('El PDF tiene cambios posteriores a la última firma.')
+  if(etapa==='prestador'&&pr.cedula&&!an.firmas.some(f=>f.cedula&&pr.cedula.indexOf(f.cedula.slice(0,10))===0))avisos.push('La cédula del certificado no coincide con tus datos de prestador ('+pr.cedula+').')
+  if(etapa==='ambos'){
+    // Tu firma del sistema debe seguir presente y válida en el PDF que devuelve el cliente
+    const mia=_json1(reg.firmasPrestador)[0]
+    const conservada=mia&&an.firmas.some(f=>f.firmaValida&&f.integridad!==false&&(f.nombre||'')===(mia.nombre||''))
+    if(!an.firmas.length)avisos.push('El PDF no tiene firmas electrónicas: parece una copia impresa y escaneada. Tu firma electrónica no se conserva en este archivo, pero la versión firmada por ti sigue registrada.')
+    else if(mia&&!conservada)avisos.push('No se encontró tu firma electrónica válida en este PDF: es posible que el cliente haya generado o modificado el documento en lugar de firmar el que le enviaste.')
+  }
+  if(etapa==='ambos'&&an.firmas.length===1)avisos.push('Solo se detectó 1 firma electrónica. Si el cliente firmó a mano y escaneó, puedes continuar.')
+  if(etapa==='ambos'&&cl&&cl.cedula&&an.firmas.length>=2&&!an.firmas.some(f=>f.cedula&&cl.cedula.indexOf(f.cedula.slice(0,10))===0))avisos.push('Ninguna firma coincide con la cédula del cliente ('+cl.cedula+').')
+  const resumen=an.firmas.map(textoFirma).join('\n')||'Sin firmas electrónicas (firma manuscrita escaneada)'
+  if(!confirm('Firmas encontradas:\n'+resumen+(avisos.length?'\n\n⚠ '+avisos.join('\n⚠ '):'\n\n✓ Todo en orden.')
+    +'\n\n¿Registrar este PDF como contrato firmado '+(etapa==='ambos'?'POR AMBAS PARTES':'POR EL PRESTADOR')+'?'))return
+  syncMsg='Registrando firma...';syncErr=false;draw()
+  const mail=document.getElementById('ct_mail')
+  const r=await apiPost({action:'registrarFirmado',auth:authAdmin(),codigo:codigo,etapa:etapa,nombre:codigo+'_'+(etapa==='ambos'?'firmado_ambas_partes':'firmado_prestador')+'.pdf',
+    base64:bytesToB64(an.u8),firmas:JSON.stringify(an.firmas.map(slimFirma)),resumenFirmas:an.firmas.map(f=>(f.nombre||'—')+(f.firmaValida&&f.integridad!==false?' ✓':' ⚠')).join('; '),
+    notificar:!!(mail&&mail.checked),emailCliente:cl&&cl.email||'',urlVerificar:urlVerificacion(codigo)})
+  if(!r||!r.ok){syncErr=true;syncMsg='Error';draw();alert('No se pudo registrar el PDF firmado.\n\n'+(r&&r.error||'Sin respuesta'));return}
+  const cambios=etapa==='ambos'
+    ?{estado:'firmado',fechaFirmaAmbos:r.fecha,hashFirmaAmbos:r.hash,urlFirmaAmbos:r.url,firmasAmbos:JSON.stringify(an.firmas.map(slimFirma))}
+    :{estado:'firmado_prestador',fechaFirmaPrestador:r.fecha,hashFirmaPrestador:r.hash,urlFirmaPrestador:r.url,firmasPrestador:JSON.stringify(an.firmas.map(slimFirma))}
+  data.contratos=data.contratos.map(c=>c.id===codigo?Object.assign({},c,cambios):c)
+  if(t)data.trabajos=data.trabajos.map(x=>x.id===t.id?Object.assign({},x,{contratoUrl:r.url}):x)
+  if(modal&&modal.rec)modal.rec._hist=null
+  syncMsg='✓ Firma registrada';toast(etapa==='ambos'?'Contrato firmado por ambas partes ✓':'Tu firma quedó registrada ✓');draw()
+}
+async function anularContratoUI(codigo){
+  const motivo=prompt('Motivo de la anulación (quedará en la auditoría):')
+  if(motivo===null)return
+  if(!confirm('¿Anular el contrato '+codigo+'? Esta acción queda registrada y no se puede deshacer.'))return
+  const r=await apiPost({action:'anularContrato',auth:authAdmin(),codigo:codigo,motivo:motivo})
+  if(!r||!r.ok){alert('No se pudo anular: '+(r&&r.error||'Sin respuesta'));return}
+  data.contratos=data.contratos.map(c=>c.id===codigo?Object.assign({},c,{estado:'anulado'}):c)
+  toast('Contrato anulado');draw()
+}
+async function verHistorialUI(codigo){
+  if(!modal)return
+  modal.rec._hist={cargando:true};draw()
+  const r=await apiGet('verificar&codigo='+encodeURIComponent(codigo))
+  if(modal&&modal.rec)modal.rec._hist=r&&r.ok?r:{error:r&&r.error||'Sin respuesta'}
+  draw()
+}
+function msgContratoFirmado(reg,cl,t,etapa){
+  return waTpl(etapa==='ambos'?'contrato_completo':'contrato_firmado',{nombre:cl&&cl.nombre||'',trabajo:t&&t.titulo||reg.titulo,
+    link:etapa==='ambos'?reg.urlFirmaAmbos:reg.urlFirmaPrestador,codigo:reg.id,verificar:urlVerificacion(reg.id),prestador:prestador().nombre})
+}
+function htmlFirmasLista(json){
+  const fs=_json1(json);if(!fs.length)return''
+  return fs.map(f=>'<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+(f.valida?'✅':'⚠️')+' '+esc(f.nombre||'—')+(f.cedula?' · C.I. '+esc(f.cedula):'')+(f.emisor?' · <span style="color:var(--text3)">'+esc(f.emisor)+'</span>':'')+(f.fecha?' · '+fmtFechaHora(f.fecha):'')+'</div>').join('')
+}
+function htmlAuditoriaContrato(ctx,reg){
+  const t=ctx.t,cl=ctx.cl,E=ESTADO_CONTRATO[reg.estado]||{l:reg.estado,c:'gray'}
+  const url=urlVerificacion(reg.id)
+  const hecho=(ok,n)=>'<span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;'+(ok?'background:var(--green);color:#fff':'background:var(--navy);color:#fff')+'">'+(ok?'✓':n)+'</span>'
+  const paso=(ok,n,tit,cuerpo)=>'<div style="display:flex;gap:10px;margin-bottom:12px">'+hecho(ok,n)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:'+(ok?'var(--green)':'var(--navy)')+'">'+tit+'</div>'+(cuerpo?'<div style="font-size:12px;color:var(--text2);margin-top:3px;line-height:1.55">'+cuerpo+'</div>':'')+'</div></div>'
+  const fp=reg.estado==='firmado_prestador'||reg.estado==='firmado',fa=reg.estado==='firmado'
+  const subir=(etapa,txt)=>'<label class="btn btn-p btn-sm" style="text-transform:none;letter-spacing:0;margin:6px 0 0;display:inline-flex">'+txt+'<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="subirFirmadoUI(\''+esc(reg.id)+'\',\''+etapa+'\',this)"/></label>'
+  let h='<div style="border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-top:6px;background:#FFFDF8">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<strong style="font-size:13.5px;color:var(--navy)">🔐 Contrato emitido · <span style="font-family:monospace;letter-spacing:.5px">'+esc(reg.id)+'</span></strong>'+bdg(E.l,E.c)+'</div>'
+    +'<div class="pub-meta" style="margin-bottom:12px">'
+    +[['Versión',reg.version||'1'],['Emitido',fmtFechaHora(reg.fechaEmision)],['Huella SHA-256',corto(reg.hashFirmaPrestador||reg.hashEmitido)]].map(r=>'<div><span>'+r[0]+'</span><strong title="'+esc(reg.hashFirmaPrestador||reg.hashEmitido||'')+'">'+esc(r[1])+'</strong></div>').join('')+'</div>'
+  if(reg.estado==='emitido'){
+    // Contrato de una versión anterior, emitido sin firma: se debe emitir una versión firmada
+    h+=paso(false,1,'Contrato emitido sin firma','Esta versión se emitió antes de la firma electrónica en el sistema. Emite una nueva versión firmada con tu certificado (abajo).')
+  }else{
+    const pdfPrest=reg.urlFirmaPrestador||reg.urlEmitido
+    h+=paso(fp,1,'Firmado electrónicamente por ti y emitido con código QR',
+      (reg.fechaFirmaPrestador?'Registrado el '+fmtFechaHora(reg.fechaFirmaPrestador):'')+htmlFirmasLista(reg.firmasPrestador)
+      +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'
+      +(window._emitidos&&window._emitidos[reg.id]?'<button class="btn btn-g btn-sm" onclick="descargarEmitido(\''+esc(reg.id)+'\')">⬇ Descargar PDF firmado</button>':'')
+      +(pdfPrest?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(pdfPrest)+'">🔗 PDF firmado en Drive</a>':'')+'</div>')
+    h+=paso(fa,2,'Enviar al cliente para su firma',fa?'El cliente devolvió el contrato firmado.'
+      :(cl&&cl.telefono&&pdfPrest?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgContratoFirmado(Object.assign({},reg,{urlFirmaPrestador:pdfPrest}),cl,t,'prestador')))+'">💬 Enviar PDF firmado por WhatsApp</a>'
+        :'El cliente no tiene teléfono registrado; comparte el enlace del PDF firmado.'))
+    h+=paso(fa,3,'Contrato firmado por ambas partes',fa
+      ?'Registrado el '+fmtFechaHora(reg.fechaFirmaAmbos)+' · huella '+esc(corto(reg.hashFirmaAmbos))+htmlFirmasLista(reg.firmasAmbos)
+        +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+(reg.urlFirmaAmbos?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(reg.urlFirmaAmbos)+'">📄 PDF firmado por ambos</a>':'')
+        +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgContratoFirmado(reg,cl,t,'ambos')))+'">💬 Enviar copia final</a>':'')+'</div>'
+      :'Cuando el cliente te devuelva el PDF firmado (con su firma electrónica, o impreso, firmado a mano y escaneado), súbelo aquí. El sistema verifica que se conserve tu firma.<br/>'+subir('ambos','⬆ Subir PDF firmado por el cliente'))
+    h+=(cl&&cl.email?'<label class="chk" style="margin:2px 0 10px"><input type="checkbox" id="ct_mail" checked/> Enviar comprobante por correo a '+esc(cl.email)+' y a tu correo</label>':'<div style="font-size:11px;color:var(--text3);margin-bottom:10px">💡 Si registras el correo del cliente, recibirá un comprobante independiente (código, huella y hora) en cada paso.</div>')
+  }
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px">'
+    +'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(url)+'">🔎 Página de verificación</a>'
+    +'<button class="btn btn-g btn-sm" onclick="copiarTexto(this,\''+esc(url)+'\')">📋 Copiar enlace</button>'
+    +'<button class="btn btn-g btn-sm" onclick="verHistorialUI(\''+esc(reg.id)+'\')">📜 Historial de auditoría</button>'
+    +(reg.estado!=='emitido'?'<button class="btn btn-g btn-sm" onclick="if(modal&&modal.rec){modal.rec._nueva=!modal.rec._nueva;draw()}">↻ Emitir nueva versión</button>':'')
+    +'<button class="btn btn-r btn-sm" onclick="anularContratoUI(\''+esc(reg.id)+'\')">🚫 Anular</button></div>'
+  const hist=modal&&modal.rec&&modal.rec._hist
+  if(hist)h+='<div style="margin-top:12px">'+(hist.cargando?'<div style="font-size:12px;color:var(--text3)"><span class="spin">⟳</span> Cargando historial…</div>':hist.error?'<div style="font-size:12px;color:var(--red)">'+esc(hist.error)+'</div>':htmlEventos(hist))+'</div>'
+  return h+'</div>'
+}
+const EVENTO_TXT={EMITIDO:'📝 Emitido',FIRMADO_PRESTADOR:'✍️ Firmado por el prestador',FIRMADO_AMBAS_PARTES:'🤝 Firmado por ambas partes',REEMPLAZADO:'↻ Reemplazado',ANULADO:'🚫 Anulado'}
+function htmlEventos(r){
+  const ev=(r.eventos||[]).slice().reverse()
+  return'<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:'+(r.cadenaIntegra?'var(--green)':'var(--red)')+'">'
+    +(r.cadenaIntegra?'✅ Historial íntegro: ningún evento fue alterado ni eliminado':'❌ El historial presenta alteraciones: no coincide con la cadena de seguridad')+'</div>'
+    +'<div class="tl">'+ev.map(e=>'<div class="tl-i'+(e.evento==='ANULADO'?' rej':e.evento==='FIRMADO_AMBAS_PARTES'?' ok':'')+'"><div class="tl-h">'+esc(EVENTO_TXT[e.evento]||e.evento)+'</div>'
+      +'<div class="tl-m">'+fmtFechaHora(e.fecha)+' (hora del servidor)'+(e.hashDocumento?' · huella '+esc(corto(e.hashDocumento)):'')+'</div>'
+      +(e.detalle?'<div class="tl-n">'+esc(e.detalle)+'</div>':'')+'</div>').join('')+'</div>'
+}
+
+// ── Página pública de verificación (?v=CÓDIGO) ──
+var VERIF={activo:false,codigo:'',cargando:false,res:null,cmp:null,error:''}
+;(function(){const q=new URLSearchParams(location.search);if(q.has('v')){VERIF.activo=true;VERIF.codigo=String(q.get('v')||'').trim().toUpperCase()}})()
+async function cargarVerificacion(){
+  VERIF.cargando=true;VERIF.error='';draw()
+  const r=await apiGet('verificar&codigo='+encodeURIComponent(VERIF.codigo))
+  VERIF.cargando=false
+  if(!r||r.error||!r.ok)VERIF.error=r&&r.error?(/fetch|network/i.test(r.error)?'Sin conexión con el registro. Intenta de nuevo.':r.error):'Sin respuesta'
+  else VERIF.res=r
+  draw()
+}
+function buscarVerificacion(){
+  const c=v('vf_cod').trim().toUpperCase();if(!c)return
+  VERIF.codigo=c;VERIF.res=null;VERIF.cmp=null;VERIF.error=''
+  try{history.replaceState(null,'','?v='+encodeURIComponent(c))}catch(e){}
+  cargarVerificacion()
+}
+async function compararCopia(input){
+  const file=input.files&&input.files[0];input.value='';if(!file||!VERIF.res)return
+  const u8=new Uint8Array(await file.arrayBuffer()),hash=await sha256Hex(u8),c=VERIF.res.contrato
+  const coincide=hash===c.hashFirmaAmbos?'ambos':hash===c.hashFirmaPrestador?'prestador':hash===c.hashEmitido?'emitido':null
+  let an=null
+  if(bytesToLatin1(u8.subarray(0,5))==='%PDF-'){try{an=await analizarPdfFirmas(u8,c.codigo)}catch(e){}}
+  VERIF.cmp={nombre:file.name,hash:hash,coincide:coincide,an:an};draw()
+}
+function htmlVerificacion(){
+  if(VERIF.codigo&&!VERIF.res&&!VERIF.cargando&&!VERIF.error)setTimeout(cargarVerificacion,0)
+  let h='<div class="lw" style="justify-content:flex-start"><div style="width:100%;max-width:760px">'
+    +'<div class="l-brand" style="margin:6px 0 2px"><img src="'+LOGO_SRC+'" alt="Research Assessor" style="width:210px"/></div>'
+    +'<div class="l-sub" style="margin-bottom:16px">Verificación de autenticidad de contratos</div>'
+    +'<div class="lb" style="max-width:none;padding:22px 22px 18px">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="vf_cod" class="lf-input" style="flex:1;min-width:200px;font-family:monospace;text-transform:uppercase" placeholder="Código RA-AAAA-XXXXXXXX" value="'+esc(VERIF.codigo)+'" onkeydown="if(event.key===\'Enter\')buscarVerificacion()"/>'
+    +'<button class="btn btn-p" onclick="buscarVerificacion()">Verificar</button></div>'
+  if(VERIF.cargando)h+='<p style="margin-top:16px;font-size:13px;color:var(--text3)"><span class="spin">⟳</span> Consultando el registro oficial…</p>'
+  else if(VERIF.error)h+='<p style="margin-top:16px;font-size:13px;color:var(--red)">'+esc(VERIF.error)+'</p>'
+  else if(VERIF.res&&!VERIF.res.encontrado){
+    h+=_cajaVerif('red','❌ Código no registrado','Este código no corresponde a ningún contrato emitido por Research Assessor. El documento podría ser falso o el código estar mal escrito.')
+  }else if(VERIF.res){
+    const r=VERIF.res,c=r.contrato,s=c.resumen||{}
+    const EST={firmado:['green','✅ Contrato auténtico, firmado por ambas partes','El contrato está registrado y vigente.'],
+      firmado_prestador:['blue','✅ Contrato auténtico, firmado por el prestador','Registrado y vigente. Pendiente de la firma del cliente.'],
+      emitido:['amber','✅ Contrato auténtico, emitido','Registrado y vigente. Aún no tiene firmas registradas.'],
+      reemplazado:['red','⚠️ Versión reemplazada','Esta versión fue reemplazada'+(c.reemplazadoPor?' por <a href="?v='+esc(c.reemplazadoPor)+'">'+esc(c.reemplazadoPor)+'</a>':'')+' y no es la vigente.'],
+      anulado:['red','🚫 Contrato anulado','Este contrato fue anulado y no tiene validez.']}[c.estado]||['gray',esc(c.estado),'']
+    h+=_cajaVerif(EST[0],EST[1],EST[2])
+    h+='<div style="font-size:12px;font-weight:700;margin:10px 0;color:'+(r.cadenaIntegra?'var(--green)':'var(--red)')+'">'+(r.cadenaIntegra?'🔒 Historial de auditoría íntegro (sin alteraciones)':'❌ El historial de auditoría presenta alteraciones')+'</div>'
+    h+='<div class="sec-t">Datos registrados</div><div class="pub-meta">'
+      +[['Código',c.codigo],['Contrato',c.titulo],['Tipo',c.tipo],['Valor','$'+c.valor],
+        ['Prestador',(s.prestador&&s.prestador.nombre||'—')+(s.prestador&&s.prestador.cedula?' · C.I. '+s.prestador.cedula:'')],
+        ['Cliente',(s.cliente&&s.cliente.nombre||'—')+(s.cliente&&s.cliente.cedula?' · C.I. '+s.cliente.cedula:'')],
+        ['Emitido',fmtFechaHora(c.fechaEmision)],['Versión',c.version||'1']].map(x=>'<div><span>'+x[0]+'</span><strong>'+esc(x[1])+'</strong></div>').join('')+'</div>'
+    if(s.cuotas&&s.cuotas.length)h+='<div style="font-size:12px;color:var(--text2);margin-top:8px">Plan de pagos registrado: '+s.cuotas.map(q=>esc(q.label)+' $'+esc(q.monto)).join(' · ')+'</div>'
+    h+='<div class="sec-t">Documentos oficiales</div>'
+    // Si el contrato se emitió ya firmado, la versión emitida y la firmada por el prestador son el mismo archivo
+    ;[['emitido','Contrato emitido',c.fechaEmision,c.hashEmitido===c.hashFirmaPrestador?'':c.hashEmitido,c.urlEmitido,''],['prestador','Firmado por el prestador',c.fechaFirmaPrestador,c.hashFirmaPrestador,c.urlFirmaPrestador,c.firmasPrestador],['ambos','Firmado por ambas partes',c.fechaFirmaAmbos,c.hashFirmaAmbos,c.urlFirmaAmbos,c.firmasAmbos]].forEach(function(d){
+      if(!d[3])return
+      h+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#FAFAF7">'
+        +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong style="font-size:13px">'+d[1]+'</strong><span style="font-size:11px;color:var(--text3)">'+fmtFechaHora(d[2])+'</span></div>'
+        +'<div style="font-size:10.5px;color:var(--text3);font-family:monospace;word-break:break-all;margin-top:3px">SHA-256: '+esc(d[3])+'</div>'
+        +htmlFirmasLista(d[5])
+        +(d[4]?'<a class="btn btn-g btn-sm" style="text-decoration:none;margin-top:6px" target="_blank" href="'+esc(d[4])+'">📄 Ver documento oficial</a>':'')+'</div>'
+    })
+    h+='<div class="sec-t">Comprobar mi copia</div>'
+      +'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px">Sube el archivo que recibiste (PDF o Word). Se calcula su huella digital en tu dispositivo, sin enviarlo a ningún servidor, y se compara con la registrada: si cambió aunque sea una coma, no coincidirá.</div>'
+      +'<label class="btn btn-gold" style="text-transform:none;letter-spacing:0;display:inline-flex">📄 Elegir archivo para comprobar<input type="file" accept=".pdf,.docx,application/pdf" style="display:none" onchange="compararCopia(this)"/></label>'
+    if(VERIF.cmp){
+      const k=VERIF.cmp,lbl={ambos:'la versión firmada por ambas partes',prestador:'la versión firmada por el prestador',emitido:'la versión emitida (sin firmas)'}[k.coincide]
+      h+=k.coincide?_cajaVerif('green','✅ Tu copia es idéntica a '+lbl,esc(k.nombre)+' · SHA-256 '+esc(corto(k.hash)))
+        :_cajaVerif('red','❌ Tu copia NO coincide con ningún documento registrado',esc(k.nombre)+' fue modificado o no es una versión oficial de este contrato. Descarga el documento oficial desde esta página.')
+      if(k.an&&k.an.firmas.length)h+='<div style="font-size:12px;margin-top:6px">'+k.an.firmas.map(f=>'<div style="margin-top:3px">'+(f.firmaValida&&f.integridad!==false?'✅':'⚠️')+' '+esc(textoFirma(f))+'</div>').join('')+(k.an.modificadoDespues?'<div style="color:var(--red);margin-top:4px">⚠️ El PDF tiene cambios posteriores a la última firma.</div>':'')+'</div>'
+    }
+    h+='<div class="sec-t">Historial de auditoría</div>'+htmlEventos(r)
+  }else{
+    h+='<p style="margin-top:14px;font-size:13px;color:var(--text3)">Escribe el código impreso junto al código QR del contrato, o escanea el QR con la cámara del teléfono.</p>'
+  }
+  h+='</div><p style="text-align:center;font-size:11px;color:var(--text3);margin:14px 0">Verificación pública · Research Assessor · <a href="'+esc(urlApp())+'" style="color:var(--brand)">Ir a la plataforma</a></p></div></div>'
+  return h
+}
+function _cajaVerif(color,tit,txt){
+  const C={green:['#F0FDF4','#BBF7D0','#15803D'],blue:['#EFF6FF','#C9D9EB','#0F4C81'],amber:['#FFFBEB','#FDE68A','#92400E'],red:['#FEF2F2','#FECACA','#B91C1C'],gray:['#F8FAFC','#E2E8F0','#475569']}[color]||['#F8FAFC','#E2E8F0','#475569']
+  return'<div style="margin-top:16px;background:'+C[0]+';border:1px solid '+C[1]+';border-radius:12px;padding:14px 16px"><div style="font-size:15px;font-weight:800;color:'+C[2]+'">'+tit+'</div>'+(txt?'<div style="font-size:12.5px;color:var(--text2);margin-top:4px;line-height:1.55">'+txt+'</div>':'')+'</div>'
+}
+
+// ════════════════════════════════════════════════════════════════
+// PDF — generado en el navegador a partir del mismo contenido del Word
+// (párrafos y tablas de WordprocessingML) con el membrete: logo, QR, ondas y pie.
+// ════════════════════════════════════════════════════════════════
+const LIB_PDFLIB='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'
+const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+const TW=t=>(parseFloat(t)||0)/20               // twips → puntos
+const hexRgb=h=>{h=String(h||'000000').replace('#','');const n=parseInt(h.length===6?h:'000000',16);return PDFLib.rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255)}
+function _wHijo(el,n){for(const c of el.childNodes)if(c.nodeType===1&&c.localName===n)return c;return null}
+function _wAttr(el,n){return el?el.getAttributeNS(W_NS,n)||el.getAttribute('w:'+n):null}
+// Interpreta el subconjunto de WordprocessingML que generan los documentos de la app
+function _modeloBody(body){
+  const xml='<w:document xmlns:w="'+W_NS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>'
+    +body.replace(/<w:sectPr>[\s\S]*?<\/w:sectPr>/g,'')+'</w:body></w:document>'
+  const doc=new DOMParser().parseFromString(xml,'application/xml')
+  if(doc.getElementsByTagName('parsererror').length)throw new Error('Documento no válido')
+  const par=function(p){
+    const pPr=_wHijo(p,'pPr'),sp=pPr&&_wHijo(pPr,'spacing'),jc=pPr&&_wHijo(pPr,'jc'),ind=pPr&&_wHijo(pPr,'ind'),bd=pPr&&_wHijo(pPr,'pBdr')
+    const bot=bd&&_wHijo(bd,'bottom')
+    const runs=[]
+    for(const r of p.childNodes){
+      if(r.nodeType!==1||r.localName!=='r')continue
+      const rPr=_wHijo(r,'rPr'),t=_wHijo(r,'t');if(!t)continue
+      const sz=rPr&&_wHijo(rPr,'sz'),co=rPr&&_wHijo(rPr,'color')
+      runs.push({text:t.textContent.replace(/\t/g,'  '),bold:!!(rPr&&_wHijo(rPr,'b')),size:sz?parseFloat(_wAttr(sz,'val'))/2:11,color:co?_wAttr(co,'val'):'000000'})
+    }
+    return{type:'p',runs:runs,before:TW(sp&&_wAttr(sp,'before')),after:sp&&_wAttr(sp,'after')!=null?TW(_wAttr(sp,'after')):4,
+      align:(jc&&_wAttr(jc,'val'))||'left',keep:!!(pPr&&_wHijo(pPr,'keepNext')),
+      indLeft:TW(ind&&_wAttr(ind,'left')),hanging:TW(ind&&_wAttr(ind,'hanging')),
+      border:bot?{color:_wAttr(bot,'color')||'0F4C81',size:(parseFloat(_wAttr(bot,'sz'))||4)/8}:null}
+  }
+  const tabla=function(tb){
+    const grid=_wHijo(tb,'tblGrid'),widths=[]
+    for(const g of grid.childNodes)if(g.nodeType===1)widths.push(TW(_wAttr(g,'w')))
+    const tblPr=_wHijo(tb,'tblPr'),bs=tblPr&&_wHijo(tblPr,'tblBorders'),top=bs&&_wHijo(bs,'top')
+    const rows=[]
+    for(const tr of tb.childNodes){
+      if(tr.nodeType!==1||tr.localName!=='tr')continue
+      const trPr=_wHijo(tr,'trPr'),cells=[]
+      for(const tc of tr.childNodes){
+        if(tc.nodeType!==1||tc.localName!=='tc')continue
+        const tcPr=_wHijo(tc,'tcPr'),shd=tcPr&&_wHijo(tcPr,'shd'),w=tcPr&&_wHijo(tcPr,'tcW')
+        const paras=[];for(const p of tc.childNodes)if(p.nodeType===1&&p.localName==='p')paras.push(par(p))
+        cells.push({w:TW(w&&_wAttr(w,'w')),fill:shd?_wAttr(shd,'fill'):'FFFFFF',paras:paras,keep:paras.some(x=>x.keep)})
+      }
+      rows.push({header:!!(trPr&&_wHijo(trPr,'tblHeader')),cells:cells,keep:cells.some(c=>c.keep)})
+    }
+    return{type:'tbl',widths:widths,borde:{color:_wAttr(top,'color')||'CCCCCC',size:(parseFloat(_wAttr(top,'sz'))||2)/8},rows:rows}
+  }
+  const bloques=[],b=doc.getElementsByTagNameNS(W_NS,'body')[0]
+  for(const el of b.childNodes){if(el.nodeType!==1)continue;if(el.localName==='p')bloques.push(par(el));else if(el.localName==='tbl')bloques.push(tabla(el))}
+  return bloques
+}
+// Fuente incrustada en el PDF (serif, similar a Palatino): así el texto se ve igual en cualquier visor.
+// Sin conexión se usa Times (fuente estándar del PDF).
+const LIB_FONTKIT='https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js'
+const FUENTE_PDF={reg:'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Regular.ttf',bold:'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Bold.ttf'}
+let _fuenteBytes=null
+async function _fuentesPdf(doc){
+  try{
+    await cargarLib(LIB_FONTKIT,'fontkit')
+    doc.registerFontkit(window.fontkit)
+    if(!_fuenteBytes)_fuenteBytes=await Promise.all([FUENTE_PDF.reg,FUENTE_PDF.bold].map(u=>fetch(u).then(x=>{if(!x.ok)throw new Error('HTTP '+x.status);return x.arrayBuffer()})))
+    return{reg:await doc.embedFont(_fuenteBytes[0],{subset:true}),bold:await doc.embedFont(_fuenteBytes[1],{subset:true})}
+  }catch(e){
+    console.warn('Fuente incrustada no disponible, se usa Times:',e)
+    return{reg:await doc.embedFont(PDFLib.StandardFonts.TimesRoman),bold:await doc.embedFont(PDFLib.StandardFonts.TimesRomanBold)}
+  }
+}
+// Texto que la fuente puede dibujar (se reemplazan o quitan símbolos sin glifo)
+const _REEMPLAZOS={'■':'•','✓':'v','✔':'v','→':'->','←':'<-','≤':'<=','≥':'>=',' ':' ',' ':' ','‑':'-'}
+function _txtPdf(font,s){
+  const fk=font.embedder&&font.embedder.font&&font.embedder.font.hasGlyphForCodePoint?font.embedder.font:null
+  let o=''
+  for(const ch of String(s)){
+    const c=_REEMPLAZOS[ch]!==undefined?_REEMPLAZOS[ch]:ch
+    if(fk){if(c===' '||Array.from(c).every(x=>fk.hasGlyphForCodePoint(x.codePointAt(0))))o+=c;continue}
+    try{font.encodeText(c);o+=c}catch(e){}
+  }
+  return o
+}
+// Arma las líneas de un párrafo dentro de un ancho dado
+function _lineasParrafo(p,ancho,F){
+  const toks=[]
+  p.runs.forEach(function(r){
+    const font=r.bold?F.bold:F.reg,txt=_txtPdf(font,r.text)
+    txt.split(/( +)/).forEach(function(w){if(w!=='')toks.push({t:w,esp:/^ +$/.test(w),font:font,size:r.size,color:r.color,ancho:font.widthOfTextAtSize(w,r.size)})})
+  })
+  const lineas=[];let ln=[],w=0
+  const primera=()=>lineas.length===0
+  const limite=()=>ancho-(primera()?Math.max(p.indLeft-p.hanging,0):p.indLeft)
+  toks.forEach(function(t){
+    if(t.esp&&!ln.length)return
+    if(!t.esp&&w+t.ancho>limite()&&ln.length){
+      while(ln.length&&ln[ln.length-1].esp){w-=ln.pop().ancho}
+      lineas.push({toks:ln,ancho:w});ln=[];w=0
+    }
+    // palabra más larga que la línea: se corta por caracteres
+    if(!t.esp&&t.ancho>limite()){
+      let trozo=''
+      for(const ch of t.t){const x=t.font.widthOfTextAtSize(trozo+ch,t.size);if(x>limite()&&trozo){ln.push(Object.assign({},t,{t:trozo,ancho:t.font.widthOfTextAtSize(trozo,t.size)}));lineas.push({toks:ln,ancho:t.font.widthOfTextAtSize(trozo,t.size)});ln=[];trozo=ch}else trozo+=ch}
+      t=Object.assign({},t,{t:trozo,ancho:t.font.widthOfTextAtSize(trozo,t.size)})
+    }
+    ln.push(t);w+=t.ancho
+  })
+  while(ln.length&&ln[ln.length-1].esp){w-=ln.pop().ancho}
+  if(ln.length||!lineas.length)lineas.push({toks:ln,ancho:w})
+  const def=(p.runs[0]&&p.runs[0].size)||11
+  lineas.forEach(l=>{l.alto=Math.max(def,...l.toks.map(t=>t.size))*1.2})
+  return lineas
+}
+const _altoParrafo=(p,ancho,F)=>p.before+p.after+_lineasParrafo(p,ancho,F).reduce((s,l)=>s+l.alto,0)
+function _dibujarLinea(page,l,x,y,ancho,p,ultima,indent){
+  const libre=ancho-indent-l.ancho
+  let xx=x+indent,extra=0
+  if(p.align==='center')xx+=libre/2
+  else if(p.align==='right')xx+=libre
+  else if(p.align==='both'&&!ultima){const gaps=l.toks.filter(t=>t.esp).length;if(gaps)extra=libre/gaps}
+  l.toks.forEach(function(t){
+    if(t.esp){xx+=t.ancho+extra;return}
+    page.drawText(t.t,{x:xx,y:y,size:t.size,font:t.font,color:hexRgb(t.color)});xx+=t.ancho
+  })
+}
+
+async function generarPdf(body,opts){
+  opts=opts||{}
+  await cargarLib(LIB_PDFLIB,'PDFLib')
+  const L=PDFLib,doc=await L.PDFDocument.create()
+  const F=await _fuentesPdf(doc)
+  const b64u8=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0))
+  const logo=await doc.embedPng(b64u8(LOGO_B64)),ondas=await doc.embedJpg(b64u8(ONDAS_B64))
+  const qr=opts.qrB64?await doc.embedPng(b64u8(opts.qrB64)):null
+  const PW=595.28,PH=841.89,ML=56.7,MR=56.7,MT=100,MB=112,AN=PW-ML-MR
+  const pr=prestador()
+  const pie=[pr.direccion?'Dirección: '+pr.direccion:'',pr.telefono?'Celular: '+pr.telefono:'',pr.web?'Sitio web: '+pr.web:''].filter(Boolean)
+  let page,y
+  const nuevaPagina=function(){
+    page=doc.addPage([PW,PH])
+    const hO=PW*406/478
+    page.drawImage(ondas,{x:0,y:0,width:PW,height:hO})
+    page.drawImage(logo,{x:39.4,y:PH-23.6-70.4,width:198.4,height:70.4})
+    if(qr)page.drawImage(qr,{x:PW-39.4-64.6,y:PH-20.5-64.6,width:64.6,height:64.6})
+    let yy=28
+    pie.slice().reverse().forEach(function(t){const s=_txtPdf(F.bold,t),w=F.bold.widthOfTextAtSize(s,10);page.drawText(s,{x:(PW-w)/2,y:yy,size:10,font:F.bold,color:hexRgb('215E99')});yy+=13})
+    if(opts.codigo){const s=_txtPdf(F.reg,'Código de verificación: '+opts.codigo+' · Verifique su autenticidad escaneando el código QR'),w=F.reg.widthOfTextAtSize(s,7.5);page.drawText(s,{x:(PW-w)/2,y:yy+1,size:7.5,font:F.reg,color:hexRgb('0B2545')})}
+    y=PH-MT
+  }
+  const libre=()=>y-MB
+  const firmas=[] // posiciones de las líneas de firma (para el sello de la firma electrónica)
+  nuevaPagina()
+  const bloques=_modeloBody(body)
+  const altoTabla=t=>t.rows.reduce((s,r)=>s+_altoFila(r),0)
+  const _altoFila=function(r){
+    return Math.max(...r.cells.map(c=>8+c.paras.reduce((s,p)=>s+_altoParrafo(Object.assign({},p,{before:0,after:0}),c.w-10,F),0)))
+  }
+  const altoMinimo=function(bq){ // lo que debe caber junto con un párrafo "mantener con el siguiente"
+    if(!bq)return 0
+    if(bq.type==='tbl'){
+      const esFirmas=bq.rows.some(r=>r.cells.some(c=>c.paras.length===1&&/^_{8,}$/.test((c.paras[0].runs[0]||{}).text||'')))
+      const keepAll=esFirmas||bq.rows.slice(0,-1).every(r=>r.keep)
+      return keepAll?altoTabla(bq):(_altoFila(bq.rows[0])+(bq.rows[1]?_altoFila(bq.rows[1]):0))
+    }
+    const ls=_lineasParrafo(bq,AN,F);return bq.before+ls.slice(0,2).reduce((s,l)=>s+l.alto,0)
+  }
+  for(let i=0;i<bloques.length;i++){
+    const bq=bloques[i]
+    if(bq.type==='p'){
+      const ls=_lineasParrafo(bq,AN,F),alto=bq.before+ls.reduce((s,l)=>s+l.alto,0)
+      if(bq.keep&&y<PH-MT){
+        const necesita=bq.before+ls.reduce((s,l)=>s+l.alto,0)+altoMinimo(bloques[i+1])
+        if(necesita>libre()&&necesita<PH-MT-MB)nuevaPagina()
+      }
+      if(y<PH-MT)y-=bq.before
+      ls.forEach(function(l,k){
+        if(l.alto>libre())nuevaPagina()
+        y-=l.alto
+        const ind=k===0?Math.max(bq.indLeft-bq.hanging,0):bq.indLeft
+        _dibujarLinea(page,l,ML,y+l.alto*0.22,AN,bq,k===ls.length-1,ind)
+      })
+      if(bq.border){page.drawLine({start:{x:ML,y:y-2},end:{x:ML+AN,y:y-2},thickness:Math.max(bq.border.size,0.5),color:hexRgb(bq.border.color)})}
+      y-=bq.after
+    }else{
+      // Tablas que van completas en una página: las marcadas "mantener" y la de firmas
+      const esFirmas=bq.rows.some(r=>r.cells.some(c=>c.paras.length===1&&/^_{8,}$/.test((c.paras[0].runs[0]||{}).text||'')))
+      const keepAll=esFirmas||bq.rows.slice(0,-1).every(r=>r.keep)
+      const total=altoTabla(bq)
+      if(keepAll&&total>libre()&&total<PH-MT-MB)nuevaPagina()
+      const cabeceras=bq.rows.filter(r=>r.header)
+      const dibujarFila=function(r){
+        const h=_altoFila(r)
+        let x=ML
+        r.cells.forEach(function(c){
+          const fill=String(c.fill||'FFFFFF').toUpperCase()
+          if(fill!=='FFFFFF'&&fill!=='AUTO')page.drawRectangle({x:x,y:y-h,width:c.w,height:h,color:hexRgb(fill)})
+          page.drawRectangle({x:x,y:y-h,width:c.w,height:h,borderColor:hexRgb(bq.borde.color),borderWidth:Math.max(bq.borde.size,0.25)})
+          let yy=y-4
+          c.paras.forEach(function(p){
+            const pp=Object.assign({},p,{before:0,after:0})
+            _lineasParrafo(pp,c.w-10,F).forEach(function(l,k,arr){yy-=l.alto;_dibujarLinea(page,l,x+5,yy+l.alto*0.22,c.w-10,pp,k===arr.length-1,0)})
+          })
+          if(c.paras.length===1&&/^_{8,}$/.test((c.paras[0].runs[0]||{}).text||''))firmas.push({page:page,x:x,y:y-h,w:c.w,h:h})
+          x+=c.w
+        })
+        y-=h
+      }
+      bq.rows.forEach(function(r,k){
+        if(_altoFila(r)>libre()){nuevaPagina();if(!r.header)cabeceras.forEach(dibujarFila)}
+        dibujarFila(r)
+      })
+    }
+  }
+  doc.setTitle((opts.titulo||'Documento')+(opts.codigo?' · '+opts.codigo:''))
+  if(opts.codigo){doc.setSubject('Código de verificación '+opts.codigo);doc.setKeywords([opts.codigo])}
+  doc.setCreator('Research Assessor');doc.setProducer('Research Assessor')
+  return{doc:doc,fuentes:F,firmas:firmas}
+}
+async function descargarPdf(body,nombre,opts){
+  try{
+    const r=await generarPdf(body,opts)
+    const u8=await r.doc.save({useObjectStreams:false})
+    const url=URL.createObjectURL(new Blob([u8],{type:'application/pdf'}))
+    const a=document.createElement('a');a.href=url;a.download=nombre.replace(/\.docx$/i,'.pdf');document.body.appendChild(a);a.click();a.remove()
+    setTimeout(()=>URL.revokeObjectURL(url),5000);toast('✓ PDF descargado')
+  }catch(e){toast('Error generando PDF: '+e.message,'err')}
+}
+function descargarContratoPdf(tid){
+  const ctx=_ctxContrato(tid);if(!ctx)return
+  const c=_construirContrato(ctx);descargarPdf(c.body,c.filename,{titulo:'Contrato (borrador)'})
+}
+function descargarProformaPdf(pid){
+  const p=data.propuestas.find(x=>x.id===pid);if(!p)return
+  const c=_construirProforma(p);descargarPdf(c.body,c.filename,{titulo:p.titulo||'Propuesta'})
+}
+
+// ════════════════════════════════════════════════════════════════
+// FIRMA ELECTRÓNICA CON ARCHIVO .p12 (dentro del sistema, sin programas externos)
+// Firma PDF estándar (adbe.pkcs7.detached, CMS con SHA-256) con sello visible.
+// El archivo .p12 y su clave se usan solo en este equipo: nunca se envían al servidor.
+// ════════════════════════════════════════════════════════════════
+const P12_KEY='ra_p12_v1'
+let _p12Cache=null // {nombre,bytes} del archivo elegido en esta sesión
+function p12Recordado(){try{const x=JSON.parse(localStorage.getItem(P12_KEY)||'null');return x&&x.b64?x:null}catch(e){return null}}
+function olvidarP12(){try{localStorage.removeItem(P12_KEY)}catch(e){};_p12Cache=null;toast('Certificado olvidado en este equipo');draw()}
+async function leerP12(bytesU8,clave){
+  await cargarLib(LIB_FORGE,'forge')
+  const A=forge.asn1
+  let p12
+  try{p12=forge.pkcs12.pkcs12FromAsn1(A.fromDer(forge.util.createBuffer(bytesToLatin1(bytesU8))),false,clave)}
+  catch(e){throw new Error(/password|Invalid|decrypt|MAC/i.test(e.message)?'La clave del certificado no es correcta.':'No se pudo abrir el archivo .p12: '+e.message)}
+  const bolsasK=(p12.getBags({bagType:forge.pki.oids.pkcs8ShroudedKeyBag})[forge.pki.oids.pkcs8ShroudedKeyBag]||[]).concat(p12.getBags({bagType:forge.pki.oids.keyBag})[forge.pki.oids.keyBag]||[])
+  const certs=(p12.getBags({bagType:forge.pki.oids.certBag})[forge.pki.oids.certBag]||[]).map(b=>b.cert).filter(Boolean)
+  const llave=bolsasK.map(b=>b.key).find(Boolean)
+  if(!llave)throw new Error('El archivo no contiene la llave privada de firma.')
+  if(!llave.n)throw new Error('Tipo de llave no soportado (se requiere RSA).')
+  const cert=certs.find(c=>c.publicKey&&c.publicKey.n&&c.publicKey.n.equals(llave.n))
+  if(!cert)throw new Error('No se encontró el certificado de la llave en el archivo.')
+  const campo=(ent,n)=>{const x=ent.getField(n);return x?String(x.value):''}
+  const textos=cert.subject.attributes.map(a=>String(a.value))
+  ;(cert.extensions||[]).forEach(function(e){try{_textosAsn1(A.fromDer(e.value,{strict:false}),textos)}catch(x){}})
+  const ced=textos.join(' ').match(/\b(\d{10}(?:001)?)\b/)
+  const ahora=new Date()
+  return{llave:llave,cert:cert,cadena:certs,nombre:campo(cert.subject,'CN'),cedula:ced?ced[1]:'',
+    emisor:campo(cert.issuer,'O')||campo(cert.issuer,'CN'),desde:cert.validity.notBefore,hasta:cert.validity.notAfter,
+    vigente:ahora>=cert.validity.notBefore&&ahora<=cert.validity.notAfter}
+}
+// Agrega el campo de firma y firma el PDF (CMS detached sobre el /ByteRange)
+async function firmarPdf(gen,cred,info){
+  const L=PDFLib,doc=gen.doc,ctx=doc.context,F=gen.fuentes
+  const pages=doc.getPages()
+  // Sello visible sobre la línea de firma de EL PRESTADOR (primera línea de firma del documento)
+  const pos=gen.firmas[0]||{page:pages[pages.length-1],x:56.7,y:140,w:200,h:20}
+  const fecha=new Date()
+  const fh=fecha.toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  const lineas=[['Firmado electrónicamente por:',F.reg,6.5],[cred.nombre,F.bold,8],[(cred.cedula?'C.I. '+cred.cedula+' · ':'')+fh,F.reg,6.5],['Certificado: '+cred.emisor,F.reg,6]]
+  const sx=pos.x+6,sw=pos.w-12,sh=lineas.length*9+6,sy=pos.y+pos.h-2
+  pos.page.drawRectangle({x:sx,y:sy,width:sw,height:sh,color:hexRgb('F5EBDC'),borderColor:hexRgb('B8894A'),borderWidth:0.8,opacity:0.95})
+  let ly=sy+sh-9
+  lineas.forEach(function(l){const s=_txtPdf(l[1],l[0]);pos.page.drawText(s.length>70?s.slice(0,70)+'…':s,{x:sx+5,y:ly,size:l[2],font:l[1],color:hexRgb('0B2545'),maxWidth:sw-10});ly-=9})
+  // Diccionario de firma con espacios reservados
+  const RES=24000 // bytes reservados para la firma CMS
+  const byteRange=L.PDFArray.withContext(ctx)
+  byteRange.push(L.PDFNumber.of(0));byteRange.push(L.PDFName.of('**********'));byteRange.push(L.PDFName.of('**********'));byteRange.push(L.PDFName.of('**********'))
+  const sig=ctx.obj({Type:'Sig',Filter:'Adobe.PPKLite',SubFilter:'adbe.pkcs7.detached',ByteRange:byteRange,
+    Contents:L.PDFHexString.of('0'.repeat(RES*2)),Reason:L.PDFString.of(_txtPdf(F.reg,info.motivo||'Firma del contrato')),
+    M:L.PDFString.fromDate(fecha),Name:L.PDFString.of(_txtPdf(F.reg,cred.nombre)),Location:L.PDFString.of(_txtPdf(F.reg,info.lugar||'Ecuador')),
+    ContactInfo:L.PDFString.of(_txtPdf(F.reg,info.contacto||''))})
+  const sigRef=ctx.register(sig)
+  const widget=ctx.obj({Type:'Annot',Subtype:'Widget',FT:'Sig',Rect:[sx,sy,sx+sw,sy+sh],V:sigRef,T:L.PDFString.of('Firma_Prestador'),F:4,P:pos.page.ref})
+  const wRef=ctx.register(widget)
+  pos.page.node.set(L.PDFName.of('Annots'),ctx.obj([wRef]))
+  doc.catalog.set(L.PDFName.of('AcroForm'),ctx.obj({SigFlags:3,Fields:[wRef]}))
+  const u8=await doc.save({useObjectStreams:false})
+  // Ubicar los espacios reservados
+  const txt=bytesToLatin1(u8)
+  const reBR=/\/ByteRange\s*\[\s*0\s+\/\*{10}\s+\/\*{10}\s+\/\*{10}\s*\]/
+  const mBR=reBR.exec(txt);if(!mBR)throw new Error('No se pudo preparar la firma (ByteRange)')
+  const iC=txt.indexOf('/Contents <'+'0'.repeat(32),mBR.index-RES*2-200);const ini=txt.indexOf('<',iC>-1?iC:txt.indexOf('/Contents <'))
+  const fin=ini+1+RES*2+1
+  if(txt[fin-1]!=='>')throw new Error('No se pudo preparar la firma (Contents)')
+  const br='/ByteRange ['+[0,ini,fin,u8.length-fin].join(' ')+']'
+  if(br.length>mBR[0].length)throw new Error('ByteRange demasiado largo')
+  const brFinal=br.slice(0,-1)+' '.repeat(mBR[0].length-br.length)+']'
+  for(let k=0;k<brFinal.length;k++)u8[mBR.index+k]=brFinal.charCodeAt(k)
+  // CMS (PKCS#7) detached con SHA-256
+  const contenido=new Uint8Array(ini+(u8.length-fin));contenido.set(u8.subarray(0,ini),0);contenido.set(u8.subarray(fin),ini)
+  const p7=forge.pkcs7.createSignedData()
+  p7.content=forge.util.createBuffer(bytesToLatin1(contenido))
+  cred.cadena.forEach(c=>p7.addCertificate(c))
+  p7.addSigner({key:cred.llave,certificate:cred.cert,digestAlgorithm:forge.pki.oids.sha256,
+    authenticatedAttributes:[{type:forge.pki.oids.contentType,value:forge.pki.oids.data},{type:forge.pki.oids.messageDigest},{type:forge.pki.oids.signingTime,value:fecha}]})
+  p7.sign({detached:true})
+  const hex=forge.util.bytesToHex(forge.asn1.toDer(p7.toAsn1()).getBytes())
+  if(hex.length>RES*2)throw new Error('La firma no cabe en el espacio reservado')
+  const hexFull=hex+'0'.repeat(RES*2-hex.length)
+  for(let k=0;k<hexFull.length;k++)u8[ini+1+k]=hexFull.charCodeAt(k)
+  return u8
+}
+
+// ── Diagnóstico de instalación de la app ──
+async function diagnosticoInstalacion(){
+  const R=[],ua=navigator.userAgent
+  const add=(ok,t,d)=>R.push({ok:ok,t:t,d:d||''})
+  const enApp=esStandalone()
+  if(enApp){add(true,'Ya estás usando la app instalada');return R}
+  const https=location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+  add(https,'Conexión segura (https)',https?location.host:location.protocol==='file:'?'Estás abriendo el archivo desde tu equipo. La app solo se instala desde la dirección https de GitHub Pages.':'La dirección no es https.')
+  const inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|; wv\)|GSA\//i.test(ua)
+  const ios=esIOS(),safari=/Safari/i.test(ua)&&!/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Android/i.test(ua)
+  const firefox=/Firefox|FxiOS/i.test(ua),chromium=/Chrome|Chromium|Edg\//i.test(ua)&&!/OPR\//.test(ua)
+  if(inApp)add(false,'Navegador interno de otra app','Abriste el enlace dentro de WhatsApp, Facebook u otra app. Toca ⋮ o ↗ y elige "Abrir en Chrome" (Android) o "Abrir en Safari" (iPhone).')
+  else if(ios)add(true,'iPhone / iPad',safari?'En Safari: Compartir ↑ → "Agregar a pantalla de inicio". En iPhone no aparece un botón de instalar automático.':'Abre la dirección en Safari: Compartir ↑ → "Agregar a pantalla de inicio".')
+  else if(firefox)add(false,'Firefox no instala aplicaciones web','Abre la dirección en Google Chrome o Microsoft Edge.')
+  else if(safari)add(true,'Safari en Mac','Menú Archivo → "Agregar al Dock" (macOS Sonoma o superior), o usa Chrome/Edge.')
+  else add(chromium,'Navegador compatible',chromium?'Chrome / Edge':'Usa Google Chrome o Microsoft Edge.')
+  try{
+    const r=await fetch('manifest.webmanifest',{cache:'no-store'})
+    if(!r.ok)throw new Error('HTTP '+r.status)
+    const m=await r.json()
+    const iconos=await Promise.all((m.icons||[]).map(i=>fetch(i.src,{cache:'no-store'}).then(x=>x.ok).catch(()=>false)))
+    const okIc=iconos.length>0&&iconos.every(Boolean)
+    add(true,'Manifiesto de la app',m.name)
+    add(okIc,'Íconos de la app',okIc?iconos.length+' íconos encontrados':'Faltan íconos: sube la carpeta icons/ completa al repositorio.')
+  }catch(e){add(false,'Manifiesto de la app','No se encontró manifest.webmanifest ('+e.message+'). Súbelo a la misma carpeta que index.html.')}
+  if('serviceWorker' in navigator){
+    const reg=await navigator.serviceWorker.getRegistration().catch(()=>null)
+    add(!!(reg&&(reg.active||reg.waiting||reg.installing)),'Servicio de la app (sw.js)',reg?'Registrado':'No registrado: sube sw.js a la misma carpeta que index.html y recarga la página.')
+  }else add(false,'Servicio de la app','Este navegador no lo admite.')
+  if(chromium&&!ios&&!inApp)add(!!_installEvt,'Instalación disponible',_installEvt?'Pulsa "📲 Instalar app".'
+    :'Chrome no ofreció la instalación todavía. Puede que ya esté instalada (búscala en tus apps), o que la hayas rechazado antes: en computadora usa el ícono ⊕ de la barra de direcciones o ⋮ → "Transmitir, guardar y compartir" → "Instalar página como app"; en Android ⋮ → "Agregar a la pantalla principal" → "Instalar".')
+  return R
+}
+function htmlDiagnostico(R){
+  return R.map(x=>'<div style="display:flex;gap:8px;margin-bottom:7px;font-size:12.5px;line-height:1.5"><span>'+(x.ok?'✅':'❌')+'</span><span><strong>'+esc(x.t)+'</strong>'+(x.d?'<br/><span style="color:var(--text2)">'+esc(x.d)+'</span>':'')+'</span></div>').join('')
+}
+async function correrDiagnostico(idDestino){
+  const el=document.getElementById(idDestino);if(!el)return
+  el.innerHTML='<div style="font-size:12px;color:var(--text3)"><span class="spin">⟳</span> Revisando…</div>'
+  el.innerHTML=htmlDiagnostico(await diagnosticoInstalacion())
 }
 
 // ════════════════════════════════════════════════════════════════
