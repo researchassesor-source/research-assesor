@@ -1,4 +1,11 @@
 // ================================================================
+// Research Assessor — Apps Script v7.6
+// Novedades v7.6:
+//   • autorizarPermisos(): ejecútala UNA VEZ desde el editor (botón ▶ Ejecutar) para
+//     conceder a la aplicación el acceso a Google Drive y al correo. Sin ese permiso
+//     no se pueden guardar ni firmar contratos ("No tienes permiso para llamar a DriveApp…").
+//   • ping informa si los permisos de Drive y correo están concedidos.
+// ----------------------------------------------------------------
 // Research Assessor — Apps Script v7.5
 // Novedades v7.5: el contrato se emite como PDF firmado con el certificado .p12 del prestador
 //   (emitirContrato con formato:'pdf' y firmado:true registra emisión y firma en un solo paso)
@@ -80,6 +87,25 @@ function verificarTablaEditable(tabla) {
 // completado → el colaborador terminó su parte
 // pagado     → el admin ya pagó al colaborador
 
+// ── PERMISOS ─────────────────────────────────────────────────────
+// Selecciona "autorizarPermisos" en la barra superior del editor y pulsa ▶ Ejecutar.
+// Google pedirá permiso para Drive, correo y la hoja: acepta con tu cuenta.
+function autorizarPermisos() {
+  SpreadsheetApp.openById(SS_ID).getName();
+  DriveApp.getRootFolder().getName();
+  var it = DriveApp.getFoldersByName(CARPETA_CONTRATOS);
+  if (it.hasNext()) it.next().getName();
+  MailApp.getRemainingDailyQuota();
+  Logger.log('Permisos concedidos: Drive, correo y hoja de cálculo. Ya puedes firmar contratos.');
+  return revisarPermisos_();
+}
+function revisarPermisos_() {
+  var p = { drive: true, mail: true };
+  try { DriveApp.getRootFolder().getId(); } catch (err) { p.drive = false; }
+  try { MailApp.getRemainingDailyQuota(); } catch (err) { p.mail = false; }
+  return p;
+}
+
 function doGet(e) {
   var action   = e.parameter.action || 'getData';
   var callback = e.parameter.callback || '';
@@ -114,7 +140,7 @@ function doGet(e) {
       else { throw new Error('Op desconocida: ' + body.action); }
       result = { ok: true };
     } else if (action === 'ping') {
-      result = { ok: true, msg: 'OK', script: 'v7.5' };
+      result = { ok: true, msg: 'OK', script: 'v7.6', permisos: revisarPermisos_() };
     } else if (action === 'createMeet') {
       var title    = (e.parameter.title    || 'Reunión Research Assessor');
       var date     = (e.parameter.date     || '');

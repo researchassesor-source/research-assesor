@@ -771,6 +771,8 @@ const v=id=>(document.getElementById(id)||{}).value||''
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 const jss=o=>esc(JSON.stringify(o))
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5)
+// Registros del más reciente al más antiguo (la hoja guarda las filas en orden de ingreso)
+const recientes=a=>(a||[]).slice().reverse()
 const fmt=n=>{const x=parseFloat(n)||0;return x%1===0?String(Math.round(x)):x.toFixed(2)}
 
 function bdg(t,c){const m={green:'bg',blue:'bb',amber:'ba',red:'br',violet:'bv'};return'<span class="b '+(m[c]||'bx')+'">'+esc(t)+'</span>'}
@@ -997,7 +999,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.5'
+const VERSION='v7.6'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1350,19 +1352,19 @@ function htmlDash(){
 }
 function htmlClientes(){
   const q=search.toLowerCase()
-  const list=data.clientes.filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
+  const list=recientes(data.clientes).filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
   let h='<div class="tb"><input id="srch" placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
-  h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th></tr></thead><tbody>'
+  h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
-    const trabsC=data.trabajos.filter(t=>t.clienteId===c.id)
+    const trabsC=recientes(data.trabajos).filter(t=>t.clienteId===c.id)
     const nT=trabsC.length
     const isExpC=(wExp===('c_'+c.id))
     const cuotasC=data.cuotas.filter(q=>trabsC.some(t=>t.id===q.trabajoId))
     const pagadoC=cuotasC.reduce((s,q)=>s+parseFloat(q.pagado||0),0)
     const saldoC=cuotasC.reduce((s,q)=>s+(parseFloat(q.acordado||0)-parseFloat(q.pagado||0)),0)
     const venceC=cuotasC.filter(q=>cStat(q)==='vencido').length
-    h+='<tr style="cursor:pointer" onclick="wExp=wExp===\'c_'+c.id+'\'\'?null:\'c_'+c.id+'\';draw()">'
+    h+='<tr style="cursor:pointer" onclick="wExp=wExp===\'c_'+c.id+'\'?null:\'c_'+c.id+'\';draw()">'
       +'<td><strong>'+esc(c.nombre)+'</strong>'+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+esc(c.institucion||'—')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+esc(c.ciudad||'—')+'</td>'
@@ -1380,13 +1382,22 @@ function htmlClientes(){
       +'<button class="btn btn-g btn-sm" onclick="openModal(\'cliente\','+jss(c)+')">✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="delRec(\'Clientes\',\''+c.id+'\',\'¿Eliminar?\')">🗑</button>'
       +'</span></td>'
-      +(isExpC?'<td colspan="1" style="color:var(--text3);font-size:12px">'+(isExpC?'▲':'▼')+'</td>':'<td></td>')
+      +'<td style="color:var(--text3);font-size:12px" title="Ver todos los datos">'+(isExpC?'▲':'▼')+'</td>'
       +'</tr>'
-    // Expanded row: all trabajos with balances
-    if(isExpC&&nT>0){
-      h+='<tr><td colspan="7" style="padding:0;background:#f8fafc;border-top:2px solid var(--brand)">'
+    // Fila expandida: ficha completa del cliente + trabajos con saldos
+    if(isExpC){
+      h+='<tr><td colspan="8" style="padding:0;background:#f8fafc;border-top:2px solid var(--brand)">'
         +'<div style="padding:12px 20px">'
-        +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:8px">TRABAJOS · '+esc(c.nombre.toUpperCase())+'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px">DATOS DEL CLIENTE</div>'
+        +'<button class="btn btn-p btn-sm" onclick="openModal(\'cliente\','+jss(c)+')">✏️ Editar datos del cliente</button></div>'
+        +fichaCliente(c)
+        +'</div>'
+      if(!nT)h+='<div style="padding:0 20px 14px;font-size:12px;color:var(--text3)">Sin trabajos registrados.</div></td></tr>'
+    }
+    if(isExpC&&nT>0){
+      h+='<div style="padding:4px 20px 12px">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin:6px 0 8px">TRABAJOS · '+esc(c.nombre.toUpperCase())+'</div>'
         +'<table style="width:100%;font-size:12px"><thead><tr style="color:var(--text3)">'
         +'<th style="padding:5px 8px;text-align:left">Trabajo</th>'
         +'<th style="padding:5px 8px;text-align:left">Estado</th>'
@@ -1411,7 +1422,7 @@ function htmlClientes(){
           +'<td style="padding:6px 8px"><button class="btn btn-g btn-sm" onclick="page=\'trabajos\';wExp=\''+t.id+'\';draw()">Ver →</button></td>'
           +'</tr>'
         // Show abonos for this trabajo
-        const absT=data.abonos.filter(function(a){return a.trabajoId===t.id})
+        const absT=recientes(data.abonos).filter(function(a){return a.trabajoId===t.id})
         if(absT.length){
           h+='<tr><td colspan="7" style="padding:5px 20px 8px;background:#f0fdf4">'
             +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
@@ -1429,7 +1440,7 @@ function htmlClientes(){
       })
       h+='</tbody></table></div></td></tr>'
     }
-  })}else h+='<tr><td colspan="7" class="empty">Sin clientes registrados</td></tr>'
+  })}else h+='<tr><td colspan="8" class="empty">Sin clientes registrados</td></tr>'
   h+='</tbody></table></div>'
   return h
 }
@@ -1437,7 +1448,7 @@ function htmlClientes(){
 // ─── TRABAJOS ─────────────────────────────────────────────────────────────────
 function htmlTrabajos(){
   const q=search.toLowerCase()
-  const list=data.trabajos.filter(t=>{
+  const list=recientes(data.trabajos).filter(t=>{
     const cl=data.clientes.find(c=>c.id===t.clienteId)
     return(!q||(t.titulo+' '+(cl&&cl.nombre||'')+' '+t.tipo).toLowerCase().includes(q))
       &&(wSt==='Todos'||t.estado===wSt)
@@ -1494,6 +1505,18 @@ function htmlTrabajos(){
           +'<button class="btn btn-gold btn-sm" onclick="openModal(\'seguimiento\',{trabajoId:\''+t.id+'\'})">+ Registrar avance</button></span></div>'
           +htmlStepper(t)+'</div>'
       }
+      // Todos los datos del trabajo y del cliente que se usan en el contrato
+      h+='<details style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
+        +'<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy)">📋 Datos del contrato y del cliente</summary>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 6px">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px">DATOS DEL SERVICIO</span>'
+        +'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar datos del contrato</button></div>'
+        +fichaDetalles(t)
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 6px">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px">CLIENTE</span>'
+        +(cl?'<button class="btn btn-g btn-sm" onclick="openModal(\'cliente\','+jss(cl)+')">✏️ Editar datos del cliente</button>':'')+'</div>'
+        +(cl?fichaCliente(cl):'<div style="font-size:12px;color:var(--text3)">Sin cliente asignado.</div>')
+        +'</details>'
       if(t.notas)h+='<p style="font-size:12px;color:var(--text3);margin-bottom:10px">📝 '+esc(t.notas)+'</p>'
       if(t.progreso||t.fechaInicio||t.fechaFin||t.carpeta)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">'+(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')+(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')+(t.progreso?'<span>📊 Avance: <strong>'+esc(t.progreso)+'%</strong></span>':'')+(t.carpeta?'<a href="'+esc(t.carpeta)+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">📁 Carpeta</a>':'')+'<button class="btn btn-g btn-sm" onclick="openModal(\'trabajo\','+jss(t)+')">✏️ Editar</button></div>'
       h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
@@ -1552,6 +1575,7 @@ function htmlTrabajos(){
 // ─── COBROS ───────────────────────────────────────────────────────────────────
 function htmlCobros(){
   const q=search.toLowerCase()
+  const _ordT={};data.trabajos.forEach((t,i)=>{_ordT[t.id]=i})
   const rows=data.cuotas.map(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
     const cl=t?data.clientes.find(x=>x.id===t.clienteId):null
@@ -1566,7 +1590,8 @@ function htmlCobros(){
     const nameMatch=(c._cl&&c._cl.nombre||c.clienteNombre||'')+(c._t&&c._t.titulo||c.trabajoTitulo||'')
     return(cSt==='Todos'||cSt===c._st)&&(!q||nameMatch.toLowerCase().includes(q))
   })
-    .sort((a,b)=>{const o={vencido:0,parcial:1,pendiente:2,pagado:3};return o[a._st]-o[b._st]||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
+    // Del trabajo ingresado más recientemente al más antiguo; dentro de cada trabajo, cuota 1, 2, 3…
+    .sort((a,b)=>(_ordT[b.trabajoId]||0)-(_ordT[a.trabajoId]||0)||new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
 
   const cobrado=data.abonos.reduce((s,a)=>s+parseFloat(a.monto||0),0)
   const pendiente=data.cuotas.filter(c=>cStat(c)!=='pagado').reduce((s,c)=>s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0),0)
@@ -1760,7 +1785,7 @@ function waDeudor(clienteId){
 function htmlReuniones(){
   const hoy=fechaHoyLocal()
   const today=new Date()
-  const list=data.reuniones.filter(r=>{const fi=toISO(r.fecha||'');if(!fi)return mvw==='all';return mvw==='upcoming'?fi>=hoy:mvw==='past'?fi<hoy:true}).sort((a,b)=>(toISO(a.fecha||'')).localeCompare(toISO(b.fecha||'')))
+  const list=data.reuniones.filter(r=>{const fi=toISO(r.fecha||'');if(!fi)return mvw==='all';return mvw==='upcoming'?fi>=hoy:mvw==='past'?fi<hoy:true}).sort((a,b)=>mvw==='upcoming'?toISO(a.fecha||'').localeCompare(toISO(b.fecha||'')):toISO(b.fecha||'').localeCompare(toISO(a.fecha||'')))
   const calDays={}
   data.reuniones.forEach(r=>{const _fi=toISO(r.fecha||'');if(!_fi)return;const d=new Date(_fi+'T12:00:00');if(!isNaN(d.getTime())&&d.getMonth()===calM&&d.getFullYear()===calY)calDays[d.getDate()]=(calDays[d.getDate()]||[]).concat(r)})
   const dim=new Date(calY,calM+1,0).getDate(),fd=new Date(calY,calM,1).getDay()
@@ -1976,7 +2001,10 @@ async function delUsuario(id){
 
 // ─── MODALES ──────────────────────────────────────────────────────────────────
 function openModal(type,rec){modal={type,rec:rec||{}};draw()}
-function closeModal(){modal=null;draw()}
+function closeModal(){
+  if(modal&&(modal.type==='cliente'||modal.type==='trabajo')&&volverAlContrato())return
+  _volverContrato=null;modal=null;draw()
+}
 function htmlModal(){
   if(!modal)return''
   let c=''
@@ -2041,6 +2069,7 @@ function submitCliente(id,conPropuesta){
   saveRec('Clientes',rec,!id)
   // Alta completa: los datos del cliente pasan directo a su propuesta de publicaciones
   if(conPropuesta)nuevaPropuesta(rec.id)
+  else volverAlContrato()
 }
 
 function mTrabajo(d){
@@ -2048,7 +2077,7 @@ function mTrabajo(d){
   let s='<h3>'+(e?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
     +'<div class="full"><label>Título *</label><input id="f0" value="'+esc(d.titulo||'')+'"/></div>'
     +'<div class="full"><label>Cliente *</label><select id="f1"><option value="">Seleccionar...</option>'
-    +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
+    +recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
     +'</select></div>'
     +'<div><label>Tipo</label><select id="f2" onchange="renderDetTrabajo()">'+TIPOS.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
     +'<div><label>Estado</label><select id="f3">'+ESTADOS.map(x=>'<option'+(d.estado===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
@@ -2146,6 +2175,44 @@ function leerDetCampos(modelo){
   })
   return out
 }
+// ── Fichas de solo lectura: todos los datos guardados, con acceso directo para editarlos ──
+let _volverContrato=null  // si se edita desde el contrato, al guardar o cancelar se vuelve a él
+function _fichaGrid(pares){
+  const f=pares.filter(p=>p[1]!==undefined&&p[1]!==null&&String(p[1]).trim()!=='')
+  return f.length?'<div class="pub-meta">'+f.map(p=>'<div'+(p[2]?' style="grid-column:1/-1"':'')+'><span>'+esc(p[0])+'</span>'
+    +'<strong style="font-size:12.5px;white-space:pre-line;word-break:break-word'+(String(p[1]).indexOf('— falta')===0?';color:var(--amber)':'')+'">'+esc(p[1])+'</strong></div>').join('')+'</div>':''
+}
+function fichaCliente(c){
+  if(!c)return''
+  return _fichaGrid([['Nombre completo',c.nombre],['Cédula / RUC',c.cedula||'— falta'],['Teléfono / WhatsApp',c.telefono||'— falta'],['Email',c.email||'— falta'],
+    ['Dirección',c.direccion||'— falta',1],['Institución',c.institucion],['Ciudad',c.ciudad],['Área / programa / grupo',c.area,1],['Notas',c.notas,1],
+    ['Registrado',c.createdAt?fmtDCorto(String(c.createdAt).slice(0,10)):'']])
+}
+function fichaDetalles(t){
+  const det=detallesDe(t),pares=[]
+  ;(DET_CAMPOS[modeloTrabajo(t.tipo)]||DET_CAMPOS.general).concat(DET_EXTRA).forEach(function(f){
+    if(f.sec)return
+    let val=det[f.k]
+    if(Array.isArray(val))val=_lista(val)
+    if(val===undefined||val===null||String(val).trim()==='')return
+    if(f.t==='date')val=fmtDCorto(val)
+    pares.push([f.l,val,f.full||f.t==='textarea'])
+  })
+  return pares.length?_fichaGrid(pares)
+    :'<div style="font-size:12px;color:var(--text3)">Todavía no se registran los datos específicos del contrato (revista, fechas de entrega, condiciones…). Pulsa "Editar" para completarlos.</div>'
+}
+function editarDesdeContrato(tipo,tid){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  const cl=data.clientes.find(c=>c.id===t.clienteId)
+  if(tipo==='cliente'&&!cl){toast('Este trabajo no tiene cliente asignado','err');return}
+  _volverContrato=tid
+  openModal(tipo,tipo==='cliente'?cl:t)
+}
+function volverAlContrato(){
+  const tid=_volverContrato;_volverContrato=null
+  if(tid&&data.trabajos.some(x=>x.id===tid)){abrirContrato(tid);return true}
+  return false
+}
 function renderDetTrabajo(){
   const box=document.getElementById('det_box');if(!box||!modal)return
   // Conserva lo que ya se escribió al cambiar de tipo
@@ -2192,7 +2259,9 @@ async function submitTrabajo(id,isEdit){
   const planManual=document.getElementById('plan_manual')
   const usaManual=planManual&&planManual.style.display!=='none'
   const crearCuotas=!isEdit&&(total>0||usaManual)
+  const volver=_volverContrato
   await saveRec('Trabajos',rec,!id)
+  if(volver&&isEdit&&!modal){_volverContrato=volver;volverAlContrato();return}
   if(crearCuotas){
     let cuotasACrear=[]
     if(usaManual){
@@ -2311,7 +2380,7 @@ function mReunion(d){
   return'<h3>'+(e?'Editar':'Nueva')+' reunión</h3><div class="fg">'
     +'<div class="full"><label>Título *</label><input id="r0" value="'+esc(d.titulo||'')+'" placeholder="Ej: Revisión Cap. 2"/></div>'
     +'<div class="full"><label>Cliente</label><select id="r1"><option value="">Seleccionar...</option>'
-    +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')+'</select></div>'
+    +recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')+'</select></div>'
     +'<div class="full"><label>Trabajo relacionado</label><select id="r2"><option value="">Ninguno</option>'
     +data.trabajos.map(t=>'<option value="'+esc(t.id)+'"'+(d.trabajoId===t.id?' selected':'')+'>'+esc(t.titulo.slice(0,42))+'</option>').join('')+'</select></div>'
     +'<div><label>Fecha *</label><input id="r3" type="date" value="'+esc(toISO(d.fecha||'')||def)+'"/></div>'
@@ -3416,7 +3485,7 @@ function htmlPortalHeader(){
 }
 
 function htmlPortalProgreso(){
-  const trabajosCl=data.trabajos.filter(function(t){return t.clienteId===user.clienteId})
+  const trabajosCl=recientes(data.trabajos).filter(function(t){return t.clienteId===user.clienteId})
   let h=htmlPortalHeader()
   if(!trabajosCl.length){
     return h+'<div class="card"><p class="empty">No tienes trabajos registrados aún.</p></div>'
@@ -3488,7 +3557,7 @@ function htmlPortalProgreso(){
 }
 
 function htmlPortalCuentas(){
-  const trabajosCl=data.trabajos.filter(function(t){return t.clienteId===user.clienteId})
+  const trabajosCl=recientes(data.trabajos).filter(function(t){return t.clienteId===user.clienteId})
   const idsTrab=trabajosCl.map(function(t){return t.id})
   const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)})
   let h=htmlPortalHeader()
@@ -3834,7 +3903,7 @@ function htmlColaboradores(){
 
 // ── Lista de colaboradores ────────────────────────────────────
 function htmlColabList(){
-  var cols=data.colaboradores||[]
+  var cols=recientes(data.colaboradores)
   var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
     +'<div style="font-size:13px;color:var(--text3)">'+cols.length+' colaboradores registrados</div>'
     +'<button class="btn btn-p" onclick="openModal(\'colaborador\',{})">+ Nuevo colaborador</button>'
@@ -3899,7 +3968,7 @@ function htmlColabList(){
 function htmlAsigList(){
   var filtColId=window._filtColId||''
   var cols=data.colaboradores||[]
-  var asigs=data.asignaciones||[]
+  var asigs=recientes(data.asignaciones)
 
   // Mes filter
   var now=new Date()
@@ -4220,7 +4289,7 @@ function nuevoTrabajoPub(){openModal('trabajo',{tipo:TIPO_PUB,estado:'Nuevo'})}
 function abrirPub(tid){openModal('pub_detalle',{trabajoId:tid})}
 
 function htmlPublicaciones(){
-  const pubs=data.trabajos.filter(esPublicacion)
+  const pubs=recientes(data.trabajos).filter(esPublicacion)
   const q=pubQ.toLowerCase()
   const list=pubs.filter(function(t){
     const d=detallesDe(t),cl=data.clientes.find(c=>c.id===t.clienteId)
@@ -4449,6 +4518,20 @@ function mContrato(d){
   h+='<div class="pub-meta" style="margin-bottom:12px">'+res.map(r=>'<div><span>'+esc(r[0])+'</span><strong>'+esc(r[1])+'</strong></div>').join('')+'</div>'
   if(avisos.length)h+='<div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e">'
     +'<strong>Revisa antes de enviar:</strong><ul style="margin:6px 0 0 18px;line-height:1.6">'+avisos.map(a=>'<li>'+a+'</li>').join('')+'</ul></div>'
+  // Todos los datos que van en el contrato, con edición directa (al guardar se vuelve aquí)
+  h+='<details style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff"'+(avisos.length?' open':'')+'>'
+    +'<summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--navy)">📋 Ver y corregir los datos que van en el contrato</summary>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 6px">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px">CLIENTE (CONTRATANTE)</span>'
+    +(cl?'<button class="btn btn-g btn-sm" onclick="editarDesdeContrato(\'cliente\',\''+t.id+'\')">✏️ Editar cliente</button>':'')+'</div>'
+    +(cl?fichaCliente(cl):'<div style="font-size:12px;color:var(--text3)">Sin cliente asignado.</div>')
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 6px">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px">SERVICIO, FECHAS Y CONDICIONES</span>'
+    +'<button class="btn btn-g btn-sm" onclick="editarDesdeContrato(\'trabajo\',\''+t.id+'\')">✏️ Editar datos del contrato</button></div>'
+    +_fichaGrid([['Título del trabajo',t.titulo,1],['Tipo',t.tipo],['Valor total','$'+fmt(t.total)],['Fecha inicio',t.fechaInicio?fmtDCorto(t.fechaInicio):''],['Fecha entrega',t.fechaFin?fmtDCorto(t.fechaFin):'']])
+    +'<div style="margin-top:8px">'+fichaDetalles(t)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Los datos del prestador (tu nombre, cédula, dirección) se editan en Configuración → Datos del prestador.</div>'
+    +'</details>'
   const reg=contratoVigente(t.id)
   if(reg){
     // Contrato emitido: el flujo pasa a firma electrónica y auditoría
@@ -4494,7 +4577,7 @@ function subirContrato(tid){
       }else{
         reset()
         alert('No se pudo guardar el contrato en Google Drive.\n\n'+(r&&r.error||'Sin respuesta')
-          +'\n\nVerifica que publicaste la nueva versión del Apps Script (v7.1) y que autorizaste el acceso a Google Drive.\nMientras tanto puedes usar "Descargar Word".')
+          +ayudaErrorServidor(r&&r.error)+'\n\nMientras tanto puedes usar "Descargar Word".')
       }
     }catch(e){reset();toast('Error: '+e.message,'err')}
   })
@@ -4554,7 +4637,7 @@ function nuevaPropuesta(clienteId){
 
 // ── Página ──
 function htmlPropuestas(){
-  const list=(data.propuestas||[]).slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')))
+  const list=recientes(data.propuestas)
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
     +'<div><strong style="font-size:16px">Propuestas de publicaciones</strong>'
     +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Proformas con varios artículos. Al aceptar un artículo se crea su trabajo, sus cuotas y su contrato.</div></div>'
@@ -4609,7 +4692,7 @@ function mPropuesta(d){
   const etOpts=function(sel){return'<option value="">Sin vincular</option>'+ETAPAS_PUB.map(x=>'<option value="'+x.id+'"'+(sel===x.id?' selected':'')+'>'+esc(x.l)+'</option>').join('')}
   let h='<h3>'+(e?'Editar':'Nueva')+' propuesta de publicaciones</h3><div class="fg">'
     +'<div class="full"><label>Cliente *</label><select id="pp_cl" onchange="_propClienteCambia()"><option value="">Seleccionar...</option>'
-    +data.clientes.map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+(c.institucion?' — '+esc(c.institucion):'')+'</option>').join('')+'</select></div>'
+    +recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+(c.institucion?' — '+esc(c.institucion):'')+'</option>').join('')+'</select></div>'
     +'<div class="full"><label>Área / programa</label><input id="pp_a" value="'+esc(d.area||(cl&&cl.area)||'')+'" placeholder="Ej: Nutrición y Promoción y Cuidados para la Salud" oninput="_propTituloAuto()"/></div>'
     +'<div class="full"><label>Título de la propuesta</label><input id="pp_t" value="'+esc(d.titulo||('Propuesta de publicaciones'+(d.area?' para '+d.area:'')))+'" data-auto="'+(d.titulo?'0':'1')+'" oninput="this.dataset.auto=\'0\'"/></div>'
     +'<div><label>Fecha</label><input id="pp_f" type="date" value="'+esc(toISO(d.fecha||'')||fechaHoyLocal())+'"/></div>'
@@ -4862,7 +4945,7 @@ function subirProforma(pid){
         if(modal&&modal.type==='proforma')draw()
       }else{
         reset()
-        alert('No se pudo guardar la proforma en Google Drive.\n\n'+(r&&r.error||'Sin respuesta')+'\n\nVerifica que publicaste la versión v7.1 del Apps Script. Mientras tanto puedes usar "Descargar Word".')
+        alert('No se pudo guardar la proforma en Google Drive.\n\n'+(r&&r.error||'Sin respuesta')+ayudaErrorServidor(r&&r.error)+'\n\nMientras tanto puedes usar "Descargar Word".')
       }
     }catch(e){reset();toast('Error: '+e.message,'err')}
   })
@@ -4917,9 +5000,20 @@ async function verificarScript(){
   const ver=r&&r.ok?parseFloat(String(r.script||'').replace(/[^\d.]/g,''))||0:0
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
-  el.innerHTML=ver>=7.5
-    ?'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — todo listo</span>'
-    :'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.5 para usar Drive, Propuestas y la auditoría de contratos</span>'
+  const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false
+  el.innerHTML=ver<7.6
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.6 (nueva versión en la misma implementación)</span>'
+    :sinPerm
+    ?'<span style="color:var(--red)">✗ Apps Script '+esc(r.script)+' sin permiso de '+[p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(' ni de ')+'. En el editor de Apps Script elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y acepta los permisos.</span>'
+    :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
+}
+// Explica cómo resolver los errores más comunes del Apps Script (permisos de Drive/correo, versión, administrador)
+function ayudaErrorServidor(msg){
+  msg=String(msg||'')
+  if(/permiso|permission|authoriz|DriveApp|MailApp|googleapis\.com\/auth/i.test(msg))
+    return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene permiso para usar Google Drive o el correo.\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. Acepta los permisos con tu cuenta de Google (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
+  if(/admin|contraseña/i.test(msg))return'\n\nRevisa que iniciaste sesión con un usuario administrador.'
+  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.6 y tenga los permisos concedidos.'
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5073,7 +5167,7 @@ async function firmarYEmitirUI(tid,nuevaVersion){
     if(modal&&modal.type==='contrato')draw()
   }catch(e){
     reset()
-    alert('No se pudo firmar y emitir el contrato.\n\n'+e.message+'\n\nSi el problema es del servidor, verifica que publicaste el Apps Script v7.5 y que tu usuario es administrador.')
+    alert('No se pudo firmar y emitir el contrato.\n\n'+e.message+ayudaErrorServidor(e.message))
   }
 }
 function descargarEmitido(codigo){
