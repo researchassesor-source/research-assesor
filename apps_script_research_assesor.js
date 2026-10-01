@@ -1,5 +1,7 @@
 // ================================================================
-// Research Assessor — Apps Script v7.6
+// Research Assessor — Apps Script v7.6.1
+// Novedades v7.6.1: autorizarPermisos pide TODOS los permisos (Drive con escritura incluido)
+//   y comprueba creando las carpetas de contratos. Marca todas las casillas en la pantalla de Google.
 // Novedades v7.6:
 //   • autorizarPermisos(): ejecútala UNA VEZ desde el editor (botón ▶ Ejecutar) para
 //     conceder a la aplicación el acceso a Google Drive y al correo. Sin ese permiso
@@ -90,17 +92,30 @@ function verificarTablaEditable(tabla) {
 // ── PERMISOS ─────────────────────────────────────────────────────
 // Selecciona "autorizarPermisos" en la barra superior del editor y pulsa ▶ Ejecutar.
 // Google pedirá permiso para Drive, correo y la hoja: acepta con tu cuenta.
+// Google concede los permisos uno por uno: en la pantalla de autorización marca
+// "Seleccionar todo" (o todas las casillas) antes de pulsar Continuar/Permitir.
 function autorizarPermisos() {
+  // Pide de una vez TODOS los permisos que usa el proyecto (Drive completo, correo, hoja, calendario)
+  ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
   SpreadsheetApp.openById(SS_ID).getName();
-  DriveApp.getRootFolder().getName();
-  var it = DriveApp.getFoldersByName(CARPETA_CONTRATOS);
-  if (it.hasNext()) it.next().getName();
+  // Prueba real de escritura en Drive: crea las carpetas de contratos y un archivo temporal
+  [CARPETA_CONTRATOS, CARPETA_EMITIDOS, CARPETA_FIRMADOS].forEach(function(n) { carpetaContratos(n); });
+  var prueba = carpetaContratos(CARPETA_CONTRATOS).createFile('prueba-permisos.txt', 'Research Assessor: prueba de permisos');
+  prueba.setTrashed(true);
   MailApp.getRemainingDailyQuota();
-  Logger.log('Permisos concedidos: Drive, correo y hoja de cálculo. Ya puedes firmar contratos.');
-  return revisarPermisos_();
+  var p = revisarPermisos_();
+  Logger.log(p.completo
+    ? 'Permisos concedidos: Drive (lectura y escritura), correo y hoja de cálculo. Ya puedes firmar contratos.'
+    : 'Aún faltan permisos. Vuelve a ejecutar y marca TODAS las casillas en la pantalla de Google.');
+  return p;
 }
 function revisarPermisos_() {
-  var p = { drive: true, mail: true };
+  var p = { drive: true, mail: true, completo: true };
+  try {
+    var info = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+    p.completo = info.getAuthorizationStatus() !== ScriptApp.AuthorizationStatus.REQUIRED;
+  } catch (err) { p.completo = false; }
+  // Pruebas que no modifican nada (la lectura de Drive no garantiza la escritura: eso lo dice "completo")
   try { DriveApp.getRootFolder().getId(); } catch (err) { p.drive = false; }
   try { MailApp.getRemainingDailyQuota(); } catch (err) { p.mail = false; }
   return p;
@@ -140,7 +155,7 @@ function doGet(e) {
       else { throw new Error('Op desconocida: ' + body.action); }
       result = { ok: true };
     } else if (action === 'ping') {
-      result = { ok: true, msg: 'OK', script: 'v7.6', permisos: revisarPermisos_() };
+      result = { ok: true, msg: 'OK', script: 'v7.6.1', permisos: revisarPermisos_() };
     } else if (action === 'createMeet') {
       var title    = (e.parameter.title    || 'Reunión Research Assessor');
       var date     = (e.parameter.date     || '');

@@ -999,7 +999,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.6'
+const VERSION='v7.6.1'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -4997,23 +4997,23 @@ async function guardarPrestador(){
 async function verificarScript(){
   const el=document.getElementById('scr_ver');if(el)el.textContent='Verificando...'
   const r=await apiGet('ping')
-  const ver=r&&r.ok?parseFloat(String(r.script||'').replace(/[^\d.]/g,''))||0:0
+  const _n=String(r&&r.script||'').replace(/[^\d.]/g,'').split('.').map(Number),ver=r&&r.ok?(_n[0]||0)*100+(_n[1]||0)*10+(_n[2]||0):0  // v7.6.1 → 761
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
-  const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false
-  el.innerHTML=ver<7.6
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.6 (nueva versión en la misma implementación)</span>'
+  const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
+  el.innerHTML=ver<761
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.6.1 (nueva versión en la misma implementación)</span>'
     :sinPerm
-    ?'<span style="color:var(--red)">✗ Apps Script '+esc(r.script)+' sin permiso de '+[p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(' ni de ')+'. En el editor de Apps Script elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y acepta los permisos.</span>'
+    ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
 }
 // Explica cómo resolver los errores más comunes del Apps Script (permisos de Drive/correo, versión, administrador)
 function ayudaErrorServidor(msg){
   msg=String(msg||'')
   if(/permiso|permission|authoriz|DriveApp|MailApp|googleapis\.com\/auth/i.test(msg))
-    return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene permiso para usar Google Drive o el correo.\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. Acepta los permisos con tu cuenta de Google (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
+    return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene todos los permisos (por ejemplo, crear archivos en Google Drive).\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. En la pantalla de Google marca TODAS las casillas (o "Seleccionar todo") y pulsa Continuar (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
   if(/admin|contraseña/i.test(msg))return'\n\nRevisa que iniciaste sesión con un usuario administrador.'
-  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.6 y tenga los permisos concedidos.'
+  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.6.1 y tenga los permisos concedidos.'
 }
 
 // ════════════════════════════════════════════════════════════════
