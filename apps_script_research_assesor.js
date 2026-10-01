@@ -1,4 +1,10 @@
 // ================================================================
+// Research Assessor — Apps Script v7.7
+// Novedades v7.7 (privacidad):
+//   • verificar (público) solo confirma existencia, estado, firmantes (cliente con iniciales) y huellas.
+//     Ya no expone valor, título, plan de pagos, detalles, cédulas ni enlaces a los documentos.
+//   • historialContrato (solo administradores): registro completo con detalles y enlaces.
+// ----------------------------------------------------------------
 // Research Assessor — Apps Script v7.6.1
 // Novedades v7.6.1: autorizarPermisos pide TODOS los permisos (Drive con escritura incluido)
 //   y comprueba creando las carpetas de contratos. Marca todas las casillas en la pantalla de Google.
@@ -155,7 +161,7 @@ function doGet(e) {
       else { throw new Error('Op desconocida: ' + body.action); }
       result = { ok: true };
     } else if (action === 'ping') {
-      result = { ok: true, msg: 'OK', script: 'v7.6.1', permisos: revisarPermisos_() };
+      result = { ok: true, msg: 'OK', script: 'v7.7', permisos: revisarPermisos_() };
     } else if (action === 'createMeet') {
       var title    = (e.parameter.title    || 'Reunión Research Assessor');
       var date     = (e.parameter.date     || '');
@@ -189,6 +195,7 @@ function doPost(e) {
     if (b.action === 'emitirContrato')   { return respJson(emitirContrato(ss, b)); }
     if (b.action === 'registrarFirmado') { return respJson(registrarFirmado(ss, b)); }
     if (b.action === 'anularContrato')   { return respJson(anularContrato(ss, b)); }
+    if (b.action === 'historialContrato') { return respJson(historialContrato(ss, b)); }
     verificarTablaEditable(b.tabla);
     if      (b.action === 'insertar')   { insertar(ss, b.tabla, b.fila); }
     else if (b.action === 'actualizar') { actualizar(ss, b.tabla, b.id, b.fila); }
@@ -598,9 +605,12 @@ function enmascarar_(ced) {
   ced = String(ced || '');
   return ced.length > 4 ? ced.slice(0, 2) + new Array(ced.length - 3).join('•') + ced.slice(-2) : ced;
 }
-function verificarContrato(ss, codigo) {
-  var c = filaContrato_(ss, String(codigo || '').trim().toUpperCase());
-  if (!c) return { ok: true, encontrado: false };
+// Iniciales de una persona: "María José Pérez" → "M. J. P."
+function iniciales_(nombre) {
+  return String(nombre || '').trim().split(/\s+/).filter(Boolean).map(function(p) { return p.charAt(0).toUpperCase() + '.'; }).join(' ');
+}
+// Cadena de auditoría del contrato: eventos en orden y si están íntegros (HMAC encadenado)
+function cadenaContrato_(ss, c) {
   var eventos = leer(ss, 'AuditoriaContratos').filter(function(e) { return e.contratoId === c.id; });
   var integra = eventos.length > 0, previo = 'INICIO';
   eventos.forEach(function(e) {
@@ -611,6 +621,57 @@ function verificarContrato(ss, codigo) {
   var ultimoDoc = eventos.filter(function(e) { return e.hashDocumento; }).pop();
   var hashActual = c.hashFirmaAmbos || c.hashFirmaPrestador || c.hashEmitido;
   if (ultimoDoc && ultimoDoc.hashDocumento !== hashActual) integra = false;
+  return { integra: integra, eventos: eventos };
+}
+function _firmasPublicas_(json, prestadorNombre) {
+  var fs = [];
+  try { fs = JSON.parse(json || '[]') || []; } catch (e) {}
+  return fs.map(function(f, i) {
+    // La firma del prestador se muestra con su nombre; la del cliente solo con iniciales
+    var esPrestador = i === 0 || (prestadorNombre && String(f.nombre || '').toUpperCase() === String(prestadorNombre).toUpperCase());
+    return { orden: f.orden || (i + 1), parte: esPrestador ? 'prestador' : 'cliente',
+      nombre: esPrestador ? (f.nombre || '') : iniciales_(f.nombre), emisor: f.emisor || '', fecha: f.fecha || '', valida: !!f.valida };
+  });
+}
+
+// Consulta PÚBLICA (código QR): solo confirma que el contrato existe, su estado, quién firmó
+// y las huellas para comprobar una copia. NO expone valores, plan de pagos, títulos, detalles
+// del servicio, cédulas ni enlaces a los documentos (eso es solo para las partes).
+function verificarContrato(ss, codigo) {
+  var c = filaContrato_(ss, String(codigo || '').trim().toUpperCase());
+  if (!c) return { ok: true, encontrado: false };
+  var cad = cadenaContrato_(ss, c);
+  var res = {};
+  try { res = JSON.parse(c.resumen || '{}'); } catch (e) {}
+  var prNombre = res.prestador && res.prestador.nombre || '';
+  return {
+    ok: true, encontrado: true, publico: true, cadenaIntegra: cad.integra,
+    contrato: {
+      codigo: c.id, estado: c.estado, version: c.version, reemplazadoPor: c.reemplazadoPor,
+      fechaEmision: c.fechaEmision, hashEmitido: c.hashEmitido,
+      fechaFirmaPrestador: c.fechaFirmaPrestador, hashFirmaPrestador: c.hashFirmaPrestador,
+      fechaFirmaAmbos: c.fechaFirmaAmbos, hashFirmaAmbos: c.hashFirmaAmbos,
+      firmasPrestador: _firmasPublicas_(c.firmasPrestador, prNombre),
+      firmasAmbos: _firmasPublicas_(c.firmasAmbos, prNombre),
+      partes: { prestador: prNombre, cliente: iniciales_(res.cliente && res.cliente.nombre) }
+    },
+    eventos: cad.eventos.map(function(e) { return { fecha: e.fecha, evento: e.evento, hashDocumento: e.hashDocumento }; })
+  };
+}
+
+// Consulta COMPLETA del registro (solo administradores): incluye detalles y enlaces
+function historialContrato(ss, b) {
+  try {
+    validarAdmin_(ss, b.auth);
+    var c = filaContrato_(ss, String(b.codigo || '').trim().toUpperCase());
+    if (!c) return { ok: true, encontrado: false };
+    return historialCompleto_(ss, c);
+  } catch (err) {
+    return { ok: false, error: err.toString() };
+  }
+}
+function historialCompleto_(ss, c) {
+  var cad = cadenaContrato_(ss, c), integra = cad.integra, eventos = cad.eventos;
   var res = {};
   try { res = JSON.parse(c.resumen || '{}'); } catch (e) {}
   if (res.cliente) res.cliente.cedula = enmascarar_(res.cliente.cedula);

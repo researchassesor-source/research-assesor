@@ -999,7 +999,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.6.1'
+const VERSION='v7.7'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -3151,7 +3151,7 @@ function _construirContrato(ctx,em){
 
   // ── Firmas ──
   // Espacio sobre las líneas de firma (allí va el sello de la firma electrónica)
-  body+='<w:p><w:pPr><w:keepNext/><w:spacing w:before="900" w:after="0"/></w:pPr></w:p>'
+  body+='<w:p><w:pPr><w:keepNext/><w:spacing w:before="1300" w:after="0"/></w:pPr></w:p>'
   body+=_tblStart([4200,600,4200])
   body+='<w:tr>'
     +_cell('_________________________',4200,{align:'center'})+_cell('',600,{})+_cell('_________________________',4200,{align:'center'})
@@ -5001,8 +5001,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<761
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.6.1 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<770
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.7 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
@@ -5013,7 +5013,7 @@ function ayudaErrorServidor(msg){
   if(/permiso|permission|authoriz|DriveApp|MailApp|googleapis\.com\/auth/i.test(msg))
     return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene todos los permisos (por ejemplo, crear archivos en Google Drive).\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. En la pantalla de Google marca TODAS las casillas (o "Seleccionar todo") y pulsa Continuar (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
   if(/admin|contraseña/i.test(msg))return'\n\nRevisa que iniciaste sesión con un usuario administrador.'
-  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.6.1 y tenga los permisos concedidos.'
+  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.7 y tenga los permisos concedidos.'
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5045,9 +5045,11 @@ function genCodigo(){
   return'RA-'+new Date().getFullYear()+'-'+Array.from(r).map(x=>A[x%A.length]).join('')
 }
 const urlVerificacion=codigo=>urlApp()+'?v='+encodeURIComponent(codigo)
-async function qrPngB64(texto){
+async function qrPngB64(texto,nivel){
   await cargarLib(LIB_QR,'qrcode')
-  const q=qrcode(0,'M');q.addData(texto);q.make()
+  // UTF-8 para que tildes y Ñ (p. ej. en el nombre del firmante) se lean bien
+  if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8']
+  const q=qrcode(0,nivel||'M');q.addData(texto,'Byte');q.make()
   const n=q.getModuleCount(),px=10,m=4,c=document.createElement('canvas')
   c.width=c.height=(n+2*m)*px
   const g=c.getContext('2d');g.fillStyle='#FFFFFF';g.fillRect(0,0,c.width,c.height);g.fillStyle='#0B2545'
@@ -5071,7 +5073,7 @@ const contratosDe=tid=>(data.contratos||[]).filter(c=>c.trabajoId===tid).sort((a
 const contratoVigente=tid=>contratosDe(tid).find(c=>c.estado!=='anulado'&&c.estado!=='reemplazado')||null
 // Las acciones de auditoría se validan en el servidor con el usuario administrador
 const authAdmin=()=>({usuario:user&&user.u||'',password:user&&user.p||''})
-const _json1=s=>{try{return JSON.parse(s||'[]')}catch(e){return[]}}
+const _json1=s=>{if(Array.isArray(s))return s;try{return JSON.parse(s||'[]')||[]}catch(e){return[]}}
 function resumenContrato(ctx){
   const t=ctx.t,cl=ctx.cl||{},pr=ctx.pr,det=ctx.det
   return{titulo:t.titulo,tipo:t.tipo,valor:fmt(t.total),fechaInicio:t.fechaInicio||'',fechaFin:t.fechaFin||'',revista:det.revista||'',
@@ -5141,7 +5143,7 @@ async function firmarYEmitirUI(tid,nuevaVersion){
     const qr=await qrPngB64(url)
     const c=_construirContrato(ctx,{codigo:codigo,url:url,fecha:fecha})
     const gen=await generarPdf(c.body,{qrB64:qr,codigo:codigo,titulo:'Contrato '+ctx.t.titulo.slice(0,60)})
-    const u8=await firmarPdf(gen,cred,{motivo:'Firma del contrato '+codigo,lugar:pr.ciudad||'Ecuador',contacto:pr.email||pr.telefono||''})
+    const u8=await firmarPdf(gen,cred,{motivo:'Firma del contrato '+codigo,lugar:pr.ciudad||'Ecuador',contacto:pr.email||pr.telefono||'',codigo:codigo,url:urlVerificacion(codigo)})
     // Autocomprobación: la firma recién hecha debe validar
     const an=await analizarPdfFirmas(u8,codigo)
     const f0=an.firmas[0]
@@ -5330,7 +5332,8 @@ async function anularContratoUI(codigo){
 async function verHistorialUI(codigo){
   if(!modal)return
   modal.rec._hist={cargando:true};draw()
-  const r=await apiGet('verificar&codigo='+encodeURIComponent(codigo))
+  // Historial completo (con detalles): solo para administradores; la consulta pública es reducida
+  const r=await apiPost({action:'historialContrato',auth:authAdmin(),codigo:codigo})
   if(modal&&modal.rec)modal.rec._hist=r&&r.ok?r:{error:r&&r.error||'Sin respuesta'}
   draw()
 }
@@ -5340,7 +5343,7 @@ function msgContratoFirmado(reg,cl,t,etapa){
 }
 function htmlFirmasLista(json){
   const fs=_json1(json);if(!fs.length)return''
-  return fs.map(f=>'<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+(f.valida?'✅':'⚠️')+' '+esc(f.nombre||'—')+(f.cedula?' · C.I. '+esc(f.cedula):'')+(f.emisor?' · <span style="color:var(--text3)">'+esc(f.emisor)+'</span>':'')+(f.fecha?' · '+fmtFechaHora(f.fecha):'')+'</div>').join('')
+  return fs.map(f=>'<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+(f.valida?'✅':'⚠️')+' '+(f.parte?'<span style="color:var(--text3)">'+(f.parte==='prestador'?'Prestador':'Cliente')+':</span> ':'')+esc(f.nombre||'—')+(f.cedula?' · C.I. '+esc(f.cedula):'')+(f.emisor?' · <span style="color:var(--text3)">'+esc(f.emisor)+'</span>':'')+(f.fecha?' · '+fmtFechaHora(f.fecha):'')+'</div>').join('')
 }
 function htmlAuditoriaContrato(ctx,reg){
   const t=ctx.t,cl=ctx.cl,E=ESTADO_CONTRATO[reg.estado]||{l:reg.estado,c:'gray'}
@@ -5440,13 +5443,13 @@ function htmlVerificacion(){
       anulado:['red','🚫 Contrato anulado','Este contrato fue anulado y no tiene validez.']}[c.estado]||['gray',esc(c.estado),'']
     h+=_cajaVerif(EST[0],EST[1],EST[2])
     h+='<div style="font-size:12px;font-weight:700;margin:10px 0;color:'+(r.cadenaIntegra?'var(--green)':'var(--red)')+'">'+(r.cadenaIntegra?'🔒 Historial de auditoría íntegro (sin alteraciones)':'❌ El historial de auditoría presenta alteraciones')+'</div>'
-    h+='<div class="sec-t">Datos registrados</div><div class="pub-meta">'
-      +[['Código',c.codigo],['Contrato',c.titulo],['Tipo',c.tipo],['Valor','$'+c.valor],
-        ['Prestador',(s.prestador&&s.prestador.nombre||'—')+(s.prestador&&s.prestador.cedula?' · C.I. '+s.prestador.cedula:'')],
-        ['Cliente',(s.cliente&&s.cliente.nombre||'—')+(s.cliente&&s.cliente.cedula?' · C.I. '+s.cliente.cedula:'')],
-        ['Emitido',fmtFechaHora(c.fechaEmision)],['Versión',c.version||'1']].map(x=>'<div><span>'+x[0]+'</span><strong>'+esc(x[1])+'</strong></div>').join('')+'</div>'
-    if(s.cuotas&&s.cuotas.length)h+='<div style="font-size:12px;color:var(--text2);margin-top:8px">Plan de pagos registrado: '+s.cuotas.map(q=>esc(q.label)+' $'+esc(q.monto)).join(' · ')+'</div>'
-    h+='<div class="sec-t">Documentos oficiales</div>'
+    // Solo datos de verificación: el contenido del contrato (valores, pagos, servicio) es privado de las partes
+    const pa=c.partes||{prestador:s.prestador&&s.prestador.nombre,cliente:s.cliente&&s.cliente.nombre}
+    h+='<div class="sec-t">Registro</div><div class="pub-meta">'
+      +[['Código',c.codigo],['Versión',c.version||'1'],['Emitido',fmtFechaHora(c.fechaEmision)],
+        ['Prestador',pa.prestador||'—'],['Cliente',pa.cliente||'—']].map(x=>'<div><span>'+x[0]+'</span><strong>'+esc(x[1])+'</strong></div>').join('')+'</div>'
+      +'<div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.55">🔒 Por privacidad, esta página solo confirma que el contrato existe, quién lo firmó y que no fue alterado. El contenido del contrato (servicio, valores y pagos) solo lo tienen las partes.</div>'
+    h+='<div class="sec-t">Versiones registradas y firmas</div>'
     // Si el contrato se emitió ya firmado, la versión emitida y la firmada por el prestador son el mismo archivo
     ;[['emitido','Contrato emitido',c.fechaEmision,c.hashEmitido===c.hashFirmaPrestador?'':c.hashEmitido,c.urlEmitido,''],['prestador','Firmado por el prestador',c.fechaFirmaPrestador,c.hashFirmaPrestador,c.urlFirmaPrestador,c.firmasPrestador],['ambos','Firmado por ambas partes',c.fechaFirmaAmbos,c.hashFirmaAmbos,c.urlFirmaAmbos,c.firmasAmbos]].forEach(function(d){
       if(!d[3])return
@@ -5454,15 +5457,15 @@ function htmlVerificacion(){
         +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong style="font-size:13px">'+d[1]+'</strong><span style="font-size:11px;color:var(--text3)">'+fmtFechaHora(d[2])+'</span></div>'
         +'<div style="font-size:10.5px;color:var(--text3);font-family:monospace;word-break:break-all;margin-top:3px">SHA-256: '+esc(d[3])+'</div>'
         +htmlFirmasLista(d[5])
-        +(d[4]?'<a class="btn btn-g btn-sm" style="text-decoration:none;margin-top:6px" target="_blank" href="'+esc(d[4])+'">📄 Ver documento oficial</a>':'')+'</div>'
+        +'</div>'
     })
     h+='<div class="sec-t">Comprobar mi copia</div>'
-      +'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px">Sube el archivo que recibiste (PDF o Word). Se calcula su huella digital en tu dispositivo, sin enviarlo a ningún servidor, y se compara con la registrada: si cambió aunque sea una coma, no coincidirá.</div>'
+      +'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px">Si tienes el contrato, sube el archivo (PDF). Su huella digital se calcula en tu dispositivo, sin enviarlo a ningún servidor, y se compara con la registrada. Si cambió aunque sea una coma, no coincidirá.</div>'
       +'<label class="btn btn-gold" style="text-transform:none;letter-spacing:0;display:inline-flex">📄 Elegir archivo para comprobar<input type="file" accept=".pdf,.docx,application/pdf" style="display:none" onchange="compararCopia(this)"/></label>'
     if(VERIF.cmp){
       const k=VERIF.cmp,lbl={ambos:'la versión firmada por ambas partes',prestador:'la versión firmada por el prestador',emitido:'la versión emitida (sin firmas)'}[k.coincide]
       h+=k.coincide?_cajaVerif('green','✅ Tu copia es idéntica a '+lbl,esc(k.nombre)+' · SHA-256 '+esc(corto(k.hash)))
-        :_cajaVerif('red','❌ Tu copia NO coincide con ningún documento registrado',esc(k.nombre)+' fue modificado o no es una versión oficial de este contrato. Descarga el documento oficial desde esta página.')
+        :_cajaVerif('red','❌ Tu copia NO coincide con ningún documento registrado',esc(k.nombre)+' fue modificado o no es una versión oficial de este contrato. Solicita la copia oficial al prestador.')
       if(k.an&&k.an.firmas.length)h+='<div style="font-size:12px;margin-top:6px">'+k.an.firmas.map(f=>'<div style="margin-top:3px">'+(f.firmaValida&&f.integridad!==false?'✅':'⚠️')+' '+esc(textoFirma(f))+'</div>').join('')+(k.an.modificadoDespues?'<div style="color:var(--red);margin-top:4px">⚠️ El PDF tiene cambios posteriores a la última firma.</div>':'')+'</div>'
     }
     h+='<div class="sec-t">Historial de auditoría</div>'+htmlEventos(r)
@@ -5750,11 +5753,33 @@ async function firmarPdf(gen,cred,info){
   const pos=gen.firmas[0]||{page:pages[pages.length-1],x:56.7,y:140,w:200,h:20}
   const fecha=new Date()
   const fh=fecha.toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
-  const lineas=[['Firmado electrónicamente por:',F.reg,6.5],[cred.nombre,F.bold,8],[(cred.cedula?'C.I. '+cred.cedula+' · ':'')+fh,F.reg,6.5],['Certificado: '+cred.emisor,F.reg,6]]
-  const sx=pos.x+6,sw=pos.w-12,sh=lineas.length*9+6,sy=pos.y+pos.h-2
-  pos.page.drawRectangle({x:sx,y:sy,width:sw,height:sh,color:hexRgb('F5EBDC'),borderColor:hexRgb('B8894A'),borderWidth:0.8,opacity:0.95})
-  let ly=sy+sh-9
-  lineas.forEach(function(l){const s=_txtPdf(l[1],l[0]);pos.page.drawText(s.length>70?s.slice(0,70)+'…':s,{x:sx+5,y:ly,size:l[2],font:l[1],color:hexRgb('0B2545'),maxWidth:sw-10});ly-=9})
+  // Sello con código QR de la firma (estilo firma electrónica): el QR contiene quién firmó,
+  // la fecha, el motivo y la dirección para validar el contrato.
+  // Contenido breve para que el QR (≈2 cm) se lea bien con cualquier teléfono
+  const qrTxt='FIRMADO POR: '+cred.nombre+'\nRAZON: '+(info.codigo?'Contrato '+info.codigo:(info.motivo||'Firma del contrato'))
+    +'\nFECHA: '+fecha.toISOString().slice(0,16).replace('T',' ')+' UTC'+(info.url?'\nVALIDAR EN: '+info.url:'')
+  const qrImg=await doc.embedPng(Uint8Array.from(atob(await qrPngB64(qrTxt,'L')),c=>c.charCodeAt(0)))
+  const sx=pos.x+6,sw=pos.w-12,sh=58,sy=pos.y+pos.h+3,qs=sh-6
+  const tx=sx+qs+9,tw=sw-qs-14
+  // Nombre en una o dos líneas según el ancho disponible
+  const partirNombre=function(nom,font,size){
+    const ws=_txtPdf(font,nom).split(' '),out=[''];
+    ws.forEach(function(w){const t=(out[out.length-1]+' '+w).trim();if(font.widthOfTextAtSize(t,size)<=tw||!out[out.length-1])out[out.length-1]=t;else out.push(w)})
+    return out.slice(0,2)
+  }
+  const nom=partirNombre(cred.nombre,F.bold,8.5)
+  const lineas=[['Firmado electrónicamente por:',F.reg,6.3,8.5]].concat(nom.map(n=>[n,F.bold,8.5,10]))
+    .concat([[(info.codigo?'Contrato '+info.codigo+' · ':'')+fh,F.reg,6,8],['Validar escaneando el QR o en la página de verificación',F.reg,5.5,7]])
+  pos.page.drawRectangle({x:sx,y:sy,width:sw,height:sh,color:hexRgb('FFFFFF'),borderColor:hexRgb('B8894A'),borderWidth:0.9})
+  pos.page.drawRectangle({x:sx,y:sy,width:qs+6,height:sh,color:hexRgb('F5EBDC')})
+  pos.page.drawImage(qrImg,{x:sx+3,y:sy+3,width:qs,height:qs})
+  pos.page.drawLine({start:{x:sx+qs+6,y:sy+4},end:{x:sx+qs+6,y:sy+sh-4},thickness:0.6,color:hexRgb('B8894A')})
+  const altoTxt=lineas.reduce((s,l)=>s+l[3],0)
+  let ly=sy+(sh+altoTxt)/2-7
+  lineas.forEach(function(l){
+    let s=_txtPdf(l[1],l[0]);while(s.length>4&&l[1].widthOfTextAtSize(s,l[2])>tw)s=s.slice(0,-2)+'…'
+    pos.page.drawText(s,{x:tx,y:ly,size:l[2],font:l[1],color:hexRgb(l[1]===F.bold?'0B2545':'334155')});ly-=l[3]
+  })
   // Diccionario de firma con espacios reservados
   const RES=24000 // bytes reservados para la firma CMS
   const byteRange=L.PDFArray.withContext(ctx)
