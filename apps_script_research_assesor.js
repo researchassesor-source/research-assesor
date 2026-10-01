@@ -1,4 +1,19 @@
 // ================================================================
+// Research Assessor — Apps Script v7.1
+// Novedades v7.1:
+//   • Nueva hoja: Propuestas (proformas con varios artículos, JSON)
+//   • Clientes: columna area · Cuotas: columna hitoEtapa
+//   • guardarContrato también guarda proformas (propuestaId, carpeta)
+// ----------------------------------------------------------------
+// Research Assessor — Apps Script v7
+// Novedades v7:
+//   • Nueva hoja: Seguimientos (avances del proceso de publicación)
+//   • Nueva hoja: Config (datos del prestador para los contratos)
+//   • Trabajos: columnas detalles, etapa, contratoUrl, contratoFecha
+//   • Acción guardarContrato: guarda el .docx en Google Drive y devuelve
+//     un enlace de solo lectura para compartir por WhatsApp
+//   • insertar/actualizar crean hojas y columnas faltantes automáticamente
+// ----------------------------------------------------------------
 // Research Assesor — Apps Script v6
 // Novedades v6:
 //   • Nueva hoja: Colaboradores (usuarios internos del sistema)
@@ -13,9 +28,9 @@
 var SS_ID = '1ILRbM7sLA3Tsk54PNbGbDrwBMMZqUSts6V-0-v-dai8';
 
 var ESQUEMA = {
-  Clientes:       ['id','nombre','cedula','telefono','email','direccion','institucion','ciudad','createdAt','notas'],
-  Trabajos:       ['id','clienteId','clienteNombre','titulo','tipo','estado','total','progreso','notas','fechaInicio','fechaFin','carpeta','createdAt'],
-  Cuotas:         ['id','trabajoId','clienteId','clienteNombre','trabajoTitulo','label','fechaVencimiento','acordado','pagado','estado'],
+  Clientes:       ['id','nombre','cedula','telefono','email','direccion','institucion','ciudad','createdAt','notas','area'],
+  Trabajos:       ['id','clienteId','clienteNombre','titulo','tipo','estado','total','progreso','notas','fechaInicio','fechaFin','carpeta','createdAt','detalles','etapa','contratoUrl','contratoFecha'],
+  Cuotas:         ['id','trabajoId','clienteId','clienteNombre','trabajoTitulo','label','fechaVencimiento','acordado','pagado','estado','hitoEtapa'],
   Abonos:         ['id','cuotaId','trabajoId','fecha','monto','nota','comprobante'],
   Reuniones:      ['id','clienteId','trabajoId','titulo','fecha','hora','plataforma','link','notas'],
   UsuariosCliente:['id','clienteId','nombre','usuario','password','role','activo'],
@@ -23,8 +38,15 @@ var ESQUEMA = {
   Colaboradores:  ['id','nombre','email','telefono','especialidad','usuario','password','activo','createdAt','notas'],
   Asignaciones:   ['id','colaboradorId','colaboradorNombre','trabajoId','trabajoTitulo','clienteNombre','descripcion','valorAsignado','estado','fechaAsignacion','fechaLimite','fechaPago','pagado','mes','notas'],
   // ── NUEVO v6.1 ──
-  Usuarios:       ['id','usuario','password','nombre','role','activo']
+  Usuarios:       ['id','usuario','password','nombre','role','activo'],
+  // ── NUEVO v7 ──
+  Seguimientos:   ['id','trabajoId','etapa','fecha','nota','responsable','revista','visibleCliente','createdAt'],
+  Config:         ['id','valor'],
+  // ── NUEVO v7.1 ──
+  Propuestas:     ['id','clienteId','clienteNombre','titulo','area','fecha','validez','estado','articulos','hitos','notas','docUrl','docFecha','createdAt']
 };
+
+var CARPETA_CONTRATOS = 'Research Assessor — Contratos';
 
 // ── Estado de Asignaciones ────────────────────────────────────────
 // pendiente  → asignado pero no completado
@@ -48,7 +70,10 @@ function doGet(e) {
         usuariosCliente: leer(ss, 'UsuariosCliente'),
         colaboradores:   leer(ss, 'Colaboradores'),
         asignaciones:    leer(ss, 'Asignaciones'),
-        usuarios:        leer(ss, 'Usuarios')
+        usuarios:        leer(ss, 'Usuarios'),
+        seguimientos:    leer(ss, 'Seguimientos'),
+        config:          leer(ss, 'Config'),
+        propuestas:      leer(ss, 'Propuestas')
       };
     } else if (action === 'write') {
       var body = JSON.parse(e.parameter.payload || '{}');
@@ -58,9 +83,9 @@ function doGet(e) {
       else { throw new Error('Op desconocida: ' + body.action); }
       result = { ok: true };
     } else if (action === 'ping') {
-      result = { ok: true, msg: 'OK', script: 'v6' };
+      result = { ok: true, msg: 'OK', script: 'v7.1' };
     } else if (action === 'createMeet') {
-      var title    = (e.parameter.title    || 'Reunión Research Assesor');
+      var title    = (e.parameter.title    || 'Reunión Research Assessor');
       var date     = (e.parameter.date     || '');
       var time     = (e.parameter.time     || '10:00');
       var duration = parseInt(e.parameter.duration || '60');
@@ -88,6 +113,7 @@ function doPost(e) {
   try {
     var ss = SpreadsheetApp.openById(SS_ID);
     var b  = JSON.parse(e.postData.contents);
+    if (b.action === 'guardarContrato') { return respJson(guardarContrato(ss, b)); }
     if      (b.action === 'insertar')   { insertar(ss, b.tabla, b.fila); }
     else if (b.action === 'actualizar') { actualizar(ss, b.tabla, b.id, b.fila); }
     else if (b.action === 'eliminar')   { eliminar(ss, b.tabla, b.id); }
@@ -133,9 +159,33 @@ function leer(ss, nombre) {
     .filter(function(o) { return o.id && o.id.trim() !== ''; });
 }
 
-function insertar(ss, nombre, fila) {
+// Devuelve la hoja lista para escribir: la crea si falta y agrega las
+// columnas del ESQUEMA que aún no existan (nunca borra ni reordena).
+function hojaParaEscribir(ss, nombre) {
   var hoja = ss.getSheetByName(nombre);
-  if (!hoja) throw new Error('Hoja no existe: ' + nombre);
+  var cols = ESQUEMA[nombre];
+  if (!hoja) {
+    if (!cols) throw new Error('Hoja no existe: ' + nombre);
+    hoja = ss.insertSheet(nombre);
+    hoja.getRange(1, 1, 1, cols.length).setValues([cols])
+        .setFontWeight('bold').setBackground('#0B2545').setFontColor('#fff');
+    hoja.setFrozenRows(1);
+    return hoja;
+  }
+  if (cols) {
+    var lastCol = hoja.getLastColumn();
+    var actuales = lastCol ? hoja.getRange(1, 1, 1, lastCol).getValues()[0].map(String) : [];
+    var faltan = cols.filter(function(c) { return actuales.indexOf(c) === -1; });
+    if (faltan.length) {
+      hoja.getRange(1, lastCol + 1, 1, faltan.length).setValues([faltan])
+          .setFontWeight('bold').setBackground('#0B2545').setFontColor('#fff');
+    }
+  }
+  return hoja;
+}
+
+function insertar(ss, nombre, fila) {
+  var hoja = hojaParaEscribir(ss, nombre);
   var cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
   hoja.appendRow(cab.map(function(h) {
     return fila[h] !== undefined ? String(fila[h]) : '';
@@ -143,8 +193,7 @@ function insertar(ss, nombre, fila) {
 }
 
 function actualizar(ss, nombre, id, fila) {
-  var hoja = ss.getSheetByName(nombre);
-  if (!hoja) throw new Error('Hoja no existe: ' + nombre);
+  var hoja = hojaParaEscribir(ss, nombre);
   var datos = hoja.getDataRange().getValues();
   var cab   = datos[0];
   var colId = cab.indexOf('id');
@@ -224,7 +273,7 @@ function repararHojas(ss) {
       hoja.getRange(1, 1, 1, colsEsperadas.length)
           .setValues([colsEsperadas])
           .setFontWeight('bold')
-          .setBackground('#1E6FC8')
+          .setBackground('#0B2545')
           .setFontColor('#fff');
       hoja.setFrozenRows(1);
       resultado.push('CREADA: ' + nombre);
@@ -237,7 +286,7 @@ function repararHojas(ss) {
       hoja.getRange(1, 1, 1, colsEsperadas.length)
           .setValues([colsEsperadas])
           .setFontWeight('bold')
-          .setBackground('#1E6FC8')
+          .setBackground('#0B2545')
           .setFontColor('#fff');
       hoja.setFrozenRows(1);
       resultado.push('HEADERS AÑADIDOS: ' + nombre);
@@ -261,7 +310,7 @@ function repararHojas(ss) {
       hoja.getRange(1, nuevaCol)
           .setValue(colNombre)
           .setFontWeight('bold')
-          .setBackground('#1E6FC8')
+          .setBackground('#0B2545')
           .setFontColor('#fff');
     });
 
@@ -276,7 +325,50 @@ function inicializar() {
   var ss  = SpreadsheetApp.openById(SS_ID);
   var res = repararHojas(ss);
   Logger.log(res.join('\n'));
-  Logger.log('✅ v6 — datos existentes preservados');
+  Logger.log('✅ v7.1 — datos existentes preservados');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONTRATOS EN GOOGLE DRIVE
+// Recibe el .docx en base64, lo guarda en la carpeta CARPETA_CONTRATOS
+// y lo comparte como "cualquiera con el enlace puede ver".
+// La primera vez, Apps Script pedirá autorizar el acceso a Google Drive.
+// ════════════════════════════════════════════════════════════════
+function carpetaContratos(nombre) {
+  nombre = nombre || CARPETA_CONTRATOS;
+  var it = DriveApp.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(nombre);
+}
+
+function guardarContrato(ss, b) {
+  try {
+    if (!b.base64) throw new Error('Contrato vacío');
+    var nombre = String(b.nombre || 'Contrato.docx').replace(/[\\\/:*?"<>|]/g, '_');
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(b.base64),
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      nombre
+    );
+    var carpeta = String(b.carpeta || '').indexOf('Research Assessor') === 0 ? b.carpeta : CARPETA_CONTRATOS;
+    var file = carpetaContratos(carpeta).createFile(blob);
+    var aviso = '';
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (se) {
+      aviso = 'No se pudo compartir públicamente: ' + se.toString();
+    }
+    var url = file.getUrl();
+    var fecha = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    if (b.trabajoId) {
+      actualizar(ss, 'Trabajos', b.trabajoId, { contratoUrl: url, contratoFecha: fecha });
+    }
+    if (b.propuestaId) {
+      actualizar(ss, 'Propuestas', b.propuestaId, { docUrl: url, docFecha: fecha });
+    }
+    return { ok: true, url: url, fileId: file.getId(), fecha: fecha, aviso: aviso };
+  } catch (err) {
+    return { ok: false, error: 'Error guardando contrato: ' + err.toString() };
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -310,7 +402,7 @@ function crearGoogleMeet(title, dateStr, timeStr, duration) {
           conferenceSolutionKey: { type: 'hangoutsMeet' }
         }
       },
-      description: 'Reunión creada desde Research Assesor'
+      description: 'Reunión creada desde Research Assessor'
     };
 
     var created  = Calendar.Events.insert(resource, calId, { conferenceDataVersion: 1 });
