@@ -13,14 +13,14 @@
   "theme_color": "#0B2545",
   "categories": ["business", "productivity", "education"],
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Propuestas", "url": "./?p=propuestas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Publicaciones", "url": "./?p=publicaciones", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Cobros", "url": "./?p=cobros", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Propuestas", "url": "./?p=propuestas", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Publicaciones", "url": "./?p=publicaciones", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Cobros", "url": "./?p=cobros", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
   ]
 }

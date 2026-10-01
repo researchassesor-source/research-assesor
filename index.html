@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0B2545"/>
 <!-- App instalable (PWA): teléfono y computadora -->
 <link rel="manifest" href="manifest.webmanifest"/>
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Research Assessor"/>
@@ -5722,9 +5722,9 @@ async function diagnosticoInstalacion(){
     if(!r.ok)throw new Error('HTTP '+r.status)
     const m=await r.json()
     const iconos=await Promise.all((m.icons||[]).map(i=>fetch(i.src,{cache:'no-store'}).then(x=>x.ok).catch(()=>false)))
-    const okIc=iconos.length>0&&iconos.every(Boolean)
+    const okIc=iconos.length>0&&iconos.every(Boolean),faltan=(m.icons||[]).filter((i,k)=>!iconos[k]).map(i=>i.src).filter((v,k,a)=>a.indexOf(v)===k)
     add(true,'Manifiesto de la app',m.name)
-    add(okIc,'Íconos de la app',okIc?iconos.length+' íconos encontrados':'Faltan íconos: sube la carpeta icons/ completa al repositorio.')
+    add(okIc,'Íconos de la app',okIc?iconos.length+' íconos encontrados':'Faltan en el repositorio: '+faltan.join(', ')+'. Súbelos junto a index.html.')
   }catch(e){add(false,'Manifiesto de la app','No se encontró manifest.webmanifest ('+e.message+'). Súbelo a la misma carpeta que index.html.')}
   if('serviceWorker' in navigator){
     const reg=await navigator.serviceWorker.getRegistration().catch(()=>null)
@@ -5746,7 +5746,7 @@ async function correrDiagnostico(idDestino){
 // ════════════════════════════════════════════════════════════════
 // APP INSTALABLE (PWA) — teléfono y computadora
 // Requiere que la página se sirva por HTTPS (p. ej. GitHub Pages) junto con
-// manifest.webmanifest, sw.js y la carpeta icons/.
+// manifest.webmanifest, sw.js y los íconos (icon-*.png, apple-touch-icon.png).
 // ════════════════════════════════════════════════════════════════
 let _installEvt=null,_swNuevo=null
 const esStandalone=()=>(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true

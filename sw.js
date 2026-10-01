@@ -6,15 +6,14 @@
 // • Las llamadas al Apps Script (datos) NUNCA se guardan aquí.
 // Al publicar cambios importantes, sube el número de VERSION.
 // ================================================================
-const VERSION = 'ra-v7.5';
+const VERSION = 'ra-v7.5.1';
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './manifest.webmanifest'
 ];
+// Íconos (en la raíz, junto a index.html). Si alguno falta, el servicio se instala igual.
+const ICONOS = ['./icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN_JSZIP = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
 // Librerías de los contratos (QR y lectura de firmas electrónicas): se guardan al usarlas
 const CDN_LIBS = [CDN_JSZIP,
@@ -29,6 +28,8 @@ self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(VERSION).then(function (c) {
       return c.addAll(APP_SHELL).then(function () {
+        return Promise.all(ICONOS.map(function (u) { return c.add(u).catch(function () {}); }));
+      }).then(function () {
         // JSZip es opcional: si falla, la app funciona igual con conexión
         return c.add(CDN_JSZIP).catch(function () {});
       });
