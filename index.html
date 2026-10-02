@@ -321,11 +321,8 @@ const ONDAS_B64='/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0
 const DOC_FONT='Palatino Linotype'
 const DOC_RF='<w:rFonts w:ascii="'+DOC_FONT+'" w:hAnsi="'+DOC_FONT+'" w:cs="'+DOC_FONT+'"/>'
 const API='https://script.google.com/macros/s/AKfycbzqeby9GceuHt8ep8X2QqVUV_U4PUztJUvMRsLipduxQoxY0lqU0sz7Is8nZ3WB929Pjg/exec'
-const USERS=[
-  {id:'u1',u:'admin', p:'research2024',role:'admin',name:'Administrador'},
-  {id:'u2',u:'edison',p:'asesor2024',  role:'admin',name:'Edison Bonifaz'},
-]
-// Convierte una fila de la hoja "Usuarios" (usuario/password/nombre) al shape interno (u/p/name)
+// Los usuarios y contraseñas viven solo en el servidor (hoja "Usuarios", cifradas).
+// Convierte una fila de la hoja "Usuarios" al shape interno (u/name); nunca trae la contraseña.
 function normalizarUsuarioAdmin(r){
   return{
     id:r.id,
@@ -333,8 +330,7 @@ function normalizarUsuarioAdmin(r){
     nombre:r.nombre||r.name||'',
     u:r.usuario||r.u||'',
     username:r.usuario||r.u||'',
-    p:r.password||r.p||'',
-    password:r.password||r.p||'',
+    tieneClave:r.tieneClave||'',
     role:r.role||'admin',
     activo:r.activo
   }
@@ -656,14 +652,19 @@ var WA_TPLS=cargarTpls()
 
 
 // ─── API ──────────────────────────────────────────────────────────────────────
+// Solo "ping" y "verificar" son públicos (GET). Todo lo demás va por POST con la
+// sesión (token firmado por el servidor); sin sesión, el servidor no entrega datos.
 async function apiGet(action){
+  action=action||'getData'
+  if(action==='getData')return apiPost({action:'getData'})
   try{
-    const r=await fetch(API+'?action='+(action||'getData')+'&t='+Date.now())
+    const r=await fetch(API+'?action='+action+'&t='+Date.now())
     return await r.json()
   }catch(e){return{error:e.message}}
 }
 
 async function apiPost(body){
+  if(SESION&&SESION.token&&!body.token)body=Object.assign({token:SESION.token},body)
   try{
     const r=await fetch(API,{
       method:'POST',
@@ -671,13 +672,44 @@ async function apiPost(body){
       body:JSON.stringify(body)
     })
     const text=await r.text()
-    try{return JSON.parse(text)}
+    let j
+    try{j=JSON.parse(text)}
     catch(pe){return{error:'Respuesta no JSON: '+text.slice(0,100)}}
+    // Sesión vencida o revocada (cambio de contraseña, usuario desactivado): volver al inicio de sesión
+    const tokUsado=body.token||(body.auth&&body.auth.token)
+    if(j&&j.codigo==='SIN_SESION'&&user&&SESION&&tokUsado===SESION.token)setTimeout(function(){if(SESION&&SESION.token===tokUsado)cerrarSesion('Tu sesión expiró. Vuelve a iniciar sesión.')},0)
+    return j
   }catch(e){
-    // Log full error details to console
-    console.error('[apiPost] fetch error:',e.name,e.message,body)
+    console.error('[apiPost] fetch error:',e.name,e.message,body&&body.action)
     return{error:e.message+'  ('+e.name+')'}
   }
+}
+
+// ─── SESIÓN ───────────────────────────────────────────────────────────────────
+// El servidor valida usuario y contraseña y devuelve un token que vence en 12 horas.
+// Se guarda en este dispositivo para no pedir la contraseña en cada apertura.
+const SES_KEY='ra_sesion_v1'
+let SESION=null
+function guardarSesion(token,u){
+  SESION={token:token,user:u}
+  try{localStorage.setItem(SES_KEY,JSON.stringify(SESION))}catch(e){}
+}
+function leerSesion(){
+  try{const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');if(s&&s.token&&s.user&&(s.user.exp||0)>Date.now())return s}catch(e){}
+  return null
+}
+function cerrarSesion(msg){
+  SESION=null;user=null;modal=null;mobileNavOpen=false;page='dashboard'
+  // Al salir se borran la sesión y la copia local de datos de este dispositivo
+  try{localStorage.removeItem(SES_KEY);localStorage.removeItem(COPIA_KEY)}catch(e){}
+  data=mapData({});window._appUsers=[];window._clientUsers=[]
+  draw()
+  if(msg)setTimeout(function(){const e=document.getElementById('lerr');if(e){e.textContent=msg;e.style.display='block'}},0)
+}
+// Contraseña aleatoria legible (para portales de clientes y colaboradores)
+function claveAleatoria(n){
+  const abc='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=new Uint32Array(n||10)
+  crypto.getRandomValues(r);return Array.from(r,x=>abc[x%abc.length]).join('')
 }
 
 
@@ -828,15 +860,16 @@ async function loadData(){
     data=mapData(r)
     guardarCopiaLocal(data)
     sinConexion=false
-    // Cache client portal users for login checks
-    if(r.usuariosCliente) window._clientUsers=r.usuariosCliente||[]
-    // Cache admin users for login checks (persisted in hoja "Usuarios").
-    // Si la hoja aún no existe, r.usuarios viene vacío/undefined y seguimos con el USERS hardcodeado.
-    if(r.usuarios&&r.usuarios.length) window._appUsers=r.usuarios.map(normalizarUsuarioAdmin)
+    // Listas de accesos (sin contraseñas: el servidor nunca las envía)
+    window._clientUsers=r.usuariosCliente||[]
+    window._appUsers=(r.usuarios||[]).map(normalizarUsuarioAdmin)
+    if(r.user&&user){user=Object.assign({},user,r.user)}
     syncMsg='✓ '+new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})
     syncErr=false
   }else{
     syncMsg='Error conexión'+(r&&r.error?' — '+r.error:'');syncErr=true
+    if(r&&r.codigo==='SIN_SESION'){loading=false;return}
+    if(r&&r.codigo==='CAMBIAR_CLAVE'){loading=false;syncMsg='';syncErr=false;openModal('clave',{obligatorio:true});return}
     const errRed=!r||r.error==='Failed to fetch'||r.error==='NetworkError'||/network|fetch|load failed/i.test(r.error||'')
     // Sin internet: usar la última copia guardada en este dispositivo (solo lectura)
     const copia=errRed?leerCopiaLocal():null
@@ -918,14 +951,15 @@ function htmlLogin(){
     +'<div class="l-brand"><img src="'+LOGO_SRC+'" alt="Research Assessor"/></div>'
     +'<div class="l-sub">Plataforma de gestión de investigación y producción científica</div>'
     +'<div style="height:28px"></div>'
-    +'<div class="lb">'
+    +(_setupAbierto?htmlSetupSeguridad():'<div class="lb">'
     +'<div class="lb-title">Iniciar sesión</div>'
     +'<div class="lb-sub">Ingresa tus credenciales de acceso</div>'
     +'<div id="lerr" class="l-err"></div>'
-    +'<div class="lf-group"><span class="lf-label">Usuario</span><input id="lu" class="lf-input" value="admin" placeholder="admin" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
-    +'<div class="lf-group"><span class="lf-label">Contraseña</span><input class="lf-input" id="lp" type="password" value="research2024" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
-    +'<button class="l-btn" onclick="doLogin()">Ingresar →</button>'
-    +'</div>'
+    +'<div class="lf-group"><span class="lf-label">Usuario</span><input id="lu" class="lf-input" autocomplete="username" autocapitalize="none" placeholder="Tu usuario" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Contraseña</span><input class="lf-input" id="lp" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
+    +'<button class="l-btn" id="l_btn" onclick="doLogin()">Ingresar →</button>'
+    +'<div style="text-align:center;margin-top:12px"><a href="#" style="font-size:11.5px;color:var(--text3);text-decoration:none" onclick="event.preventDefault();_setupAbierto=true;draw()">🔐 Configuración inicial de seguridad</a></div>'
+    +'</div>')
     +'<div id="inst_slot" style="width:100%;max-width:420px;margin-top:14px">'+htmlInstalarLogin()+'</div>'
     +'<div style="width:100%;max-width:420px;margin-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px">'
     +'<a href="?v=" style="color:var(--brand);font-weight:600;text-decoration:none">🔎 Verificar un contrato</a>'
@@ -933,47 +967,87 @@ function htmlLogin(){
     +'<div id="diag_login" style="width:100%;max-width:420px;margin-top:10px"></div>'
     +'</div>'
 }
+// El servidor valida usuario y contraseña (administradores, colaboradores y clientes)
+// y entrega una sesión firmada; la app nunca recibe ni compara contraseñas.
 async function doLogin(){
-  const u=v('lu'),p=v('lp')
-  const e=document.getElementById('lerr')
-  const tryAdmin=()=>(window._appUsers||USERS).find(x=>x.u===u&&x.p===p&&x.activo!=='0')
-  let found=tryAdmin(),loaded=false
-
-  // Las credenciales de cliente/colaborador solo existen en el Sheet. loadData() antes
-  // solo corría DESPUÉS de un login exitoso, así que en una sesión nueva (recién abierta,
-  // sin haber iniciado sesión como admin antes) window._clientUsers/data.colaboradores
-  // seguían vacíos y CUALQUIER cliente o colaborador recibía "Credenciales incorrectas"
-  // sin importar si la contraseña era correcta. Forzamos una carga si aún no tenemos esos datos.
-  if(!found&&(!window._clientUsers||!(data.colaboradores&&data.colaboradores.length))){
-    e.textContent='Verificando…';e.style.display='block'
-    await loadData();loaded=true
-    found=tryAdmin()
+  const u=v('lu').trim(),p=v('lp')
+  const e=document.getElementById('lerr'),btn=document.getElementById('l_btn')
+  if(!u||!p){e.textContent='Escribe tu usuario y contraseña';e.style.display='block';return}
+  e.style.display='none';if(btn){btn.disabled=true;btn.textContent='Verificando…'}
+  const r=await apiPost({action:'login',usuario:u,clave:p})
+  if(btn){btn.disabled=false;btn.textContent='Ingresar →'}
+  if(!r||!r.ok||!r.token){
+    const red=!r||/fetch|network|load failed/i.test(r.error||'')
+    e.textContent=red?'Sin conexión con el servidor. Revisa tu internet.':(r.error||'No se pudo iniciar sesión')
+    if(!red&&r&&/Acci[oó]n no reconocida|desconocida/i.test(r.error||''))e.textContent='El servidor todavía no tiene la versión de seguridad (Apps Script v7.8).'
+    e.style.display='block';return
   }
-  if(found){
-    user=found
-    // Accesos directos del ícono instalado (?p=propuestas, etc.)
-    const pIni=new URLSearchParams(location.search).get('p')
-    if(pIni&&NAV_MAIN.some(n=>n.id===pIni))page=pIni
-    loaded?draw():loadData();return
-  }
+  guardarSesion(r.token,r.user);user=r.user
+  // Accesos directos del ícono instalado (?p=propuestas, etc.)
+  const pIni=new URLSearchParams(location.search).get('p')
+  if(user.role==='admin'||user.role==='lector'){if(pIni&&NAV_MAIN.some(n=>n.id===pIni))page=pIni;else page='dashboard'}
+  // Contraseña heredada de una versión anterior: el servidor no entrega datos hasta cambiarla
+  if(r.debeCambiar){openModal('clave',{obligatorio:true});return}
+  await loadData()
+}
 
-  // Check client portal users (loaded from Sheets)
-  const foundClient=(window._clientUsers||[]).find(x=>x.usuario===u&&x.password===p&&x.activo!=='0')
-  if(foundClient){
-    user={id:foundClient.id,u:foundClient.usuario,name:foundClient.nombre,
-          role:'cliente',clienteId:foundClient.clienteId}
-    loaded?draw():loadData();return
-  }
+// ── Configuración inicial de seguridad (crear o recuperar el administrador) ──
+let _setupAbierto=false
+function htmlSetupSeguridad(){
+  return'<div class="lb">'
+    +'<div class="lb-title">🔐 Configuración inicial de seguridad</div>'
+    +'<div class="lb-sub" style="line-height:1.55">Crea (o recupera) tu usuario administrador. Necesitas el <strong>código de configuración</strong>: en el editor de Apps Script elige la función <strong>prepararSeguridad</strong>, pulsa ▶ Ejecutar y copia el código del registro de ejecución. Vale 24 horas y una sola vez.</div>'
+    +'<div id="lerr" class="l-err"></div>'
+    +'<div class="lf-group"><span class="lf-label">Código de configuración</span><input id="st_cod" class="lf-input" style="font-family:monospace;text-transform:uppercase" autocomplete="off"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Tu nombre</span><input id="st_nom" class="lf-input" placeholder="Edison Bonifaz"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Usuario</span><input id="st_usr" class="lf-input" autocapitalize="none" autocomplete="username" placeholder="Ej: edison"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Contraseña (mínimo 8 caracteres)</span><input id="st_c1" type="password" class="lf-input" autocomplete="new-password"/></div>'
+    +'<div class="lf-group"><span class="lf-label">Repite la contraseña</span><input id="st_c2" type="password" class="lf-input" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')configurarAdminUI()"/></div>'
+    +'<button class="l-btn" id="st_btn" onclick="configurarAdminUI()">Crear administrador →</button>'
+    +'<div style="text-align:center;margin-top:12px"><a href="#" style="font-size:12px;color:var(--brand);text-decoration:none" onclick="event.preventDefault();_setupAbierto=false;draw()">← Volver a iniciar sesión</a></div>'
+    +'</div>'
+}
+async function configurarAdminUI(){
+  const e=document.getElementById('lerr'),btn=document.getElementById('st_btn')
+  const cod=v('st_cod').trim(),nom=v('st_nom').trim(),usr=v('st_usr').trim(),c1=v('st_c1'),c2=v('st_c2')
+  const err=m=>{e.textContent=m;e.style.display='block'}
+  if(!cod||!usr||!c1)return err('Completa el código, el usuario y la contraseña')
+  if(c1.length<8)return err('La contraseña debe tener al menos 8 caracteres')
+  if(c1!==c2)return err('Las contraseñas no coinciden')
+  if(btn){btn.disabled=true;btn.textContent='Configurando…'}
+  const r=await apiPost({action:'configurarAdmin',codigo:cod,nombre:nom,usuario:usr,clave:c1})
+  if(btn){btn.disabled=false;btn.textContent='Crear administrador →'}
+  if(!r||!r.ok)return err(r&&r.error||'Sin respuesta del servidor')
+  _setupAbierto=false;draw()
+  const lu=document.getElementById('lu');if(lu)lu.value=usr
+  toast('Administrador listo ✓ Inicia sesión')
+}
 
-  // Check colaborador users (loaded from Sheets)
-  const foundColab=(data.colaboradores||[]).find(x=>x.usuario===u&&x.password===p&&String(x.activo)!=='0'&&String(x.activo)!=='false')
-  if(foundColab){
-    user={id:foundColab.id,u:foundColab.usuario,name:foundColab.nombre,
-          role:'colaborador',colaboradorId:foundColab.id}
-    loaded?draw():loadData();return
-  }
-
-  e.textContent='Credenciales incorrectas';e.style.display='block'
+// ── Cambiar mi contraseña (cualquier usuario) ──
+function mClave(d){
+  return'<h3>🔑 Cambiar mi contraseña</h3>'
+    +(d.obligatorio?'<div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 13px;font-size:12px;color:#92400e;margin-bottom:12px">Tu contraseña es de una versión anterior de la plataforma que no la protegía. Por seguridad, <strong>debes cambiarla</strong> para continuar.</div>':'')
+    +'<div class="fg">'
+    +'<div class="full"><label>Contraseña actual</label><input id="ck0" type="password" autocomplete="current-password"/></div>'
+    +'<div><label>Nueva contraseña (mín. 8)</label><input id="ck1" type="password" autocomplete="new-password"/></div>'
+    +'<div><label>Repite la nueva</label><input id="ck2" type="password" autocomplete="new-password"/></div>'
+    +'</div><div style="font-size:11.5px;color:var(--text3);margin-top:8px">Al cambiarla se cierran tus sesiones abiertas en otros dispositivos.</div>'
+    +'<div class="ma">'+(d.obligatorio?'<button class="btn btn-g" onclick="cerrarSesion()">Cerrar sesión</button>':'<button class="btn btn-g" onclick="closeModal()">Cancelar</button>')
+    +'<button class="btn btn-p" id="ck_btn" onclick="submitClave()">Guardar</button></div>'
+}
+async function submitClave(){
+  const a=v('ck0'),n=v('ck1'),n2=v('ck2')
+  if(!a||!n){alert('Completa los campos');return}
+  if(n.length<8){alert('La nueva contraseña debe tener al menos 8 caracteres');return}
+  if(n!==n2){alert('Las contraseñas nuevas no coinciden');return}
+  const btn=document.getElementById('ck_btn');if(btn){btn.disabled=true;btn.textContent='Guardando…'}
+  const r=await apiPost({action:'cambiarClave',actual:a,nueva:n})
+  if(btn){btn.disabled=false;btn.textContent='Guardar'}
+  if(!r||!r.ok){alert(r&&r.error||'Sin respuesta del servidor');return}
+  const eraObligatorio=modal&&modal.rec&&modal.rec.obligatorio
+  guardarSesion(r.token,r.user);user=Object.assign({},user,r.user)
+  modal=null;draw();toast('Contraseña actualizada ✓')
+  if(eraObligatorio)loadData()
 }
 
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
@@ -999,7 +1073,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.7'
+const VERSION='v7.8'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1023,7 +1097,8 @@ function htmlApp(){
     +'<div class="a-foot">'
     +'<div class="a-user"><div class="a-avatar">'+initials+'</div><div><div class="a-uname">'+esc(user.name)+'</div><div class="a-urole">'+esc({admin:'Administrador',cliente:'Cliente',colaborador:'Colaborador'}[user.role]||'Lector')+'</div></div></div>'
     +htmlBotonInstalar()
-    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="user=null;mobileNavOpen=false;draw()">Cerrar sesión</button>'
+    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center;margin-bottom:6px" onclick="mobileNavOpen=false;openModal(\'clave\',{})">🔑 Cambiar contraseña</button>'
+    +'<button class="btn btn-g btn-sm" style="width:100%;justify-content:center" onclick="cerrarSesion()">Cerrar sesión</button>'
     +'</div>'
     +'</aside>'
     +'<div class="m-overlay '+(mobileNavOpen?'m-open':'')+'" onclick="mobileNavOpen=false;draw()"></div>'
@@ -1891,15 +1966,8 @@ function waMeet(rid){
 async function genMeet(titulo,fecha,hora){
   // Try Apps Script createMeet action
   try{
-    const url=API+'?action=createMeet&title='+encodeURIComponent(titulo)
-      +'&date='+encodeURIComponent(fecha||'')
-      +'&time='+encodeURIComponent(hora||'10:00')
-      +'&duration=60&t='+Date.now()
-    const r=await fetch(url)
-    const text=await r.text()
-    const jsonStr=text.replace(/^[^(]+\((.+)\)\s*;?\s*$/,'$1').trim()
-    let d
-    try{d=JSON.parse(jsonStr||text)}catch(e){d=null}
+    const d=await apiPost({action:'createMeet',title:titulo,date:fecha||'',time:hora||'10:00',duration:60})
+    if(d&&d.error&&/fetch|network/i.test(d.error))throw new TypeError(d.error)
     if(d&&d.ok&&d.meetLink)return d.meetLink
     // If script doesn't support createMeet yet, throw specific error
     if(d&&d.error&&d.error.includes('desconocida')){
@@ -1965,7 +2033,7 @@ async function clickGenMeet(){
 // ─── USUARIOS ─────────────────────────────────────────────────────────────────
 function htmlUsuarios(){
   if(user.role!=='admin')return'<p style="padding:24px;color:var(--text3)">Solo administradores</p>'
-  const allU=window._appUsers||USERS
+  const allU=window._appUsers||[]
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
     +'<div><strong style="font-size:16px">Usuarios del sistema</strong></div>'
     +'<button class="btn btn-p" onclick="editUsuario(\'\')" >+ Nuevo usuario</button></div>'
@@ -1975,17 +2043,17 @@ function htmlUsuarios(){
     h+='<tr><td><strong>'+esc(u.name||'')+'</strong></td>'
       +'<td><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">'+esc(u.u||'')+'</code></td>'
       +'<td>'+(u.role==='admin'?'<span class="b bb">Admin</span>':'<span class="b bx">Lector</span>')+'</td>'
-      +'<td><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">'+esc(u.p||'')+'</code></td>'
+      +'<td style="font-size:12px;color:var(--text3)">'+(u.tieneClave?'🔒 Cifrada':'<span style="color:var(--red)">Sin contraseña</span>')+'</td>'
       +'<td><span style="display:flex;gap:4px"><button class="btn btn-g btn-sm" onclick="editUsuario(\''+esc(u.id)+'\')">✏️</button>'
       +(!isMe?'<button class="btn btn-r btn-sm" onclick="delUsuario(\''+esc(u.id)+'\')">🗑</button>':'')
       +'</span></td></tr>'
   })
   h+='</tbody></table></div>'
-  h+='<div class="card" style="padding:16px;margin-top:12px"><p style="font-size:12px;color:var(--text3);line-height:1.6">Los cambios se guardan en la hoja "Usuarios" del Sheet. Requiere que esa hoja exista con columnas: id, usuario, password, nombre, role, activo.</p></div>'
+  h+='<div class="card" style="padding:16px;margin-top:12px"><p style="font-size:12px;color:var(--text3);line-height:1.6">Los usuarios se guardan en la hoja "Usuarios". Las contraseñas se guardan cifradas: nadie puede verlas, ni siquiera desde el Sheet. Si alguien olvida la suya, edita el usuario y escribe una nueva.</p></div>'
   return h
 }
 function editUsuario(id){
-  const allU=window._appUsers||USERS
+  const allU=window._appUsers||[]
   const rec=id?allU.find(u=>u.id===id)||{}:{}
   openModal('usuario',rec)
 }
@@ -1993,7 +2061,7 @@ async function delUsuario(id){
   if(!confirm('¿Eliminar este usuario?'))return
   const r=await apiPost({action:'eliminar',tabla:'Usuarios',id:id})
   if(r&&r.ok){
-    window._appUsers=(window._appUsers||USERS.slice()).filter(u=>u.id!==id);draw();toast('Usuario eliminado')
+    window._appUsers=(window._appUsers||[]).filter(u=>u.id!==id);draw();toast('Usuario eliminado')
   }else{
     toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
   }
@@ -2002,6 +2070,7 @@ async function delUsuario(id){
 // ─── MODALES ──────────────────────────────────────────────────────────────────
 function openModal(type,rec){modal={type,rec:rec||{}};draw()}
 function closeModal(){
+  if(modal&&modal.type==='clave'&&modal.rec&&modal.rec.obligatorio)return  // cambio de contraseña obligatorio
   if(modal&&(modal.type==='cliente'||modal.type==='trabajo')&&volverAlContrato())return
   _volverContrato=null;modal=null;draw()
 }
@@ -2026,6 +2095,7 @@ function htmlModal(){
   if(modal.type==='propuesta')      c=mPropuesta(modal.rec)
   if(modal.type==='proforma')       c=mProforma(modal.rec)
   if(modal.type==='instalar')       c=mInstalar()
+  if(modal.type==='clave')          c=mClave(modal.rec)
   if(!c)return''
   const wide=['trabajo','pub_detalle','contrato','propuesta','proforma'].indexOf(modal.type)>-1
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal'+(wide?' wide':'')+'">'+c+'</div></div>'
@@ -2411,22 +2481,21 @@ function mUsuario(d){
   return'<h3>'+(e?'Editar':'Nuevo')+' usuario</h3><div class="fg">'
     +'<div class="full"><label>Nombre completo</label><input id="u0" value="'+esc(d.name||d.nombre||'')+'"/></div>'
     +'<div><label>Usuario (login)</label><input id="u1" value="'+esc(d.u||d.username||'')+'"/></div>'
-    +'<div><label>Contraseña</label><input id="u2" value="'+esc(d.p||d.password||'')+'"/></div>'
+    +'<div><label>'+(e?'Nueva contraseña (vacío = no cambiar)':'Contraseña (mín. 8)')+'</label><input id="u2" type="password" autocomplete="new-password" placeholder="'+(e?'••••••••':'')+'"/></div>'
     +'<div class="full"><label>Rol</label><select id="u3"><option value="admin"'+(d.role==='admin'?' selected':'')+'>Administrador</option><option value="lector"'+(d.role==='lector'?' selected':'')+'>Lector</option></select></div>'
     +'</div><div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitUsuario(\''+esc(d.id||'')+'\')">'+(e?'Actualizar':'Crear')+'</button></div>'
 }
 async function submitUsuario(id){
   const nombre=v('u0'),usr=v('u1'),pass=v('u2'),rol=v('u3')
-  if(!nombre||!usr||!pass){alert('Completa todos los campos');return}
-  const rec={id:id||uid(),name:nombre,nombre:nombre,u:usr,usuario:usr,username:usr,p:pass,password:pass,role:rol,activo:'1'}
+  if(!nombre||!usr||(!id&&!pass)){alert('Completa todos los campos');return}
+  if(pass&&pass.length<8){alert('La contraseña debe tener al menos 8 caracteres');return}
+  const rec={id:id||uid(),name:nombre,nombre:nombre,u:usr,usuario:usr,username:usr,role:rol,activo:'1'}
+  if(pass)rec.password=pass  // el servidor la cifra; vacía = se conserva la actual
   modal=null;syncMsg='Guardando usuario...';draw()
   const r=await apiPost({action:id?'actualizar':'insertar',tabla:'Usuarios',fila:rec,id:rec.id})
   if(r&&r.ok){
-    const users=(window._appUsers||USERS).slice()
-    if(id){const idx=users.findIndex(u=>u.id===id);if(idx>-1)users[idx]=rec;else users.push(rec)}
-    else users.push(rec)
-    window._appUsers=users;draw();toast(id?'Actualizado ✓':'Creado ✓')
+    toast(id?'Actualizado ✓':'Creado ✓');await loadData()
   }else{
     toast('Error: '+(r&&r.error||'Sin respuesta'),'err');draw()
   }
@@ -2441,26 +2510,18 @@ async function testApiDesdeLaApp(){
   // Test GET
   try{
     console.log('1. Probando GET getData...')
-    const g = await fetch(API+'?action=getData&t='+Date.now())
-    const gd = await g.json()
+    const gd = await apiPost({action:'getData'})
     console.log('GET resultado:', gd.ok, '| clientes:', (gd.clientes||[]).length)
   }catch(e){console.error('GET falló:', e.message)}
   // Test POST
   try{
     console.log('2. Probando POST insertar...')
     const testId = 'debug_'+Date.now()
-    const r = await fetch(API,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'insertar',tabla:'Clientes',fila:{id:testId,nombre:'__DEBUG__',telefono:'',email:'',institucion:'',ciudad:'',createdAt:new Date().toISOString(),notas:'DEBUG - eliminar'}})
-    })
-    const text = await r.text()
-    console.log('POST raw response:', text.slice(0,200))
-    const j = JSON.parse(text)
+    const j = await apiPost({action:'insertar',tabla:'Clientes',fila:{id:testId,nombre:'__DEBUG__',telefono:'',email:'',institucion:'',ciudad:'',createdAt:new Date().toISOString(),notas:'DEBUG - eliminar'}})
     console.log('POST ok:', j.ok, '| full:', JSON.stringify(j))
     if(j.ok){
       // Clean up
-      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'eliminar',tabla:'Clientes',id:testId})})
+      await apiPost({action:'eliminar',tabla:'Clientes',id:testId})
       console.log('✅ POST FUNCIONA CORRECTAMENTE')
     }
   }catch(e){console.error('POST falló:', e.name, e.message)}
@@ -2472,27 +2533,20 @@ async function testApiDesdeApp(){
   let msg = 'URL: '+API_URL.slice(0,60)+'...\n\n'
   // Test GET
   try{
-    const g=await fetch(API_URL+'?action=getData&t='+Date.now())
-    const gd=await g.json()
+    const gd=await apiPost({action:'getData'})
     msg += 'GET: '+(gd.ok?'✅ OK':'❌ '+JSON.stringify(gd).slice(0,80))+'\n'
     msg += '  clientes:'+( (gd.clientes||[]).length)+' trabajos:'+(( gd.trabajos||[]).length)+'\n'
   }catch(e){msg+='GET ERROR: '+e.message+'\n'}
   // Test POST
   try{
     const tid='dbg_'+Date.now()
-    const r=await fetch(API_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'insertar',tabla:'Clientes',fila:{id:tid,nombre:'__TEST__',telefono:'',email:'',institucion:'',ciudad:'',createdAt:new Date().toISOString(),notas:'debug-borrar'}})
-    })
-    const text=await r.text()
-    msg += 'POST raw: '+text.slice(0,120)+'\n'
+    const j0=await apiPost({action:'insertar',tabla:'Clientes',fila:{id:tid,nombre:'__TEST__',telefono:'',email:'',institucion:'',ciudad:'',createdAt:new Date().toISOString(),notas:'debug-borrar'}})
     try{
-      const j=JSON.parse(text)
+      const j=j0
       msg += 'POST: '+(j.ok?'✅ OK':'❌ '+JSON.stringify(j))+'\n'
       if(j.ok){
         // Clean up
-        await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'eliminar',tabla:'Clientes',id:tid})})
+        await apiPost({action:'eliminar',tabla:'Clientes',id:tid})
         msg += 'CLEANUP: ✅\n'
       }
     }catch(pe){msg+='POST parse error: '+pe.message+'\n'}
@@ -2505,8 +2559,7 @@ async function repararHojas(){
   if(!confirm('Esto corregirá la estructura de las hojas en Google Sheets.\n\n⚠️ Los datos existentes se conservan.\n\n¿Continuar?'))return
   syncing=true;syncMsg='Reparando hojas...';draw()
   try{
-    const r=await fetch(API+'?action=repararHojas&t='+Date.now())
-    const d=await r.json()
+    const d=await apiPost({action:'repararHojas'})
     if(d.ok){
       alert('✅ Hojas reparadas:\n\n'+(d.reparado||[]).join('\n'))
       await loadData()
@@ -3676,8 +3729,9 @@ function mPortalUser(d){
     +'<div class="fg">'
     +'<div><label>Usuario (para iniciar sesión)</label>'
     +'<input id="pu0" value="'+esc(ex?ex.usuario:defaultUser)+'" placeholder="usuario_unico"/></div>'
-    +'<div><label>Contraseña</label>'
-    +'<input id="pu1" type="text" value="'+esc(ex?ex.password:'')+'" placeholder="Mínimo 6 caracteres"/></div>'
+    +'<div><label>'+(ex?'Nueva contraseña (vacío = no cambiar)':'Contraseña')+'</label>'
+    +'<div style="display:flex;gap:6px"><input id="pu1" type="text" autocomplete="off" value="'+esc(ex?'':claveAleatoria(10))+'" placeholder="'+(ex?'••••••••':'Mínimo 6 caracteres')+'" style="flex:1"/>'
+    +'<button type="button" class="btn btn-g btn-sm" title="Generar una contraseña segura" onclick="document.getElementById(\'pu1\').value=claveAleatoria(10)">🎲</button></div></div>'
     +'<div class="full"><label>Estado</label><select id="pu2">'
     +'<option value="1"'+((!ex||ex.activo!=='0')?' selected':'')+'>✅ Activo — puede iniciar sesión</option>'
     +'<option value="0"'+((ex&&ex.activo==='0')?' selected':'')+'>🚫 Desactivado</option>'
@@ -3686,7 +3740,7 @@ function mPortalUser(d){
     +'<div style="background:#E3ECF6;border-radius:8px;padding:10px 13px;font-size:12px;color:#0F4C81;margin-top:8px">'
     +'<strong>El cliente verá:</strong> sus trabajos con avance y fechas, el proceso de publicación (etapas, revista e historial), su contrato y el estado de sus cuotas y pagos.'
     +'</div>'
-    +(ex?htmlEnviarAcceso(d.clienteId,ex):'<div style="font-size:11px;color:var(--text3);margin-top:8px">Después de crear el acceso podrás enviárselo al cliente por WhatsApp.</div>')
+    +(ex?htmlEnviarAcceso(d.clienteId,Object.assign({},ex,{password:(window._clavesNuevas||{})[d.clienteId]||''})):'<div style="font-size:11px;color:var(--text3);margin-top:8px">Después de crear el acceso podrás enviárselo al cliente por WhatsApp.</div>')
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +(ex?'<button class="btn btn-r" onclick="eliminarPortalUser(\''+esc(ex.id||'')+'\')">🗑 Eliminar acceso</button>':'')
     +'<button class="btn btn-p" onclick="submitPortalUser(\''+esc(d.clienteId)+'\',\''+esc(ex?ex.id:'')+'\')">'+(ex?'Actualizar':'Crear acceso')+'</button>'
@@ -3700,6 +3754,9 @@ function msgAccesoPortal(cl,u){
 }
 function htmlEnviarAcceso(clienteId,u){
   const cl=data.clientes.find(x=>x.id===clienteId)
+  // Las contraseñas se guardan cifradas: solo se puede enviar una recién creada en esta pantalla
+  if(!u.password)return'<div style="background:var(--gold-lt);border:1px solid #EAD7B8;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6">'
+    +'<strong style="color:var(--gold-dk)">📲 Enviar el acceso al cliente</strong><br/>Por seguridad la contraseña guardada no se puede ver. Para enviar el acceso, pulsa 🎲 para generar una nueva, luego <strong>Actualizar</strong>, y aparecerá el botón de WhatsApp.</div>'
   const datos='Portal: '+urlApp()+'\nUsuario: '+u.usuario+'\nContraseña: '+u.password
   return'<div style="background:var(--gold-lt);border:1px solid #EAD7B8;border-radius:10px;padding:12px 14px;margin-top:10px">'
     +'<div style="font-size:12px;font-weight:800;color:var(--gold-dk);margin-bottom:6px">📲 Enviar el acceso al cliente</div>'
@@ -3714,30 +3771,23 @@ async function submitPortalUser(clienteId, existingId){
   const usuario=v('pu0').trim()
   const password=v('pu1').trim()
   const activo=v('pu2')
-  if(!usuario||!password){alert('Usuario y contraseña son obligatorios');return}
-  if(password.length<4){alert('La contraseña debe tener al menos 4 caracteres');return}
+  if(!usuario||(!existingId&&!password)){alert('Usuario y contraseña son obligatorios');return}
+  if(password&&password.length<6){alert('La contraseña debe tener al menos 6 caracteres');return}
   const cl=data.clientes.find(function(x){return x.id===clienteId})
   const rec={
     id:existingId||uid(),
     clienteId:clienteId,
     nombre:cl&&cl.nombre||'',
     usuario:usuario,
-    password:password,
     role:'cliente',
     activo:activo
   }
+  if(password)rec.password=password  // el servidor la cifra; vacía = se conserva
   modal=null;syncMsg='Guardando usuario...';draw()
   const r=await apiPost({action:existingId?'actualizar':'insertar',tabla:'UsuariosCliente',fila:rec,id:rec.id})
+  // Se recuerda solo en memoria y solo para enviarla ahora por WhatsApp
+  if(r&&r.ok&&password){window._clavesNuevas=window._clavesNuevas||{};window._clavesNuevas[clienteId]=password}
   if(r&&r.ok){
-    // Update local cache
-    const cache=window._clientUsers||[]
-    if(existingId){
-      const idx=cache.findIndex(function(u){return u.id===existingId})
-      if(idx>-1) cache[idx]=rec; else cache.push(rec)
-    }else{
-      cache.push(rec)
-    }
-    window._clientUsers=cache
     toast(existingId?'Usuario actualizado ✓':'Acceso al portal creado ✓')
     await loadData()
     // Reabre el acceso para enviarlo al cliente por WhatsApp
@@ -4048,7 +4098,7 @@ function mColaborador(d){
     +'<div><label>Email</label><input id="col2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@ejemplo.com"/></div>'
     +'<div><label>Teléfono</label><input id="col3" value="'+esc(d.telefono||'')+'" placeholder="09XXXXXXXX"/></div>'
     +'<div><label>Usuario (para login)</label><input id="col4" value="'+esc(d.usuario||'')+'" placeholder="usuario123"/></div>'
-    +'<div><label>Contraseña</label><input id="col5" type="password" value="'+esc(d.password||'')+'" placeholder="Mínimo 6 caracteres"/></div>'
+    +'<div><label>'+(d.id?'Nueva contraseña (vacío = no cambiar)':'Contraseña')+'</label><input id="col5" type="password" autocomplete="new-password" value="" placeholder="'+(d.id?'••••••••':'Mínimo 6 caracteres')+'"/></div>'
     +'<div class="full"><label>Notas</label><input id="col6" value="'+esc(d.notas||'')+'" placeholder="Observaciones..."/></div>'
     +'<div class="full"><label>Estado</label>'
     +'<select id="col7"><option value="true"'+(d.activo==='true'||!d.id?' selected':'')+'>Activo</option><option value="false"'+(d.activo==='false'?' selected':'')+'>Inactivo</option></select>'
@@ -4064,8 +4114,11 @@ async function submitColaborador(id){
   var nombre=v('col0');if(!nombre){alert('El nombre es obligatorio');return}
   var especialidad=v('col1'),email=v('col2'),telefono=v('col3')
   var usuario=v('col4'),password=v('col5'),notas=v('col6'),activo=v('col7')
+  if(password&&password.length<6){alert('La contraseña debe tener al menos 6 caracteres');return}
   modal=null;syncing=true;syncMsg='Guardando...';draw()
-  var fila={nombre,especialidad,email,telefono,usuario,password,notas,activo,createdAt:new Date().toISOString().slice(0,10)}
+  var fila={nombre,especialidad,email,telefono,usuario,notas,activo}
+  if(!id)fila.createdAt=new Date().toISOString().slice(0,10)
+  if(password)fila.password=password  // el servidor la cifra; vacía = se conserva
   if(id){
     await apiPost({action:'actualizar',tabla:'Colaboradores',id,fila:Object.assign({id},fila)})
     toast('Colaborador actualizado ✓')
@@ -5001,8 +5054,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<770
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.7 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<780
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.8 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
@@ -5013,7 +5066,7 @@ function ayudaErrorServidor(msg){
   if(/permiso|permission|authoriz|DriveApp|MailApp|googleapis\.com\/auth/i.test(msg))
     return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene todos los permisos (por ejemplo, crear archivos en Google Drive).\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. En la pantalla de Google marca TODAS las casillas (o "Seleccionar todo") y pulsa Continuar (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
   if(/admin|contraseña/i.test(msg))return'\n\nRevisa que iniciaste sesión con un usuario administrador.'
-  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.7 y tenga los permisos concedidos.'
+  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.8 y tenga los permisos concedidos.'
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5072,7 +5125,7 @@ const ESTADO_CONTRATO={
 const contratosDe=tid=>(data.contratos||[]).filter(c=>c.trabajoId===tid).sort((a,b)=>String(b.createdAt||b.fechaEmision).localeCompare(String(a.createdAt||a.fechaEmision)))
 const contratoVigente=tid=>contratosDe(tid).find(c=>c.estado!=='anulado'&&c.estado!=='reemplazado')||null
 // Las acciones de auditoría se validan en el servidor con el usuario administrador
-const authAdmin=()=>({usuario:user&&user.u||'',password:user&&user.p||''})
+const authAdmin=()=>({token:SESION&&SESION.token||''})
 const _json1=s=>{if(Array.isArray(s))return s;try{return JSON.parse(s||'[]')||[]}catch(e){return[]}}
 function resumenContrato(ctx){
   const t=ctx.t,cl=ctx.cl||{},pr=ctx.pr,det=ctx.det
@@ -5932,6 +5985,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostnam
 window.addEventListener('online',function(){if(user&&sinConexion){toast('Conexión restablecida');loadData()}})
 
 // ─── INICIO ───────────────────────────────────────────────────────────────────
+;(function(){const s=leerSesion();if(s&&!VERIF.activo){SESION=s;user=s.user;loadData()}})()
 draw()
 </script>
 </body>
