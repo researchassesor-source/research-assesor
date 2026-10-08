@@ -715,7 +715,7 @@ function claveAleatoria(n){
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 let user=null,page='dashboard',modal=null,mobileNavOpen=false
-let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[],colaboradores:[],asignaciones:[],seguimientos:[],config:[]}
+let data={clientes:[],trabajos:[],cuotas:[],abonos:[],reuniones:[],colaboradores:[],asignaciones:[],seguimientos:[],config:[],facturas:[]}
 // Normaliza la respuesta de getData (las hojas nuevas pueden no existir todavía → arreglo vacío)
 function mapData(r){
   return{
@@ -730,6 +730,7 @@ function mapData(r){
     config:        r.config        ||[],
     propuestas:    r.propuestas    ||[],
     contratos:     r.contratos     ||[],  // registro de auditoría (solo lectura; lo escribe el servidor)
+    facturas:      r.facturas      ||[],  // facturas electrónicas (solo lectura; las escribe el servidor)
   }
 }
 // ── Copia local para trabajar sin conexión (app instalada) ──
@@ -746,7 +747,7 @@ function leerCopiaLocal(){
   try{const x=JSON.parse(localStorage.getItem(COPIA_KEY)||'null');return x&&x.data?x:null}catch(e){return null}
 }
 // Datos del prestador (hoja Config, id="prestador", valor=JSON). Valores por defecto = contrato anterior.
-const PRESTADOR_DEFAULT={nombre:'Edison Bonifaz',cedula:'',profesion:'Asesor en investigación científica',ciudad:'Quito',direccion:'Bielorusia y Noruega',telefono:'096810281',email:'',web:'www.ra-training.com',marca:'Research Assessor'}
+const PRESTADOR_DEFAULT={nombre:'Edison Fernando Bonifaz Aranda',cedula:'0603032269',profesion:'Asesor en investigación científica',ciudad:'Riobamba',direccion:'Bielorusia 1 y Noruega, Riobamba',telefono:'096810281',email:'',web:'www.ra-training.com',marca:'Research Assessor'}
 function prestador(){
   const row=(data.config||[]).find(c=>c.id==='prestador')
   let p={}
@@ -790,6 +791,13 @@ function _capturarModal(){
   })
   return o
 }
+// Redibuja el formulario abierto desde su estado (modal.rec): los campos que coinciden con "re" toman el valor
+// del estado; los demás (clave del certificado, casillas sueltas) conservan lo escrito.
+function drawDesdeEstado(re){
+  const snap=_capturarModal()||{};Object.keys(snap).forEach(function(k){if(re.test(k))delete snap[k]})
+  _modalDibujado=null;draw();_restaurarModal(snap);_modalDibujado=modal
+}
+const _factDraw=()=>drawDesdeEstado(/^(fi_|fc_(?!mail$))/)
 function _restaurarModal(o){
   const m=document.querySelector('.modal');if(!m)return
   m.querySelectorAll('input,select,textarea').forEach(function(el){
@@ -1058,6 +1066,7 @@ const NAV_MAIN=[
   {id:'propuestas',   l:'Propuestas',     ic:'📑',nuevo:1},
   {id:'publicaciones',l:'Publicaciones',  ic:'📰',nuevo:1},
   {id:'cobros',       l:'Cobros',         ic:'◎'},
+  {id:'facturas',     l:'Facturas',       ic:'🧾',nuevo:1},
   {id:'deudores',     l:'Deudores',       ic:'💸'},
   {id:'reuniones',    l:'Reuniones',      ic:'◷'},
   {id:'colaboradores',l:'Colaboradores',  ic:'👥'},
@@ -1072,8 +1081,8 @@ const NAV_CLIENTE=[
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.8'
+const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const VERSION='v7.9.3'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1131,6 +1140,7 @@ function htmlPage(){
   if(page==='propuestas') return htmlPropuestas()
   if(page==='configuracion') return htmlConfiguracion()
   if(page==='cobros')   return htmlCobros()
+  if(page==='facturas') return htmlFacturas()
   if(page==='deudores') return htmlDeudores()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
@@ -1440,7 +1450,7 @@ function htmlClientes(){
     const saldoC=cuotasC.reduce((s,q)=>s+(parseFloat(q.acordado||0)-parseFloat(q.pagado||0)),0)
     const venceC=cuotasC.filter(q=>cStat(q)==='vencido').length
     h+='<tr style="cursor:pointer" onclick="wExp=wExp===\'c_'+c.id+'\'?null:\'c_'+c.id+'\';draw()">'
-      +'<td><strong>'+esc(c.nombre)+'</strong>'+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
+      +'<td><strong>'+esc(c.nombre)+'</strong>'+(pideFactura(c)?' <span title="Pide factura" style="font-size:11px">🧾</span>':'')+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+esc(c.institucion||'—')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+esc(c.ciudad||'—')+'</td>'
       +'<td>'+(c.telefono?'<a href="'+waUrl(c.telefono,'Hola '+c.nombre)+'" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none;font-size:11px" onclick="event.stopPropagation()">💬 '+esc(c.telefono)+'</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
@@ -1580,6 +1590,8 @@ function htmlTrabajos(){
           +'<button class="btn btn-gold btn-sm" onclick="openModal(\'seguimiento\',{trabajoId:\''+t.id+'\'})">+ Registrar avance</button></span></div>'
           +htmlStepper(t)+'</div>'
       }
+      // Autores del artículo y forma de cobro (un solo pagador o por autor)
+      if(esPublicacion(t)||t.autores)h+=htmlAutoresResumen(t)
       // Todos los datos del trabajo y del cliente que se usan en el contrato
       h+='<details style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
         +'<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy)">📋 Datos del contrato y del cliente</summary>'
@@ -1602,10 +1614,10 @@ function htmlTrabajos(){
           const st=cStat(c),saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
           const bgc={pagado:'#dcfce7',parcial:'#E3ECF6',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
           const bdc={pagado:'#bbf7d0',parcial:'#C9D9EB',vencido:'#fecaca',pendiente:'#fde68a'}[st]||'#e2e8f0'
-          const phone=cl&&cl.telefono
+          const pag=pagadorDe(c,t),phone=pag&&pag.telefono
           h+='<div class="crow" style="background:'+bgc+';border-color:'+bdc+'">'
             +'<div class="crow-hd">'
-            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">Vence: '+fmtDCorto(c.fechaVencimiento||'')+'</div></div>'
+            +'<div style="flex:1"><strong style="font-size:13px">'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">Vence: '+fmtDCorto(c.fechaVencimiento||'')+(c.grupo&&pag?' · 👤 '+esc(pag.nombre):'')+'</div></div>'
             +'<div style="text-align:right;min-width:80px"><div style="font-weight:700;font-size:14px">$'+fmt(c.acordado)+'</div>'
             +(parseFloat(c.pagado||0)>0?'<div style="font-size:10px;color:var(--green)">+$'+fmt(c.pagado)+' pagado</div>':'')
             +(saldo>0&&st!=='pagado'?'<div style="font-size:10px;color:var(--amber)">Saldo $'+fmt(saldo)+'</div>':'')
@@ -1633,7 +1645,7 @@ function htmlTrabajos(){
                    +'<span style="font-weight:700;color:#0369a1;background:#E3ECF6;border-radius:4px;padding:1px 4px">'+esc(a.comprobante)+'</span>'
                   :'')
                 +(a.nota?'<span style="color:var(--text3)">📝</span><span style="color:var(--text3)">'+esc(a.nota)+'</span>':'')
-                +'</div></div>'
+                +'</div>'+htmlFacturaDePago(a)+'</div>'
             })
             h+='</div></div>'
           }
@@ -1653,7 +1665,7 @@ function htmlCobros(){
   const _ordT={};data.trabajos.forEach((t,i)=>{_ordT[t.id]=i})
   const rows=data.cuotas.map(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
-    const cl=t?data.clientes.find(x=>x.id===t.clienteId):null
+    const cl=t?pagadorDe(c,t):null
     const st=cStat(c)
     return{...c,_t:t,_cl:cl,_st:st}
   }).filter(c=>{
@@ -1730,7 +1742,7 @@ function htmlCobros(){
                +'<span style="font-weight:700;color:#0369a1;background:#E3ECF6;border-radius:4px;padding:1px 5px">'+esc(a.comprobante)+'</span>'
               :'')
             +(a.nota?'<span style="color:var(--text3)">📝</span><span style="color:var(--text3)">'+esc(a.nota)+'</span>':'')
-            +'</div></div>'
+            +'</div>'+htmlFacturaDePago(a)+'</div>'
         }).join('')
         +'</div></div>'
     }
@@ -1742,11 +1754,11 @@ function htmlCobros(){
 function waRec(cuotaId,trabajoId,phone,tplId){
   const c=data.cuotas.find(x=>x.id===cuotaId)
   const t=data.trabajos.find(x=>x.id===trabajoId)
-  const cl=t?data.clientes.find(x=>x.id===t.clienteId):null
+  const cl=c&&t?pagadorDe(c,t):null
   if(!c||!phone)return
   const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-  // Total saldo pendiente del trabajo
-  const cuotasTrabajo=data.cuotas.filter(x=>x.trabajoId===trabajoId)
+  // Total saldo pendiente del trabajo (solo lo que paga esta persona)
+  const pid=pagadorIdDe(c,t),cuotasTrabajo=data.cuotas.filter(x=>x.trabajoId===trabajoId&&pagadorIdDe(x,t)===pid)
   const saldoTotal=cuotasTrabajo.reduce(function(s,x){return s+(parseFloat(x.acordado||0)-parseFloat(x.pagado||0))},0)
   const msg=waTpl(tplId,{
     nombre:cl&&cl.nombre||'',
@@ -1779,15 +1791,16 @@ function htmlDeudores(){
   data.cuotas.forEach(c=>{
     if(cStat(c)==='pagado')return
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
-    if(!t||!t.clienteId)return
+    const pid=t?pagadorIdDe(c,t):''
+    if(!t||!pid)return
     const saldo=Math.max(parseFloat(c.acordado||0)-realPaid(c),0)
     if(saldo<=0)return
-    const cl=data.clientes.find(x=>x.id===t.clienteId)
-    if(!porCliente[t.clienteId])porCliente[t.clienteId]={cliente:cl,cuotas:[],total:0,vencidas:false}
+    const cl=data.clientes.find(x=>x.id===pid)
+    if(!porCliente[pid])porCliente[pid]={cliente:cl,cuotas:[],total:0,vencidas:false}
     const st=cStat(c)
-    porCliente[t.clienteId].cuotas.push({...c,_t:t,_saldo:saldo,_st:st})
-    porCliente[t.clienteId].total+=saldo
-    if(st==='vencido')porCliente[t.clienteId].vencidas=true
+    porCliente[pid].cuotas.push({...c,_t:t,_saldo:saldo,_st:st})
+    porCliente[pid].total+=saldo
+    if(st==='vencido')porCliente[pid].vencidas=true
   })
   const q=search.toLowerCase()
   let lista=Object.values(porCliente).filter(d=>d.total>0&&(!q||(d.cliente&&d.cliente.nombre||'').toLowerCase().includes(q)))
@@ -1834,9 +1847,9 @@ function htmlDeudores(){
 function waDeudor(clienteId){
   const cl=data.clientes.find(c=>c.id===clienteId)
   if(!cl||!cl.telefono){toast('Cliente sin teléfono registrado','err');return}
-  const trabajosCl=data.trabajos.filter(t=>t.clienteId===clienteId)
+  const trabajosCl=data.trabajos.filter(t=>esDelCliente(t,clienteId))
   const idsTrab=trabajosCl.map(t=>t.id)
-  const cuotasPend=data.cuotas.filter(c=>idsTrab.includes(c.trabajoId)&&cStat(c)!=='pagado'&&Math.max(parseFloat(c.acordado||0)-realPaid(c),0)>0)
+  const cuotasPend=data.cuotas.filter(c=>idsTrab.includes(c.trabajoId)&&pagadorIdDe(c)===clienteId&&cStat(c)!=='pagado'&&Math.max(parseFloat(c.acordado||0)-realPaid(c),0)>0)
     .sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
   if(!cuotasPend.length){toast('Este cliente no tiene saldo pendiente','err');return}
   let totalSaldo=0
@@ -2096,8 +2109,10 @@ function htmlModal(){
   if(modal.type==='proforma')       c=mProforma(modal.rec)
   if(modal.type==='instalar')       c=mInstalar()
   if(modal.type==='clave')          c=mClave(modal.rec)
+  if(modal.type==='autores')        c=mAutores(modal.rec)
+  if(modal.type==='factura')        c=mFactura(modal.rec)
   if(!c)return''
-  const wide=['trabajo','pub_detalle','contrato','propuesta','proforma'].indexOf(modal.type)>-1
+  const wide=['trabajo','pub_detalle','contrato','propuesta','proforma','autores','factura'].indexOf(modal.type)>-1
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal'+(wide?' wide':'')+'">'+c+'</div></div>'
 }
 
@@ -2123,6 +2138,7 @@ function mCliente(d){
     +'<input id="f4b" placeholder="Especificar ciudad..." style="margin-top:6px;display:'+(hasOtraCiud?'block':'none')+'" value="'+esc(hasOtraCiud?d.ciudad:'')+'"/></div>'
     +'<div class="full"><label>Área / programa / grupo de investigación</label><input id="fa" value="'+esc(d.area||'')+'" placeholder="Ej: Nutrición y Promoción y Cuidados para la Salud"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f5" rows="2">'+esc(d.notas||'')+'</textarea></div>'
+    +htmlCamposFacturaCliente(d)
     +'</div><div class="ma" style="flex-wrap:wrap"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +(!e?'<button class="btn btn-gold" onclick="submitCliente(\'\',true)" title="Registra al cliente y abre su propuesta de publicaciones">Registrar y crear propuesta →</button>':'')
     +'<button class="btn btn-p" onclick="submitCliente(\''+esc(d.id||'')+'\')">'+( e?'Actualizar':'Registrar')+'</button></div>'
@@ -2135,7 +2151,9 @@ function submitCliente(id,conPropuesta){
   const ciudad=selCiud&&selCiud.value==='Otra'?(inpCiud&&inpCiud.value||'Otra'):selCiud&&selCiud.value||''
   const rec={id:id||uid(),nombre,cedula:v('fc'),telefono:v('f1'),email:v('f2'),
     direccion:v('fd'),institucion,ciudad,area:v('fa'),notas:v('f5'),
+    facturar:v('ff')==='1'?'1':'0',facturaNombre:v('ffn'),facturaIdentificacion:v('ffi'),facturaDireccion:v('ffd'),facturaEmail:v('ffe'),
     createdAt:id?(modal.rec.createdAt||''):new Date().toISOString()}
+  if(rec.facturaIdentificacion&&!/^\d{10}(\d{3})?$/.test(rec.facturaIdentificacion)&&!confirm('La identificación para la factura ('+rec.facturaIdentificacion+') no parece una cédula (10 dígitos) ni un RUC (13). ¿Guardar de todas formas?'))return
   saveRec('Clientes',rec,!id)
   // Alta completa: los datos del cliente pasan directo a su propuesta de publicaciones
   if(conPropuesta)nuevaPropuesta(rec.id)
@@ -2256,6 +2274,7 @@ function fichaCliente(c){
   if(!c)return''
   return _fichaGrid([['Nombre completo',c.nombre],['Cédula / RUC',c.cedula||'— falta'],['Teléfono / WhatsApp',c.telefono||'— falta'],['Email',c.email||'— falta'],
     ['Dirección',c.direccion||'— falta',1],['Institución',c.institucion],['Ciudad',c.ciudad],['Área / programa / grupo',c.area,1],['Notas',c.notas,1],
+    ['Factura electrónica',pideFactura(c)?'Sí pide factura'+(c.facturaNombre&&c.facturaIdentificacion?' — a nombre de '+c.facturaNombre+' ('+c.facturaIdentificacion+')':''):'No pide factura',1],
     ['Registrado',c.createdAt?fmtDCorto(String(c.createdAt).slice(0,10)):'']])
 }
 function fichaDetalles(t){
@@ -2422,6 +2441,7 @@ function mAbono(d){
     +'<div class="fg"><div><label>Fecha</label><input id="a1" type="date" value="'+new Date().toISOString().split('T')[0]+'"/></div>'
     +'<div><label>Ref. comprobante</label><input id="a2" placeholder="TRF-001..."/></div>'
     +'<div class="full"><label>Nota</label><input id="a3" placeholder="Ej: Transferencia BP"/></div></div>'
+    +htmlCasillaFacturaPago(d.cuotaId,d.trabajoId)
     +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button>'
     +'<button class="btn btn-green" onclick="submitAbono(\''+esc(d.cuotaId)+'\',\''+esc(d.trabajoId)+'\',\''+esc(d.acordado)+'\',\''+esc(d.pagado)+'\')">Registrar pago</button></div>'
 }
@@ -2431,15 +2451,19 @@ async function submitAbono(cuotaId,trabajoId,acordado,pagadoPrev){
   const fechaAbono   = v('a1') || new Date().toISOString().split('T')[0]
   const comprobante  = v('a2')
   const nota         = v('a3')
+  const fEl=document.getElementById('a_fact'),conFactura=!!(fEl&&fEl.checked)
   // ── Now safe to close modal and update UI ──
   const newPagado=parseFloat(pagadoPrev||0)+monto
   const newSt=newPagado>=parseFloat(acordado||0)?'pagado':newPagado>0?'parcial':'pendiente'
   const cuota=data.cuotas.find(c=>c.id===cuotaId)
   modal=null;syncing=true;syncMsg='Guardando...';draw()
   // ── Send to Sheets with captured values ──
-  await apiPost({action:'insertar',tabla:'Abonos',fila:{id:uid(),cuotaId,trabajoId,fecha:fechaAbono,monto,nota,comprobante}})
+  const abonoId=uid()
+  await apiPost({action:'insertar',tabla:'Abonos',fila:{id:abonoId,cuotaId,trabajoId,fecha:fechaAbono,monto,nota,comprobante}})
   await apiPost({action:'actualizar',tabla:'Cuotas',id:cuotaId,fila:{...cuota,pagado:newPagado,estado:newSt}})
   syncing=false;toast('Pago registrado ✓');await loadData()
+  // Solo se factura si se marcó la casilla al registrar el pago
+  if(conFactura&&data.abonos.some(a=>a.id===abonoId)){if(factGuardada())facturarPago(abonoId);else alert('El pago quedó registrado. Para facturarlo, primero guarda tus datos en Configuración → Facturación electrónica; luego usa el botón 🧾 Facturar del pago.')}
 }
 
 function mReunion(d){
@@ -3121,7 +3145,11 @@ function _construirContrato(ctx,em){
   // Una fila por cuota (por id), aunque la lista llegue con repetidos
   const vistos={}
   const cuotasU=cuotas.filter(function(c){const k=c.id||[c.label,c.fechaVencimiento,c.acordado].join('|');if(vistos[k])return false;vistos[k]=1;return true})
-  body+=_p('El valor señalado será cancelado por EL CONTRATANTE a EL PRESTADOR de conformidad con el siguiente plan de pagos'+(fechasEstimadas?' (fechas estimadas)':'')+':',{sz:20,color:'222222',align:'both',after:80,keep:true})
+  // Cobro por autor: cada autor responde por su parte del valor
+  const _aus=autoresDe(t),_porAutor=modoCobroDe(t)==='porAutor'&&_aus.length>1
+  if(_porAutor)body+=_p('El valor se distribuye entre los autores del manuscrito de la siguiente forma: '
+    +_aus.map(a=>a.nombre+' ('+(parseFloat(a.pct)||0)+' %)').join('; ')+'. Cada autor responde por el pago de su parte; EL CONTRATANTE, como autor encargado y de correspondencia, coordina el cumplimiento del plan de pagos.',{sz:20,color:'222222',align:'both',after:80,keep:true})
+  body+=_p('El valor señalado será cancelado '+(_porAutor?'por los autores':'por EL CONTRATANTE')+' a EL PRESTADOR de conformidad con el siguiente plan de pagos'+(fechasEstimadas?' (fechas estimadas)':'')+':',{sz:20,color:'222222',align:'both',after:80,keep:true})
   if(cuotasU.length){
     // La tabla se mantiene completa en una misma página (keepNext en todas las filas menos la última)
     const K={keep:true}
@@ -3538,7 +3566,7 @@ function htmlPortalHeader(){
 }
 
 function htmlPortalProgreso(){
-  const trabajosCl=recientes(data.trabajos).filter(function(t){return t.clienteId===user.clienteId})
+  const trabajosCl=recientes(data.trabajos).filter(function(t){return esDelCliente(t,user.clienteId)})
   let h=htmlPortalHeader()
   if(!trabajosCl.length){
     return h+'<div class="card"><p class="empty">No tienes trabajos registrados aún.</p></div>'
@@ -3610,7 +3638,7 @@ function htmlPortalProgreso(){
 }
 
 function htmlPortalCuentas(){
-  const trabajosCl=recientes(data.trabajos).filter(function(t){return t.clienteId===user.clienteId})
+  const trabajosCl=recientes(data.trabajos).filter(function(t){return esDelCliente(t,user.clienteId)})
   const idsTrab=trabajosCl.map(function(t){return t.id})
   const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)})
   let h=htmlPortalHeader()
@@ -3664,6 +3692,11 @@ function htmlPortalCuentas(){
         +'</div>'
     })
   })
+  // Facturas electrónicas autorizadas del cliente
+  const fs=recientes(data.facturas||[]).filter(f=>f.estado==='AUTORIZADO')
+  if(fs.length)h+='<div style="font-size:16px;font-weight:700;margin:18px 0 10px">🧾 Mis facturas</div><div class="card"><table><thead><tr><th>Número</th><th>Fecha</th><th style="text-align:right">Total</th><th></th></tr></thead><tbody>'
+    +fs.map(f=>'<tr><td><strong>'+esc(f.numero)+'</strong></td><td>'+esc(f.fechaEmision)+'</td><td style="text-align:right">$'+fmt(f.total)+'</td><td><span style="display:flex;gap:4px">'
+      +(f.rideUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.rideUrl)+'">📄 PDF</a>':'')+(f.xmlUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.xmlUrl)+'">XML</a>':'')+'</span></td></tr>').join('')+'</tbody></table></div>'
   return h
 }
 
@@ -5021,6 +5054,7 @@ function htmlConfiguracion(){
     +'<div style="padding:16px 20px"><div class="fg">'
     +CFG_CAMPOS.map(function(f){return'<div'+(f.full?' class="full"':'')+'><label>'+esc(f.l)+'</label><input id="cf_'+f.k+'" value="'+esc(p[f.k]||'')+'" placeholder="'+esc(f.ph||'')+'"/></div>'}).join('')
     +'</div><div class="ma"><button class="btn btn-p" onclick="guardarPrestador()">Guardar datos</button></div></div></div>'
+  h+=htmlConfigFacturacion()
   h+='<div class="card"><div class="card-hd"><h3>📲 Instalación de la app</h3></div>'
     +'<div style="padding:16px 20px"><div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Revisa en este equipo por qué no se puede instalar la app y qué hacer.</div>'
     +'<button class="btn btn-g" onclick="correrDiagnostico(\'diag_cfg\')">🔍 Ejecutar diagnóstico</button>'
@@ -5054,8 +5088,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<780
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.8 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<790
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.9 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
@@ -5066,7 +5100,7 @@ function ayudaErrorServidor(msg){
   if(/permiso|permission|authoriz|DriveApp|MailApp|googleapis\.com\/auth/i.test(msg))
     return'\n\n— CÓMO SOLUCIONARLO —\nEl Apps Script todavía no tiene todos los permisos (por ejemplo, crear archivos en Google Drive).\n1. Abre el proyecto en script.google.com.\n2. En la barra superior elige la función "autorizarPermisos" y pulsa ▶ Ejecutar.\n3. En la pantalla de Google marca TODAS las casillas (o "Seleccionar todo") y pulsa Continuar (si aparece "Google no verificó esta app": Configuración avanzada → Ir a…).\n4. Vuelve aquí e inténtalo de nuevo.'
   if(/admin|contraseña/i.test(msg))return'\n\nRevisa que iniciaste sesión con un usuario administrador.'
-  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.8 y tenga los permisos concedidos.'
+  return'\n\nSi el problema es del servidor, revisa en Configuración → Verificar que el Apps Script sea v7.9 y tenga los permisos concedidos.'
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5871,6 +5905,719 @@ async function firmarPdf(gen,cred,info){
   const hexFull=hex+'0'.repeat(RES*2-hex.length)
   for(let k=0;k<hexFull.length;k++)u8[ini+1+k]=hexFull.charCodeAt(k)
   return u8
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTORES DEL ARTÍCULO Y FORMA DE COBRO
+// Un trabajo puede tener uno o varios autores (Trabajos.autores, JSON).
+// • "responsable": cobra todo al autor encargado / de correspondencia (titular del trabajo).
+// • "porAutor": cada cuota del plan se divide entre los autores según su porcentaje
+//   (las cuotas de un mismo hito comparten el campo "grupo").
+// Las cuotas que ya tienen pagos o facturas nunca se modifican.
+// ════════════════════════════════════════════════════════════════
+const ROL_AUTOR={correspondencia:'Encargado / correspondencia',coautor:'Coautor'}
+function autoresDe(t){
+  let a=[];try{a=JSON.parse(t&&t.autores||'[]')||[]}catch(e){}
+  if(!Array.isArray(a))a=[]
+  if(!a.length&&t&&t.clienteId){const cl=data.clientes.find(c=>c.id===t.clienteId);a=[{id:'a0',clienteId:t.clienteId,nombre:cl?cl.nombre:(t.clienteNombre||''),rol:'correspondencia',pct:100}]}
+  return a
+}
+const modoCobroDe=t=>t&&t.modoCobro==='porAutor'?'porAutor':'responsable'
+// Quién paga una cuota: el autor de esa parte (cuotas divididas) o el titular del trabajo
+function pagadorIdDe(c,t){t=t||data.trabajos.find(x=>x.id===c.trabajoId);if(c.grupo&&c.clienteId)return c.clienteId;return t?t.clienteId:(c.clienteId||'')}
+const pagadorDe=(c,t)=>data.clientes.find(x=>x.id===pagadorIdDe(c,t))||null
+const esDelCliente=(t,cid)=>!!t&&(t.clienteId===cid||autoresDe(t).some(a=>a.clienteId===cid))
+const facturasDeAbono=id=>(data.facturas||[]).filter(f=>f.abonoId===id&&f.estado!=='ANULADA')
+const facturasDeCuota=id=>(data.facturas||[]).filter(f=>f.cuotaId===id&&f.estado!=='ANULADA')
+function htmlAutoresResumen(t){
+  const au=autoresDe(t),modo=modoCobroDe(t)
+  return'<div style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
+    +'<strong style="font-size:12px;color:var(--navy)">👥 Autores ('+au.length+') · '+(modo==='porAutor'?'Cobro por autor':'Cobro al autor encargado')+'</strong>'
+    +'<button class="btn btn-g btn-sm" onclick="abrirAutores(\''+t.id+'\')">✏️ Autores y forma de cobro</button></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+au.map(a=>'<span style="font-size:11.5px;background:'+(a.rol==='correspondencia'?'var(--gold-lt)':'#F1F5FA')+';border:1px solid var(--border);border-radius:999px;padding:3px 10px">'
+      +(a.rol==='correspondencia'?'✉️ ':'')+esc(a.nombre||'—')+(modo==='porAutor'?' · '+(parseFloat(a.pct)||0)+' %':'')+'</span>').join('')+'</div></div>'
+}
+function abrirAutores(tid){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  openModal('autores',{trabajoId:tid,modo:modoCobroDe(t),_rows:autoresDe(t).map(a=>Object.assign({nuevo:{}},a))})
+}
+function mAutores(d){
+  const t=data.trabajos.find(x=>x.id===d.trabajoId);if(!t)return'<h3>Trabajo no encontrado</h3>'
+  const rows=d._rows,porAutor=d.modo==='porAutor'
+  const suma=rows.reduce((s,r)=>s+(parseFloat(r.pct)||0),0)
+  const opts=sel=>'<option value="">➕ Autor nuevo (escribir sus datos)</option>'+recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(sel===c.id?' selected':'')+'>'+esc(c.nombre)+(c.cedula?' · '+esc(c.cedula):'')+'</option>').join('')
+  let h='<h3>👥 Autores y forma de cobro</h3>'
+    +'<div style="font-size:12px;color:var(--text3);margin:-6px 0 12px">'+esc(t.titulo)+'</div>'
+    +'<div style="display:grid;gap:8px">'
+  rows.forEach(function(r,i){
+    const nv=r.nuevo||{}
+    h+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:'+(r.rol==='correspondencia'?'#FFFDF8':'#fff')+'">'
+      +'<div style="display:grid;grid-template-columns:1fr 150px 90px auto;gap:8px;align-items:end">'
+      +'<div><label>Autor '+(i+1)+'</label><select id="au_cl_'+i+'" onchange="_autLeer();draw()">'+opts(r.clienteId)+'</select></div>'
+      +'<div><label>Rol</label><label class="chk" style="margin-top:6px"><input type="radio" name="au_rol" value="'+i+'"'+(r.rol==='correspondencia'?' checked':'')+'/> Encargado / correspondencia</label></div>'
+      +'<div><label>% del cobro</label><input id="au_pct_'+i+'" type="number" min="0" max="100" step="0.01" value="'+esc(r.pct||0)+'"'+(porAutor?'':' disabled')+'/></div>'
+      +'<button type="button" class="btn btn-r btn-sm" title="Quitar autor" onclick="_autQuitar('+i+')"'+(rows.length<2?' disabled':'')+'>✕</button>'
+      +'</div>'
+      +(!r.clienteId?'<div class="fg" style="margin-top:8px">'
+        +'<div><label>Nombre completo *</label><input id="au_n_'+i+'" value="'+esc(nv.nombre||r.nombre||'')+'"/></div>'
+        +'<div><label>Cédula / RUC (para facturar)</label><input id="au_c_'+i+'" value="'+esc(nv.cedula||'')+'"/></div>'
+        +'<div><label>Email</label><input id="au_e_'+i+'" type="email" value="'+esc(nv.email||'')+'"/></div>'
+        +'<div><label>Teléfono / WhatsApp</label><input id="au_t_'+i+'" value="'+esc(nv.telefono||'')+'"/></div>'
+        +'<div class="full" style="font-size:11px;color:var(--text3)">Se registrará como cliente nuevo al guardar.</div></div>':'')
+      +'</div>'
+  })
+  h+='</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+    +'<button type="button" class="btn btn-g btn-sm" onclick="_autAgregar()">+ Agregar autor</button>'
+    +(porAutor?'<button type="button" class="btn btn-g btn-sm" onclick="_autIguales()">⚖ Repartir en partes iguales</button>'
+      +'<span style="font-size:12px;font-weight:700;align-self:center;color:'+(Math.abs(suma-100)<0.01?'var(--green)':'var(--red)')+'">Suma: '+fmt(suma)+' %</span>':'')
+    +'</div>'
+    +'<div style="margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:#FAFAF7">'
+    +'<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px">Forma de cobro</div>'
+    +'<label class="chk"><input type="radio" name="au_modo" value="responsable"'+(porAutor?'':' checked')+' onchange="_autLeer();modal.rec.modo=this.value;draw()"/> <strong>Un solo pagador:</strong> el autor encargado / de correspondencia paga todo el plan</label>'
+    +'<label class="chk" style="margin-top:6px"><input type="radio" name="au_modo" value="porAutor"'+(porAutor?' checked':'')+' onchange="_autLeer();modal.rec.modo=this.value;if(!modal.rec._rows.some(r=>parseFloat(r.pct)>0))_autIguales();else draw()"/> <strong>Cobro por autor:</strong> cada cuota se divide entre los autores según su porcentaje</label>'
+    +'<div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.5">Al guardar se reorganizan solo las cuotas <strong>sin pagos ni facturas</strong>. Las que ya tienen pagos se mantienen como están. Cada autor recibe sus recordatorios, su factura y ve en su portal solo sus cuotas.</div>'
+    +'</div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button><button class="btn btn-p" id="au_btn" onclick="submitAutores()">Guardar</button></div>'
+  return h
+}
+function _autLeer(){
+  if(!modal||modal.type!=='autores')return
+  const rol=document.querySelector('input[name="au_rol"]:checked')
+  modal.rec._rows.forEach(function(r,i){
+    const s=document.getElementById('au_cl_'+i);if(s)r.clienteId=s.value
+    const p=document.getElementById('au_pct_'+i);if(p&&!p.disabled)r.pct=parseFloat(p.value)||0
+    r.rol=rol&&+rol.value===i?'correspondencia':'coautor'
+    if(!r.clienteId){r.nuevo={nombre:v('au_n_'+i),cedula:v('au_c_'+i),email:v('au_e_'+i),telefono:v('au_t_'+i)};r.nombre=r.nuevo.nombre}
+    else{const cl=data.clientes.find(c=>c.id===r.clienteId);r.nombre=cl?cl.nombre:r.nombre}
+  })
+  const m=document.querySelector('input[name="au_modo"]:checked');if(m)modal.rec.modo=m.value
+}
+function _autAgregar(){_autLeer();modal.rec._rows.push({id:uid(),clienteId:'',nombre:'',rol:'coautor',pct:0,nuevo:{}});draw()}
+function _autQuitar(i){_autLeer();const r=modal.rec._rows.splice(i,1)[0];if(r&&r.rol==='correspondencia'&&modal.rec._rows[0])modal.rec._rows[0].rol='correspondencia';draw()}
+function _autIguales(){
+  _autLeer();const rs=modal.rec._rows,n=rs.length,base=Math.floor(10000/n)/100
+  rs.forEach((r,i)=>{r.pct=i===0?Math.round((100-base*(n-1))*100)/100:base});draw()
+}
+// Montos por porcentaje (el último absorbe el redondeo)
+function repartirPct(total,pcts){let acum=0;return pcts.map(function(p,i){if(i===pcts.length-1)return r2(total-acum);const x=r2(total*(parseFloat(p)||0)/100);acum=r2(acum+x);return x})}
+// Calcula cómo deben quedar las cuotas sin pagos según los autores y la forma de cobro
+function planCuotasAutores(t,autores,modo,titularId){
+  const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
+  const libre=c=>realPaid(c)<=0&&!data.abonos.some(a=>a.cuotaId===c.id)&&!facturasDeCuota(c.id).length
+  const bloqueados=new Set(cuotas.filter(c=>!libre(c)).map(c=>c.grupo||c.id))
+  const grupos={},orden=[]
+  cuotas.filter(libre).forEach(c=>{const g=c.grupo||c.id;if(bloqueados.has(g))return;if(!grupos[g]){grupos[g]=[];orden.push(g)}grupos[g].push(c)})
+  const crear=[],eliminar=[],cl=data.clientes.find(c=>c.id===titularId)
+  orden.forEach(function(g){
+    const cs=grupos[g],c0=cs[0],total=r2(cs.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0))
+    const base=c0.grupo?String(c0.label||'Cuota').replace(/ — [^—]*$/,''):(c0.label||'Cuota')
+    const comun={trabajoId:t.id,trabajoTitulo:t.titulo,fechaVencimiento:c0.fechaVencimiento,pagado:0,estado:'pendiente',hitoEtapa:c0.hitoEtapa||''}
+    let nuevas
+    if(modo==='porAutor'){
+      const montos=repartirPct(total,autores.map(a=>a.pct)),gid=c0.grupo||('g'+uid())
+      nuevas=autores.map((a,i)=>Object.assign({id:uid(),clienteId:a.clienteId,clienteNombre:a.nombre,label:base+' — '+a.nombre,acordado:montos[i],grupo:gid},comun))
+      const igual=cs.length===nuevas.length&&nuevas.every((n,i)=>cs[i].clienteId===n.clienteId&&r2(cs[i].acordado)===n.acordado&&cs[i].label===n.label)
+      if(igual)return
+    }else{
+      if(cs.length===1&&!c0.grupo&&c0.clienteId===titularId)return
+      nuevas=[Object.assign({id:uid(),clienteId:titularId,clienteNombre:cl?cl.nombre:'',label:base,acordado:total,grupo:''},comun)]
+    }
+    cs.forEach(c=>eliminar.push(c.id));nuevas.forEach(n=>crear.push(n))
+  })
+  return{crear:crear,eliminar:eliminar,bloqueadas:cuotas.filter(c=>!libre(c)).length}
+}
+async function submitAutores(){
+  _autLeer()
+  const d=modal.rec,t=data.trabajos.find(x=>x.id===d.trabajoId);if(!t)return
+  const rows=d._rows,porAutor=d.modo==='porAutor'
+  if(!rows.length){alert('Agrega al menos un autor');return}
+  if(rows.filter(r=>r.rol==='correspondencia').length!==1){alert('Marca un autor como encargado / de correspondencia');return}
+  for(const r of rows)if(!r.clienteId&&!(r.nuevo&&r.nuevo.nombre)){alert('Escribe el nombre de cada autor nuevo');return}
+  const ids=rows.map(r=>r.clienteId).filter(Boolean)
+  if(new Set(ids).size!==ids.length){alert('Un mismo cliente aparece dos veces como autor');return}
+  if(porAutor){
+    const suma=rows.reduce((s,r)=>s+(parseFloat(r.pct)||0),0)
+    if(Math.abs(suma-100)>0.01){alert('En el cobro por autor los porcentajes deben sumar 100 % (ahora suman '+fmt(suma)+' %)');return}
+    if(rows.some(r=>!(parseFloat(r.pct)>0))){alert('Cada autor debe tener un porcentaje mayor a 0');return}
+  }
+  const resp=rows.find(r=>r.rol==='correspondencia')
+  if(resp.clienteId&&resp.clienteId!==t.clienteId&&contratoVigente(t.id)&&!confirm('El autor encargado pasará a ser el titular del trabajo, pero el contrato vigente está a nombre del titular anterior. Tendrás que emitir una nueva versión del contrato.\n\n¿Continuar?'))return
+  const btn=document.getElementById('au_btn');if(btn){btn.disabled=true;btn.textContent='Guardando…'}
+  const rs=[]
+  // 1) Autores nuevos → clientes nuevos
+  for(const r of rows){
+    if(r.clienteId)continue
+    const nv=r.nuevo||{},cli={id:uid(),nombre:nv.nombre,cedula:nv.cedula||'',telefono:nv.telefono||'',email:nv.email||'',direccion:'',institucion:'',ciudad:'',area:'',
+      notas:'Coautor de: '+t.titulo.slice(0,80),createdAt:new Date().toISOString()}
+    rs.push(await apiPost({action:'insertar',tabla:'Clientes',fila:cli}))
+    data.clientes=data.clientes.concat([cli]);r.clienteId=cli.id;r.nombre=cli.nombre
+  }
+  const autores=rows.map(r=>({id:r.id||uid(),clienteId:r.clienteId,nombre:r.nombre,rol:r.rol,pct:porAutor?(parseFloat(r.pct)||0):(r.rol==='correspondencia'?100:0)}))
+  const titular=autores.find(a=>a.rol==='correspondencia')
+  const det=Object.assign({},detallesDe(t),{autores:autores.map(a=>a.nombre).join('; '),numAutores:String(autores.length)})
+  const tUpd={autores:JSON.stringify(autores),modoCobro:porAutor?'porAutor':'responsable',clienteId:titular.clienteId,clienteNombre:titular.nombre,detalles:JSON.stringify(det)}
+  // 2) Reorganizar las cuotas sin pagos
+  const plan=planCuotasAutores(Object.assign({},t,tUpd),autores,tUpd.modoCobro,titular.clienteId)
+  data.trabajos=data.trabajos.map(x=>x.id===t.id?Object.assign({},x,tUpd):x)
+  data.cuotas=data.cuotas.filter(c=>plan.eliminar.indexOf(c.id)<0).concat(plan.crear)
+  modal=null;syncMsg='Guardando autores...';syncErr=false;draw()
+  rs.push(await apiPost({action:'actualizar',tabla:'Trabajos',id:t.id,fila:tUpd}))
+  for(const c of plan.crear)rs.push(await apiPost({action:'insertar',tabla:'Cuotas',fila:c}))
+  for(const id of plan.eliminar)rs.push(await apiPost({action:'eliminar',tabla:'Cuotas',id:id}))
+  finSync(rs,'Autores guardados ✓'+(plan.crear.length?' · '+plan.crear.length+' cuota(s) reorganizada(s)':'')+(plan.bloqueadas?' · '+plan.bloqueadas+' cuota(s) con pagos no se modificaron':''))
+}
+
+// ════════════════════════════════════════════════════════════════
+// FACTURACIÓN ELECTRÓNICA — SRI Ecuador (esquema offline, factura versión 1.1.0)
+// 1. El servidor asigna el número (sin duplicados) y la clave de acceso de 49 dígitos.
+// 2. Aquí se arma el XML y se firma con XAdES-BES (RSA-SHA1) usando tu .p12:
+//    el archivo y su clave nunca salen de este equipo.
+// 3. El servidor lo envía al SRI, consulta la autorización y lo guarda en Drive.
+// 4. Aquí se genera el RIDE (PDF) y el servidor lo envía por correo al cliente con el XML.
+// ════════════════════════════════════════════════════════════════
+// Valores iniciales tomados del certificado RUC del prestador (actualizado al 07/10/2026); se cambian en Configuración
+const FACT_DEFAULT={ruc:'0603032269001',razonSocial:'BONIFAZ ARANDA EDISON FERNANDO',nombreComercial:'Research Assessor',dirMatriz:'Chimborazo, Riobamba, San Luis: Bielorusia 1 y Noruega',dirEstablecimiento:'',estab:'001',ptoEmi:'001',ambiente:'1',
+  regimen:'GENERAL',obligadoContabilidad:'NO',contribuyenteEspecial:'',agenteRetencion:'',siguienteSecuencial:'1',codigoIva:'0',preciosConIva:'1',
+  codigoServicio:'ACOMP-001',descripcion:'Acompañamiento técnico metodológico en producción académica y educación',formaPago:'20',correoCopia:'',facturarPorDefecto:'0'}
+// Catálogo de productos/servicios que se pueden poner en las facturas ({codigo,d,v,iva}); el primero es el de por defecto
+const PRODUCTOS_DEFAULT=[{codigo:'ACOMP-001',d:'Acompañamiento técnico metodológico en producción académica y educación',v:'',iva:'0'}]
+const factGuardada=()=>(data.config||[]).some(c=>c.id==='facturacion')  // el servidor usa solo lo guardado
+function cfgFactura(){
+  const row=(data.config||[]).find(c=>c.id==='facturacion');let p={}
+  if(row&&row.valor){try{p=JSON.parse(row.valor)||{}}catch(e){}}
+  // Configuración guardada antes del catálogo (v7.9.2): toma el producto e IVA 0 % nuevos por defecto
+  if(row&&!Array.isArray(p.productos)){delete p.codigoIva;delete p.descripcion;delete p.codigoServicio}
+  const c=Object.assign({},FACT_DEFAULT,p)
+  c.productos=(Array.isArray(p.productos)&&p.productos.length?p.productos:PRODUCTOS_DEFAULT).map(x=>Object.assign({},x))
+  const d=c.productos[0];c.descripcion=d.d;c.codigoServicio=d.codigo||'SERV-001';c.codigoIva=String(d.iva||'0')
+  return c
+}
+const productoPorDefecto=()=>cfgFactura().productos[0]
+// Línea de factura a partir de un producto del catálogo
+function lineaDeProducto(p,extra,valor){p=p||productoPorDefecto();return{codigo:p.codigo||'',d:p.d+(extra||''),c:1,v:valor!=null?valor:(parseFloat(p.v)||0),iva:String(p.iva||'0'),_prod:p.codigo||''}}
+// Casilla "Emitir factura" al registrar un pago: marcada solo si quien paga pide factura
+function htmlCasillaFacturaPago(cuotaId,trabajoId){
+  const c=data.cuotas.find(x=>x.id===cuotaId),t=data.trabajos.find(x=>x.id===(trabajoId||c&&c.trabajoId))
+  const cl=c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null),si=pideFactura(cl)
+  return'<label class="chk" style="margin-top:10px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:'+(si?'#FFFDF8':'transparent')+'"><input type="checkbox" id="a_fact"'+(si?' checked':'')+'/> <span>🧾 Emitir factura electrónica de este pago'
+    +'<span style="display:block;font-size:11px;color:var(--text3);font-weight:400;margin-top:2px">'+(cl?esc(cl.nombre)+(si?' pide factura':' no pide factura')+'. ':'')+'Si no la marcas, puedes facturarlo después desde el pago.</span></span></label>'
+}
+const IVA_SRI={'4':{t:15,l:'IVA 15 %'},'0':{t:0,l:'IVA 0 %'},'6':{t:0,l:'No objeto de IVA'},'7':{t:0,l:'Exento de IVA'}}
+const TIPO_ID_SRI={'05':'Cédula','04':'RUC','06':'Pasaporte','07':'Consumidor final','08':'Identificación del exterior'}
+const FORMAS_PAGO_SRI={'20':'Otros con utilización del sistema financiero (transferencia, depósito)','01':'Sin utilización del sistema financiero (efectivo)',
+  '19':'Tarjeta de crédito','16':'Tarjeta de débito','15':'Compensación de deudas','17':'Dinero electrónico','18':'Tarjeta prepago','21':'Endoso de títulos'}
+const REGIMENES={GENERAL:'Régimen general',RIMPE:'RIMPE — Emprendedor',RIMPE_NP:'RIMPE — Negocio popular'}
+// Orden de presentación (JavaScript ordena solas las claves numéricas)
+const IVA_ORDEN=['4','0','6','7'],FP_ORDEN=['20','01','19','16','15','17','18','21'],TID_ORDEN=['05','04','06','07','08']
+const ESTADO_FACT={AUTORIZADO:['green','Autorizada'],'EN PROCESO':['amber','En proceso en el SRI'],PENDIENTE:['amber','Sin enviar'],DEVUELTA:['red','Devuelta por el SRI'],'NO AUTORIZADO':['red','No autorizada'],ANULADA:['gray','Anulada']}
+const r2=v=>Math.round(((+v||0)+Number.EPSILON)*100)/100
+const n2=v=>r2(v).toFixed(2)
+const nDec=(v,d)=>{const s=(Math.round((+v||0)*Math.pow(10,d))/Math.pow(10,d)).toFixed(d).replace(/0+$/,'');return s.endsWith('.')?s+'00':(s.split('.')[1]||'').length<2?(+s).toFixed(2):s}
+function tipoIdDe(id){id=String(id||'').trim();if(id==='9999999999999')return'07';if(/^\d{13}$/.test(id))return'04';if(/^\d{10}$/.test(id))return'05';return'06'}
+function cedulaValida(c){
+  if(!/^\d{10}$/.test(c))return false
+  const p=+c.slice(0,2);if(p<1||(p>24&&p!==30)||+c[2]>5)return false
+  let s=0;for(let i=0;i<9;i++){let d=+c[i]*(i%2?1:2);if(d>9)d-=9;s+=d}
+  return(10-s%10)%10===+c[9]
+}
+// Totales a partir de los ítems ({d,c,v,iva}); v = valor por unidad (con o sin IVA según conIva)
+function calcularFactura(items,conIva){
+  const lineas=[],grupos={}
+  items.forEach(function(it){
+    const tar=(IVA_SRI[it.iva]||IVA_SRI['4']).t,cant=parseFloat(it.c)||1,val=parseFloat(it.v)||0
+    const pu=conIva?val/(1+tar/100):val
+    const base=r2(cant*pu),iva=r2(base*tar/100)
+    lineas.push({d:it.d,c:cant,pu:Math.round(pu*1e6)/1e6,base:base,iva:it.iva||'4',tarifa:tar,valorIva:iva,codigo:it.codigo})
+    const g=grupos[it.iva||'4']=grupos[it.iva||'4']||{base:0,iva:0,tarifa:tar};g.base=r2(g.base+base);g.iva=r2(g.iva+iva)
+  })
+  const subtotal=r2(lineas.reduce((s,l)=>s+l.base,0)),iva=r2(Object.values(grupos).reduce((s,g)=>s+g.iva,0))
+  return{lineas:lineas,grupos:grupos,subtotal:subtotal,iva:iva,total:r2(subtotal+iva)}
+}
+const _xT=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\r/g,'&#xD;')
+const _xA=s=>_xT(s).replace(/"/g,'&quot;').replace(/\t/g,'&#x9;').replace(/\n/g,'&#xA;')
+const _xE=(n,v)=>'<'+n+'>'+_xT(v)+'</'+n+'>'
+const _limpiaTxt=(s,n)=>String(s||'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/\s+/g,' ').trim().slice(0,n||300)
+// XML de la factura en forma canónica (C14N): sin declaración, sin etiquetas vacías abreviadas
+function xmlFactura(f,cfg){
+  const d=f.datos,calc=d.calc
+  let s='<factura id="comprobante" version="1.1.0"><infoTributaria>'
+    +_xE('ambiente',f.ambiente)+_xE('tipoEmision','1')+_xE('razonSocial',_limpiaTxt(cfg.razonSocial))
+    +(cfg.nombreComercial?_xE('nombreComercial',_limpiaTxt(cfg.nombreComercial)):'')
+    +_xE('ruc',cfg.ruc)+_xE('claveAcceso',f.claveAcceso)+_xE('codDoc','01')+_xE('estab',f.estab)+_xE('ptoEmi',f.ptoEmi)+_xE('secuencial',f.secuencial)
+    +_xE('dirMatriz',_limpiaTxt(cfg.dirMatriz))
+    +(cfg.agenteRetencion?_xE('agenteRetencion',_limpiaTxt(cfg.agenteRetencion,8)):'')
+    +(cfg.regimen==='RIMPE'?_xE('contribuyenteRimpe','CONTRIBUYENTE RÉGIMEN RIMPE'):cfg.regimen==='RIMPE_NP'?_xE('contribuyenteRimpe','CONTRIBUYENTE NEGOCIO POPULAR - RÉGIMEN RIMPE'):'')
+    +'</infoTributaria><infoFactura>'+_xE('fechaEmision',f.fechaEmision)
+    +(cfg.dirEstablecimiento?_xE('dirEstablecimiento',_limpiaTxt(cfg.dirEstablecimiento)):'')
+    +(cfg.contribuyenteEspecial?_xE('contribuyenteEspecial',_limpiaTxt(cfg.contribuyenteEspecial,13)):'')
+    +_xE('obligadoContabilidad',cfg.obligadoContabilidad==='SI'?'SI':'NO')
+    +_xE('tipoIdentificacionComprador',d.compradorTipoId)+_xE('razonSocialComprador',_limpiaTxt(d.compradorNombre))
+    +_xE('identificacionComprador',d.compradorId)
+    +(d.compradorDireccion?_xE('direccionComprador',_limpiaTxt(d.compradorDireccion)):'')
+    +_xE('totalSinImpuestos',n2(calc.subtotal))+_xE('totalDescuento','0.00')+'<totalConImpuestos>'
+    +Object.keys(calc.grupos).map(k=>'<totalImpuesto>'+_xE('codigo','2')+_xE('codigoPorcentaje',k)+_xE('baseImponible',n2(calc.grupos[k].base))+_xE('valor',n2(calc.grupos[k].iva))+'</totalImpuesto>').join('')
+    +'</totalConImpuestos>'+_xE('propina','0.00')+_xE('importeTotal',n2(calc.total))+_xE('moneda','DOLAR')
+    +'<pagos><pago>'+_xE('formaPago',d.formaPago||'20')+_xE('total',n2(calc.total))+'</pago></pagos></infoFactura><detalles>'
+    +calc.lineas.map(l=>'<detalle>'+_xE('codigoPrincipal',_limpiaTxt(l.codigo||cfg.codigoServicio||'SERV-001',25))+_xE('descripcion',_limpiaTxt(l.d))
+      +_xE('cantidad',nDec(l.c,6))+_xE('precioUnitario',nDec(l.pu,6))+_xE('descuento','0.00')+_xE('precioTotalSinImpuesto',n2(l.base))
+      +'<impuestos><impuesto>'+_xE('codigo','2')+_xE('codigoPorcentaje',l.iva)+_xE('tarifa',n2(l.tarifa))+_xE('baseImponible',n2(l.base))+_xE('valor',n2(l.valorIva))+'</impuesto></impuestos></detalle>').join('')
+    +'</detalles>'
+  const extra=(d.infoAdicional||[]).filter(x=>x&&x.n&&_limpiaTxt(x.v))
+  if(extra.length)s+='<infoAdicional>'+extra.map(x=>'<campoAdicional nombre="'+_xA(x.n)+'">'+_xT(_limpiaTxt(x.v))+'</campoAdicional>').join('')+'</infoAdicional>'
+  return s+'</factura>'
+}
+// Firma XAdES-BES (SRI): RSA-SHA1, ENVELOPED, C14N inclusiva.
+// Las tres referencias (comprobante, SignedProperties y KeyInfo) se calculan sobre su forma
+// canónica: por eso el XML se arma ya canónico y en los digest se declaran los namespaces heredados.
+async function firmarXadesSRI(xmlComprobante,cred){
+  await cargarLib(LIB_FORGE,'forge')
+  const NS='xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:etsi="http://uri.etsi.org/01903/v1.3.2#"'
+  const sha1=s=>{const m=forge.md.sha1.create();m.update(s,'utf8');return forge.util.encode64(m.digest().getBytes())}
+  const b64Hex=h=>forge.util.encode64(forge.util.hexToBytes(h.length%2?'0'+h:h))
+  const certDer=forge.asn1.toDer(forge.pki.certificateToAsn1(cred.cert)).getBytes()
+  const certB64=forge.util.encode64(certDer)
+  const certDigest=forge.util.encode64(forge.md.sha1.create().update(certDer).digest().getBytes())
+  const issuer=cred.cert.issuer.attributes.slice().reverse().map(a=>(a.shortName||a.name||('OID.'+a.type))+'='+a.value).join(',')
+  const serial=BigInt('0x'+cred.cert.serialNumber).toString(10)
+  const n=String(Math.floor(Math.random()*900000)+100000),sigId='Signature'+n
+  const tz=-5,ahora=new Date(Date.now()+tz*3600e3).toISOString().slice(0,19)+'-05:00'
+  const signedProps='<etsi:SignedProperties Id="'+sigId+'-SignedProperties'+n+'"><etsi:SignedSignatureProperties><etsi:SigningTime>'+ahora+'</etsi:SigningTime>'
+    +'<etsi:SigningCertificate><etsi:Cert><etsi:CertDigest><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></ds:DigestMethod>'
+    +'<ds:DigestValue>'+certDigest+'</ds:DigestValue></etsi:CertDigest><etsi:IssuerSerial><ds:X509IssuerName>'+_xT(issuer)+'</ds:X509IssuerName>'
+    +'<ds:X509SerialNumber>'+serial+'</ds:X509SerialNumber></etsi:IssuerSerial></etsi:Cert></etsi:SigningCertificate></etsi:SignedSignatureProperties>'
+    +'<etsi:SignedDataObjectProperties><etsi:DataObjectFormat ObjectReference="#Reference-ID-'+n+'"><etsi:Description>contenido comprobante</etsi:Description>'
+    +'<etsi:MimeType>text/xml</etsi:MimeType></etsi:DataObjectFormat></etsi:SignedDataObjectProperties></etsi:SignedProperties>'
+  const keyInfo='<ds:KeyInfo Id="Certificate'+n+'"><ds:X509Data><ds:X509Certificate>'+certB64+'</ds:X509Certificate></ds:X509Data>'
+    +'<ds:KeyValue><ds:RSAKeyValue><ds:Modulus>'+b64Hex(cred.cert.publicKey.n.toString(16))+'</ds:Modulus><ds:Exponent>'+b64Hex(cred.cert.publicKey.e.toString(16))+'</ds:Exponent></ds:RSAKeyValue></ds:KeyValue></ds:KeyInfo>'
+  const dm='<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></ds:DigestMethod>'
+  const signedInfo='<ds:SignedInfo Id="Signature-SignedInfo'+n+'"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></ds:CanonicalizationMethod>'
+    +'<ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></ds:SignatureMethod>'
+    +'<ds:Reference Id="SignedPropertiesID'+n+'" Type="http://uri.etsi.org/01903#SignedProperties" URI="#'+sigId+'-SignedProperties'+n+'">'+dm
+    +'<ds:DigestValue>'+sha1(signedProps.replace('<etsi:SignedProperties','<etsi:SignedProperties '+NS))+'</ds:DigestValue></ds:Reference>'
+    +'<ds:Reference URI="#Certificate'+n+'">'+dm+'<ds:DigestValue>'+sha1(keyInfo.replace('<ds:KeyInfo','<ds:KeyInfo '+NS))+'</ds:DigestValue></ds:Reference>'
+    +'<ds:Reference Id="Reference-ID-'+n+'" URI="#comprobante"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></ds:Transform></ds:Transforms>'
+    +dm+'<ds:DigestValue>'+sha1(xmlComprobante)+'</ds:DigestValue></ds:Reference></ds:SignedInfo>'
+  const md=forge.md.sha1.create();md.update(signedInfo.replace('<ds:SignedInfo','<ds:SignedInfo '+NS),'utf8')
+  const firma=forge.util.encode64(cred.llave.sign(md))
+  const sig='<ds:Signature '+NS+' Id="'+sigId+'">'+signedInfo+'<ds:SignatureValue Id="SignatureValue'+n+'">'+firma+'</ds:SignatureValue>'+keyInfo
+    +'<ds:Object Id="'+sigId+'-Object'+n+'"><etsi:QualifyingProperties Target="#'+sigId+'">'+signedProps+'</etsi:QualifyingProperties></ds:Object></ds:Signature>'
+  return'<?xml version="1.0" encoding="UTF-8"?>'+xmlComprobante.replace(/<\/factura>$/,sig+'</factura>')
+}
+
+// ── RIDE: representación impresa de la factura (PDF) ──
+const LIB_BARCODE='https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js'
+async function codigoBarrasPng(texto){
+  await cargarLib(LIB_BARCODE,'JsBarcode')
+  const c=document.createElement('canvas')
+  JsBarcode(c,texto,{format:'CODE128',displayValue:false,height:70,width:2,margin:0})
+  return c.toDataURL('image/png').split(',')[1]
+}
+async function generarRide(f,cfg){
+  await cargarLib(LIB_PDFLIB,'PDFLib')
+  const L=PDFLib,doc=await L.PDFDocument.create(),F=await _fuentesPdf(doc),pg=doc.addPage([595.28,841.89])
+  const d=typeof f.datos==='string'?JSON.parse(f.datos):f.datos,calc=d.calc,NAVY=hexRgb('0B2545'),GRIS=hexRgb('475569'),BORDE=hexRgb('B8C4D6')
+  const T=(s,x,y,o)=>{o=o||{};const font=o.b?F.bold:F.reg,sz=o.s||8.5;let t=_txtPdf(font,s);if(o.w)while(t.length>1&&font.widthOfTextAtSize(t,sz)>o.w)t=t.slice(0,-1)
+    const w=font.widthOfTextAtSize(t,sz);pg.drawText(t,{x:o.al==='r'?x-w:o.al==='c'?x-w/2:x,y:y,size:sz,font:font,color:o.c||NAVY})}
+  const lineas=(s,font,sz,w)=>{const out=[];let ln='';_txtPdf(font,s).split(/\s+/).forEach(p=>{const t=ln?ln+' '+p:p;if(font.widthOfTextAtSize(t,sz)>w&&ln){out.push(ln);ln=p}else ln=t});if(ln)out.push(ln);return out.length?out:['']}
+  const caja=(x,y,w,h)=>pg.drawRectangle({x:x,y:y,width:w,height:h,borderColor:BORDE,borderWidth:0.8,color:L.rgb(1,1,1)})
+  const M=34,W=595.28-2*M,top=841.89-M
+  // Encabezado: logo y datos del emisor (izquierda) · datos de la factura (derecha)
+  const logo=await doc.embedPng(Uint8Array.from(atob(LOGO_B64),c=>c.charCodeAt(0)))
+  pg.drawImage(logo,{x:M,y:top-66,width:186,height:66})
+  const xR=M+W/2+6,wR=W/2-6,hR=232,yR=top-hR
+  caja(xR,yR,wR,hR)
+  let y=top-18
+  T('R.U.C.: '+cfg.ruc,xR+10,y,{b:1,s:11});y-=20
+  T('FACTURA',xR+10,y,{b:1,s:15});y-=17
+  T('No. '+f.numero,xR+10,y,{s:10.5,b:1});y-=18
+  T('NÚMERO DE AUTORIZACIÓN',xR+10,y,{b:1,s:8});y-=11
+  T(f.numeroAutorizacion||f.claveAcceso,xR+10,y,{s:7.6,w:wR-20});y-=17
+  T('FECHA Y HORA DE AUTORIZACIÓN:',xR+10,y,{b:1,s:8});T(f.fechaAutorizacion?fmtFechaHora(f.fechaAutorizacion):'—',xR+wR-10,y,{s:8,al:'r'});y-=14
+  T('AMBIENTE:',xR+10,y,{b:1,s:8});T(f.ambiente==='2'?'PRODUCCIÓN':'PRUEBAS',xR+wR-10,y,{s:8,al:'r',c:f.ambiente==='2'?NAVY:hexRgb('B91C1C')});y-=14
+  T('EMISIÓN:',xR+10,y,{b:1,s:8});T('NORMAL',xR+wR-10,y,{s:8,al:'r'});y-=16
+  T('CLAVE DE ACCESO',xR+10,y,{b:1,s:8});y-=6
+  const bc=await doc.embedPng(Uint8Array.from(atob(await codigoBarrasPng(f.claveAcceso)),c=>c.charCodeAt(0)))
+  pg.drawImage(bc,{x:xR+10,y:y-42,width:wR-20,height:42});y-=52
+  T(f.claveAcceso,xR+wR/2,y,{s:7.2,al:'c'})
+  const xL=M,wL=W/2-6,hL=150,yL=yR
+  caja(xL,yL,wL,hL)
+  y=yL+hL-16
+  lineas(cfg.razonSocial,F.bold,9.5,wL-20).slice(0,2).forEach(l=>{T(l,xL+10,y,{b:1,s:9.5});y-=12})
+  if(cfg.nombreComercial&&cfg.nombreComercial!==cfg.razonSocial){T(cfg.nombreComercial,xL+10,y,{s:8.5,c:GRIS,w:wL-20});y-=13}
+  const par=(et,val)=>{if(!val)return;T(et,xL+10,y,{b:1,s:7.8});const ls=lineas(val,F.reg,7.8,wL-20-F.bold.widthOfTextAtSize(_txtPdf(F.bold,et)+' ',7.8));ls.slice(0,2).forEach((l,i)=>{T(l,xL+10+(i?0:F.bold.widthOfTextAtSize(_txtPdf(F.bold,et)+' ',7.8)),y,{s:7.8});y-=10.5});}
+  par('Dirección Matriz:',cfg.dirMatriz)
+  par('Dirección Sucursal:',cfg.dirEstablecimiento)
+  par('Contribuyente Especial Nro:',cfg.contribuyenteEspecial)
+  par('OBLIGADO A LLEVAR CONTABILIDAD:',cfg.obligadoContabilidad==='SI'?'SI':'NO')
+  par('Agente de Retención Resolución No.:',cfg.agenteRetencion)
+  if(cfg.regimen==='RIMPE')T('CONTRIBUYENTE RÉGIMEN RIMPE',xL+10,y,{b:1,s:7.8})
+  else if(cfg.regimen==='RIMPE_NP')T('CONTRIBUYENTE NEGOCIO POPULAR - RÉGIMEN RIMPE',xL+10,y,{b:1,s:7.8})
+  // Comprador
+  let yB=yR-12-46;caja(M,yB,W,46)
+  T('Razón Social / Nombres y Apellidos:',M+10,yB+31,{b:1,s:8});T(d.compradorNombre,M+170,yB+31,{s:8,w:W-180-150})
+  T('Identificación:',M+W-150,yB+31,{b:1,s:8});T(d.compradorId,M+W-10,yB+31,{s:8,al:'r'})
+  T('Fecha Emisión:',M+10,yB+17,{b:1,s:8});T(f.fechaEmision,M+170,yB+17,{s:8})
+  T('Guía de Remisión:',M+W-150,yB+17,{b:1,s:8})
+  T('Dirección:',M+10,yB+5,{b:1,s:8});T(d.compradorDireccion||'—',M+170,yB+5,{s:8,w:W-180})
+  // Detalle
+  const C=[{l:'Cod. Principal',w:70},{l:'Cant.',w:42,al:'r'},{l:'Descripción',w:213},{l:'Precio Unitario',w:68,al:'r'},{l:'Descuento',w:55,al:'r'},{l:'Precio Total',w:W-70-42-213-68-55,al:'r'}]
+  let yT=yB-14
+  const fila=(vals,alto,head)=>{let x=M;C.forEach((c,i)=>{pg.drawRectangle({x:x,y:yT-alto,width:c.w,height:alto,borderColor:BORDE,borderWidth:0.6,color:head?hexRgb('E3ECF6'):L.rgb(1,1,1)})
+    const ls=Array.isArray(vals[i])?vals[i]:[vals[i]];ls.forEach((l,j)=>T(l,c.al==='r'?x+c.w-5:x+5,yT-11-j*10,{s:7.8,b:head,al:c.al==='r'?'r':'l',w:c.w-8}));x+=c.w});yT-=alto}
+  fila(C.map(c=>c.l),16,true)
+  calc.lineas.forEach(l=>{const ds=lineas(l.d,F.reg,7.8,C[2].w-10);fila([l.codigo||cfg.codigoServicio,nDec(l.c,2),ds,nDec(l.pu,4),'0.00',n2(l.base)],Math.max(16,ds.length*10+6))})
+  // Totales (derecha) e información adicional / forma de pago (izquierda)
+  const g=calc.grupos,tot=[['SUBTOTAL 15%',g['4']?g['4'].base:0],['SUBTOTAL 0%',g['0']?g['0'].base:0],['SUBTOTAL NO OBJETO DE IVA',g['6']?g['6'].base:0],
+    ['SUBTOTAL EXENTO DE IVA',g['7']?g['7'].base:0],['SUBTOTAL SIN IMPUESTOS',calc.subtotal],['TOTAL DESCUENTO',0],['IVA 15%',g['4']?g['4'].iva:0],['PROPINA',0],['VALOR TOTAL',calc.total]]
+  let yS=yT-10;const xS=M+W-200
+  tot.forEach((r,i)=>{const fin=i===tot.length-1;pg.drawRectangle({x:xS,y:yS-15,width:140,height:15,borderColor:BORDE,borderWidth:0.6,color:fin?hexRgb('E3ECF6'):L.rgb(1,1,1)})
+    pg.drawRectangle({x:xS+140,y:yS-15,width:60,height:15,borderColor:BORDE,borderWidth:0.6,color:fin?hexRgb('E3ECF6'):L.rgb(1,1,1)})
+    T(r[0],xS+5,yS-11,{s:7.6,b:fin});T(n2(r[1]),xS+195,yS-11,{s:7.8,b:fin,al:'r'});yS-=15})
+  const wI=W-215,extra=(d.infoAdicional||[]).filter(x=>x&&x.n&&x.v)
+  let yI=yT-10,hI=18+extra.length*11
+  caja(M,yI-hI,wI,hI);T('Información Adicional',M+wI/2,yI-12,{b:1,s:8.5,al:'c'})
+  extra.forEach((x,i)=>{T(x.n+':',M+8,yI-25-i*11,{b:1,s:7.6});T(x.v,M+90,yI-25-i*11,{s:7.6,w:wI-98})})
+  yI-=hI+10
+  pg.drawRectangle({x:M,y:yI-15,width:wI-70,height:15,borderColor:BORDE,borderWidth:0.6,color:hexRgb('E3ECF6')});pg.drawRectangle({x:M+wI-70,y:yI-15,width:70,height:15,borderColor:BORDE,borderWidth:0.6,color:hexRgb('E3ECF6')})
+  T('Forma de pago',M+5,yI-11,{b:1,s:7.8});T('Valor',M+wI-5,yI-11,{b:1,s:7.8,al:'r'});yI-=15
+  pg.drawRectangle({x:M,y:yI-15,width:wI-70,height:15,borderColor:BORDE,borderWidth:0.6});pg.drawRectangle({x:M+wI-70,y:yI-15,width:70,height:15,borderColor:BORDE,borderWidth:0.6})
+  T((d.formaPago||'20')+' - '+(FORMAS_PAGO_SRI[d.formaPago||'20']||'').split(' (')[0].toUpperCase(),M+5,yI-11,{s:7,w:wI-80});T(n2(calc.total),M+wI-5,yI-11,{s:7.8,al:'r'})
+  T('Documento generado por '+(cfg.nombreComercial||'Research Assessor')+(f.ambiente==='2'?'':' · AMBIENTE DE PRUEBAS: SIN VALIDEZ TRIBUTARIA'),595.28/2,24,{s:7,al:'c',c:GRIS})
+  doc.setTitle('Factura '+f.numero);doc.setAuthor(cfg.razonSocial||'')
+  return await doc.save({useObjectStreams:false})
+}
+
+// ── Pantalla de facturas ──
+let fEst='Todas'
+function htmlFacturas(){
+  const cfg=cfgFactura(),fs=recientes(data.facturas||[])
+  const lista=fs.filter(f=>(fEst==='Todas'||f.estado===fEst)&&(!search||(f.compradorNombre+' '+f.numero+' '+f.compradorId).toLowerCase().includes(search.toLowerCase())))
+  const aut=fs.filter(f=>f.estado==='AUTORIZADO')
+  let h=''
+  if(!factGuardada())h+='<div class="card" style="padding:14px 18px;margin-bottom:12px;border-color:#fde68a;background:var(--amber-bg)"><strong>⚙ Revisa y guarda tus datos de facturación.</strong> Ve a <a href="#" onclick="event.preventDefault();page=\'configuracion\';draw()">Configuración → Facturación electrónica</a> y llena tu RUC, razón social, dirección y serie.</div>'
+  if(factGuardada()&&cfg.ambiente!=='2')h+='<div class="card" style="padding:12px 18px;margin-bottom:12px;border-color:#C9D9EB;background:#EFF6FF;font-size:12.5px">🧪 Estás en el <strong>ambiente de PRUEBAS</strong> del SRI: las facturas no tienen validez tributaria. Cuando el SRI te habilite producción, cámbialo en Configuración.</div>'
+  h+='<div class="kpis">'
+    +'<div class="kpi"><div class="kpi-label">Facturas autorizadas</div><div class="kpi-value">'+aut.length+'</div><div class="kpi-icon">🧾</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Total facturado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(aut.reduce((s,f)=>s+(parseFloat(f.total)||0),0))+'</div><div class="kpi-icon">💵</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Por resolver</div><div class="kpi-value" style="color:var(--amber)">'+fs.filter(f=>['PENDIENTE','EN PROCESO','DEVUELTA','NO AUTORIZADO'].indexOf(f.estado)>-1).length+'</div><div class="kpi-icon">⏳</div></div>'
+    +'</div>'
+  const pend=pagosPorFacturar()
+  if(pend.length)h+='<div class="card" style="padding:12px 16px;margin-bottom:12px;border-color:#EAD7B8;background:var(--gold-lt)"><div style="font-size:12.5px;font-weight:800;color:var(--gold-dk);margin-bottom:8px">⏳ Pagos por facturar ('+pend.length+') — clientes que piden factura</div><div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +pend.slice(0,12).map(a=>{const c=data.cuotas.find(x=>x.id===a.cuotaId),cl=c?pagadorDe(c):null
+      return'<div style="background:#fff;border:1px solid #EAD7B8;border-radius:10px;padding:8px 10px;font-size:12px"><strong>'+esc(cl&&cl.nombre||'—')+'</strong> · $'+fmt(a.monto)+' · '+fmtDCorto(a.fecha||'')
+        +' <button class="btn btn-gold btn-sm" style="padding:2px 8px;font-size:11px;margin-left:4px" onclick="facturarPago(\''+a.id+'\')">🧾 Facturar</button></div>'}).join('')+'</div></div>'
+  h+='<div class="tb"><input id="srch" placeholder="Buscar cliente, número o identificación..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:280px"/>'
+    +['Todas','AUTORIZADO','EN PROCESO','DEVUELTA','NO AUTORIZADO','ANULADA'].map(s=>'<button class="btn btn-sm '+(fEst===s?'btn-p':'btn-g')+'" onclick="fEst=\''+s+'\';draw()">'+(s==='Todas'?s:ESTADO_FACT[s][1])+'</button>').join('')
+    +'<button class="btn btn-p btn-sm" style="margin-left:auto" onclick="nuevaFactura({})">+ Nueva factura</button></div>'
+  if(!lista.length)return h+'<div class="card"><p class="empty">Sin facturas'+(fEst!=='Todas'?' en este estado':'')+'</p></div>'
+  h+='<div class="card"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead><tbody>'
+  lista.forEach(f=>{
+    const E=ESTADO_FACT[f.estado]||['gray',f.estado]
+    h+='<tr><td><strong>'+esc(f.numero)+'</strong>'+(f.ambiente!=='2'?' <span class="b bx" style="font-size:9px">PRUEBAS</span>':'')+'</td><td style="font-size:12px">'+esc(f.fechaEmision)+'</td>'
+      +'<td><div style="font-size:12.5px;font-weight:600">'+esc(f.compradorNombre)+'</div><div style="font-size:11px;color:var(--text3)">'+esc(f.compradorId)+'</div></td>'
+      +'<td style="text-align:right;font-weight:700">$'+fmt(f.total)+'</td>'
+      +'<td>'+bdg(E[1],E[0])+(f.mensajes&&f.estado!=='AUTORIZADO'?'<div style="font-size:10.5px;color:var(--red);max-width:260px;margin-top:3px">'+esc(f.mensajes.slice(0,220))+'</div>':'')+(f.emailEnviado?'<div style="font-size:10px;color:var(--text3)">📧 Enviada</div>':'')+'</td>'
+      +'<td><span style="display:flex;gap:4px;flex-wrap:wrap">'+botonesFactura(f)+'</span></td></tr>'
+  })
+  return h+'</tbody></table></div>'
+}
+function botonesFactura(f){
+  let b=''
+  if(f.estado==='AUTORIZADO'){
+    b+=(f.rideUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.rideUrl)+'">📄 RIDE</a>':'<button class="btn btn-g btn-sm" onclick="rehacerRide(\''+f.id+'\',false)">📄 Generar RIDE</button>')
+      +(f.xmlUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.xmlUrl)+'">XML</a>':'')
+      +(f.compradorEmail?'<button class="btn btn-g btn-sm" title="Reenviar por correo a '+esc(f.compradorEmail)+'" onclick="rehacerRide(\''+f.id+'\',true)">📧</button>':'')
+  }
+  if(f.estado==='EN PROCESO')b+='<button class="btn btn-p btn-sm" onclick="consultarFacturaUI(\''+f.id+'\')">🔄 Consultar SRI</button>'
+  if(f.estado==='PENDIENTE'||f.estado==='DEVUELTA'||f.estado==='NO AUTORIZADO')b+='<button class="btn btn-p btn-sm" onclick="reintentarFactura(\''+f.id+'\')">↻ Corregir y reenviar</button>'
+  if(f.estado!=='ANULADA')b+='<button class="btn btn-r btn-sm" title="Registrar como anulada" onclick="anularFacturaUI(\''+f.id+'\')">🚫</button>'
+  return b
+}
+// ── Qué clientes piden factura (Clientes.facturar) y a nombre de quién ──
+// facturar: '1' pide factura · '0' no pide · '' (clientes anteriores) = valor por defecto de la configuración
+const pideFactura=cl=>!!cl&&(cl.facturar==='1'||(cl.facturar!=='0'&&cfgFactura().facturarPorDefecto==='1'))
+// Datos del comprador: los de facturación si están llenos (p. ej. la institución que paga), si no los del cliente
+function compradorDe(cl){
+  if(!cl)return{}
+  const otro=!!(cl.facturaNombre&&cl.facturaIdentificacion)
+  const id=String(otro?cl.facturaIdentificacion:(cl.cedula||'')).trim()
+  return{compradorTipoId:id?tipoIdDe(id):'05',compradorId:id,compradorNombre:otro?cl.facturaNombre:cl.nombre,
+    compradorDireccion:(otro?cl.facturaDireccion:'')||cl.direccion||'',compradorEmail:(otro?cl.facturaEmail:'')||cl.email||'',compradorTelefono:cl.telefono||''}
+}
+function htmlCamposFacturaCliente(d){
+  const si=d.id?pideFactura(d):cfgFactura().facturarPorDefecto==='1'
+  return'<div class="full" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px"><label>🧾 Factura electrónica</label>'
+    +'<select id="ff" onchange="document.getElementById(\'ff_box\').style.display=this.value===\'1\'?\'block\':\'none\'">'
+    +'<option value="1"'+(si?' selected':'')+'>Sí, este cliente pide factura</option><option value="0"'+(si?'':' selected')+'>No pide factura</option></select></div>'
+    +'<div id="ff_box" class="full" style="display:'+(si?'block':'none')+'">'
+    +'<div style="font-size:11.5px;color:var(--text3);margin-bottom:6px">¿La factura va a nombre de otra persona o institución (por ejemplo, la universidad que paga)? Escríbelo aquí. Si lo dejas vacío se usan los datos del cliente.</div>'
+    +'<div class="fg"><div class="full"><label>Facturar a nombre de</label><input id="ffn" value="'+esc(d.facturaNombre||'')+'" placeholder="Razón social o nombres completos"/></div>'
+    +'<div><label>RUC / cédula para la factura</label><input id="ffi" value="'+esc(d.facturaIdentificacion||'')+'"/></div>'
+    +'<div><label>Email para la factura</label><input id="ffe" type="email" value="'+esc(d.facturaEmail||'')+'"/></div>'
+    +'<div class="full"><label>Dirección para la factura</label><input id="ffd" value="'+esc(d.facturaDireccion||'')+'"/></div></div></div>'
+}
+// Pagos de clientes que piden factura y que aún no la tienen
+function pagosPorFacturar(){
+  return recientes(data.abonos).filter(a=>{
+    if(facturasDeAbono(a.id).length)return false
+    const c=data.cuotas.find(x=>x.id===a.cuotaId),t=data.trabajos.find(x=>x.id===(a.trabajoId||c&&c.trabajoId))
+    return pideFactura(c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null))
+  })
+}
+// Botón/estado de factura para un pago registrado
+function htmlFacturaDePago(a){
+  const fs=facturasDeAbono(a.id),f=fs[0]
+  if(f){const E=ESTADO_FACT[f.estado]||['gray',f.estado]
+    return'<div style="margin-top:6px;display:flex;gap:4px;align-items:center;flex-wrap:wrap"><span class="b '+({green:'bg',amber:'ba',red:'br'}[E[0]]||'bx')+'" style="font-size:10px">🧾 '+esc(f.numero)+' · '+E[1]+'</span>'
+      +(f.rideUrl?'<a href="'+esc(f.rideUrl)+'" target="_blank" style="font-size:11px">RIDE</a>':'')
+      +(f.estado!=='AUTORIZADO'&&f.estado!=='EN PROCESO'?'<button class="btn btn-g btn-sm" style="padding:2px 7px;font-size:11px" onclick="reintentarFactura(\''+f.id+'\')">↻</button>':'')
+      +(f.estado==='EN PROCESO'?'<button class="btn btn-g btn-sm" style="padding:2px 7px;font-size:11px" onclick="consultarFacturaUI(\''+f.id+'\')">🔄</button>':'')+'</div>'}
+  const c=data.cuotas.find(x=>x.id===a.cuotaId),t=data.trabajos.find(x=>x.id===(a.trabajoId||c&&c.trabajoId))
+  const cl=c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null)
+  if(!pideFactura(cl))return'<div style="margin-top:6px;font-size:10.5px;color:var(--text3)">Sin factura · <a href="#" style="color:var(--text3)" onclick="event.preventDefault();facturarPago(\''+a.id+'\')">emitir de todas formas</a></div>'
+  return'<div style="margin-top:6px"><button class="btn btn-gold btn-sm" style="padding:3px 9px;font-size:11px" onclick="facturarPago(\''+a.id+'\')">🧾 Facturar</button></div>'
+}
+// Datos iniciales de la factura de un pago: el comprador es quien paga esa cuota
+function facturarPago(abonoId){
+  const a=data.abonos.find(x=>x.id===abonoId);if(!a)return
+  const c=data.cuotas.find(x=>x.id===a.cuotaId),t=data.trabajos.find(x=>x.id===(a.trabajoId||c&&c.trabajoId))
+  const cl=c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null),cfg=cfgFactura()
+  nuevaFactura({abonoId:a.id,cuotaId:c&&c.id||'',trabajoId:t&&t.id||'',clienteId:cl&&cl.id||'',
+    items:[lineaDeProducto(productoPorDefecto(),(t?': '+t.titulo:'')+(c?' — '+String(c.label||'').replace(/ — [^—]*$/,''):''),parseFloat(a.monto)||0)]})
+}
+function nuevaFactura(o){
+  const cfg=cfgFactura(),cl=o.clienteId?data.clientes.find(x=>x.id===o.clienteId):null
+  const t=o.trabajoId?data.trabajos.find(x=>x.id===o.trabajoId):null
+  openModal('factura',Object.assign({conIva:cfg.preciosConIva==='1',formaPago:cfg.formaPago,compradorTipoId:'05'},compradorDe(cl),{
+    nota:t?'Trabajo: '+t.titulo.slice(0,200)+(cl&&cl.facturaNombre&&cl.facturaIdentificacion?' · Autor: '+cl.nombre:''):'',
+    _items:(o.items||[lineaDeProducto()]).map(x=>Object.assign({},x))},o))
+}
+function reintentarFactura(fid){
+  const f=(data.facturas||[]).find(x=>x.id===fid);if(!f)return
+  let d={};try{d=JSON.parse(f.datos||'{}')}catch(e){}
+  openModal('factura',Object.assign({},d,{facturaId:f.id,_items:(d.items||[]).map(x=>Object.assign({_prod:x.codigo||''},x)),conIva:!!d.conIva}))
+}
+function _factLeer(){
+  if(!modal||modal.type!=='factura')return
+  const r=modal.rec
+  r._items.forEach(function(it,i){it.d=v('fi_d_'+i);it.c=v('fi_c_'+i);it.v=v('fi_v_'+i);it.iva=v('fi_iva_'+i);const ce=document.getElementById('fi_cod_'+i);if(ce)it.codigo=ce.value.trim()})
+  ;['compradorTipoId','compradorId','compradorNombre','compradorDireccion','compradorEmail','compradorTelefono','formaPago','nota'].forEach(k=>{const el=document.getElementById('fc_'+k);if(el)r[k]=el.value})
+  const ci=document.getElementById('fc_coniva');if(ci)r.conIva=ci.checked
+  const cl=document.getElementById('fc_cliente');if(cl)r.clienteId=cl.value
+}
+function _factCliente(sel){
+  _factLeer();const cl=data.clientes.find(x=>x.id===sel.value),r=modal.rec
+  r.clienteId=sel.value
+  if(cl)Object.assign(r,compradorDe(cl))
+  _factDraw()
+}
+function _factTipo(){_factLeer();const r=modal.rec;if(r.compradorTipoId==='07'){r.compradorId='9999999999999';r.compradorNombre='CONSUMIDOR FINAL'}_factDraw()}
+function _factItem(i){_factLeer();if(i===-1)modal.rec._items.push(lineaDeProducto());else modal.rec._items.splice(i,1);_factDraw()}
+// Cambiar el producto de una línea: pone su código, descripción e IVA (y su precio si la línea no tiene valor)
+function _factProd(i,sel){
+  _factLeer();const it=modal.rec._items[i],ps=cfgFactura().productos,p=ps.find(x=>x.codigo===sel.value)
+  if(p){const ant=ps.find(x=>x.codigo===it._prod),resto=ant&&String(it.d).indexOf(ant.d)===0?String(it.d).slice(ant.d.length):''
+    it.codigo=p.codigo;it._prod=p.codigo;it.d=p.d+resto;it.iva=String(p.iva||'0');if(parseFloat(p.v)>0&&!(parseFloat(it.v)>0))it.v=p.v}
+  else{it._prod='';it.codigo='';it.d=''}
+  _factDraw()
+}
+function mFactura(d){
+  const cfg=cfgFactura(),calc=calcularFactura(d._items,d.conIva),a=_p12Actual()
+  const avisos=[]
+  if(!factGuardada())avisos.push('Revisa y guarda tus datos de emisor en <strong>Configuración → Facturación electrónica</strong> antes de facturar.')
+  if(d.compradorTipoId==='05'&&d.compradorId&&!cedulaValida(d.compradorId))avisos.push('La cédula del comprador no es válida.')
+  if(d.compradorTipoId==='04'&&d.compradorId&&!/^\d{13}$/.test(d.compradorId))avisos.push('El RUC del comprador debe tener 13 dígitos.')
+  if(d.compradorTipoId==='07'&&calc.total>50)avisos.push('A consumidor final solo se puede facturar hasta $50. Pide los datos del cliente.')
+  if(cfg.regimen==='RIMPE_NP')avisos.push('Los negocios populares RIMPE emiten notas de venta, no facturas. Revisa tu régimen.')
+  const prods=cfg.productos
+  const fila=(it,i)=>'<tr>'
+    +'<td style="min-width:260px"><div style="display:flex;gap:4px;margin-bottom:4px"><select style="flex:1;min-width:0" onchange="_factProd('+i+',this)">'+prods.map(p=>'<option value="'+esc(p.codigo)+'"'+(it._prod===p.codigo||(!it._prod&&it.codigo===p.codigo)?' selected':'')+'>'+esc(p.codigo+' — '+p.d)+'</option>').join('')
+    +'<option value=""'+(prods.some(p=>p.codigo===(it._prod||it.codigo))?'':' selected')+'>Otro (escribir)</option></select>'
+    +'<input id="fi_cod_'+i+'" value="'+esc(it.codigo||'')+'" placeholder="Código" title="Código" style="width:100px"/></div>'
+    +'<textarea id="fi_d_'+i+'" rows="2" style="width:100%;resize:vertical" placeholder="Descripción">'+esc(it.d)+'</textarea></td>'
+    +'<td><input id="fi_c_'+i+'" type="number" min="0.01" step="0.01" value="'+esc(it.c)+'" style="width:64px" onchange="_factLeer();_factDraw()"/></td>'
+    +'<td><input id="fi_v_'+i+'" type="number" min="0" step="0.01" value="'+esc(it.v)+'" style="width:96px" onchange="_factLeer();_factDraw()"/></td>'
+    +'<td><select id="fi_iva_'+i+'" onchange="_factLeer();_factDraw()">'+IVA_ORDEN.map(k=>'<option value="'+k+'"'+(String(it.iva)===k?' selected':'')+'>'+IVA_SRI[k].l+'</option>').join('')+'</select></td>'
+    +'<td>'+(d._items.length>1?'<button type="button" class="btn btn-r btn-sm" onclick="_factItem('+i+')">✕</button>':'')+'</td></tr>'
+  return'<h3>🧾 '+(d.facturaId?'Corregir y reenviar factura':'Nueva factura electrónica')+'</h3>'
+    +'<div style="font-size:12px;color:var(--text3);margin:-6px 0 12px">'+(cfg.ambiente==='2'?'Ambiente de PRODUCCIÓN (con validez tributaria)':'🧪 Ambiente de PRUEBAS del SRI (sin validez tributaria)')+' · Serie '+esc(cfg.estab+'-'+cfg.ptoEmi)+'</div>'
+    +(avisos.length?'<div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e"><ul style="margin:0 0 0 16px;line-height:1.6">'+avisos.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>':'')
+    +'<div class="sec-t" style="margin-top:0">Cliente (comprador)</div><div class="fg">'
+    +'<div class="full"><label>Cliente registrado</label><select id="fc_cliente" onchange="_factCliente(this)"><option value="">— Escribir los datos —</option>'+recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+(c.cedula?' · '+esc(c.cedula):'')+'</option>').join('')+'</select></div>'
+    +'<div><label>Tipo de identificación</label><select id="fc_compradorTipoId" onchange="_factTipo()">'+TID_ORDEN.map(k=>'<option value="'+k+'"'+(d.compradorTipoId===k?' selected':'')+'>'+TIPO_ID_SRI[k]+'</option>').join('')+'</select></div>'
+    +'<div><label>Identificación *</label><input id="fc_compradorId" value="'+esc(d.compradorId||'')+'"/></div>'
+    +'<div class="full"><label>Razón social / Nombres y apellidos *</label><input id="fc_compradorNombre" value="'+esc(d.compradorNombre||'')+'"/></div>'
+    +'<div class="full"><label>Dirección</label><input id="fc_compradorDireccion" value="'+esc(d.compradorDireccion||'')+'"/></div>'
+    +'<div><label>Email (se le envía la factura)</label><input id="fc_compradorEmail" type="email" value="'+esc(d.compradorEmail||'')+'"/></div>'
+    +'<div><label>Teléfono</label><input id="fc_compradorTelefono" value="'+esc(d.compradorTelefono||'')+'"/></div>'
+    +'</div>'
+    +'<div class="sec-t">Detalle</div>'
+    +'<label class="chk" style="margin-bottom:8px"><input type="checkbox" id="fc_coniva"'+(d.conIva?' checked':'')+' onchange="_factLeer();_factDraw()"/> Los valores <strong>incluyen IVA</strong> (se calcula la base hacia atrás)</label>'
+    +'<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><thead><tr><th>Producto / descripción</th><th>Cant.</th><th>Valor unitario</th><th>Impuesto</th><th></th></tr></thead><tbody>'
+    +d._items.map(fila).join('')+'</tbody></table></div>'
+    +'<button type="button" class="btn btn-g btn-sm" style="margin-top:6px" onclick="_factItem(-1)">+ Agregar línea</button>'
+    +'<div style="display:flex;justify-content:flex-end;margin-top:10px"><table style="font-size:12.5px;min-width:240px">'
+    +'<tr><td style="color:var(--text3)">Subtotal sin impuestos</td><td style="text-align:right">$'+n2(calc.subtotal)+'</td></tr>'
+    +Object.keys(calc.grupos).filter(k=>calc.grupos[k].iva>0).map(k=>'<tr><td style="color:var(--text3)">'+IVA_SRI[k].l+'</td><td style="text-align:right">$'+n2(calc.grupos[k].iva)+'</td></tr>').join('')
+    +'<tr><td><strong>Total</strong></td><td style="text-align:right;font-size:15px"><strong>$'+n2(calc.total)+'</strong></td></tr></table></div>'
+    +'<div class="fg" style="margin-top:6px"><div class="full"><label>Forma de pago</label><select id="fc_formaPago">'+FP_ORDEN.map(k=>'<option value="'+k+'"'+(d.formaPago===k?' selected':'')+'>'+k+' — '+FORMAS_PAGO_SRI[k]+'</option>').join('')+'</select></div>'
+    +'<div class="full"><label>Información adicional (opcional)</label><input id="fc_nota" value="'+esc(d.nota||'')+'" placeholder="Ej.: Trabajo, número de cuota, observaciones"/></div></div>'
+    +'<div style="border:1.5px solid var(--gold);border-radius:12px;padding:12px 14px;margin-top:12px;background:#FFFDF8">'
+    +'<div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:6px">✍️ Firma electrónica (.p12)</div>'
+    +'<div class="fg"><div class="full"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<label class="btn btn-g btn-sm" style="text-transform:none;letter-spacing:0;margin:0">📁 '+(a?'Cambiar archivo':'Elegir archivo')+'<input type="file" accept=".p12,.pfx,application/x-pkcs12" style="display:none" onchange="_factLeer();elegirP12(this)"/></label>'
+    +(a?'<span style="font-size:12px;color:var(--green);font-weight:600">✓ '+esc(a.nombre)+(a.recordado?' (recordado en este equipo)':'')+'</span>':'<span style="font-size:12px;color:var(--text3)">Ningún archivo elegido</span>')
+    +'</div></div>'
+    +'<div><label>Clave del certificado</label><input id="p12_clave" type="password" autocomplete="off"/></div>'
+    +'<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px">'+(a&&!a.recordado?'<label class="chk"><input type="checkbox" id="p12_rec"/> Recordar el archivo en este equipo</label>':'')
+    +'<label class="chk"><input type="checkbox" id="fc_mail" checked/> Enviar la factura al correo del cliente</label></div></div></div>'
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" id="fc_btn" onclick="emitirFacturaUI()">🧾 Firmar y enviar al SRI</button></div>'
+}
+async function emitirFacturaUI(){
+  _factLeer()
+  const r=modal.rec,cfg=cfgFactura(),calc=calcularFactura(r._items,r.conIva)
+  const arch=_p12Actual(),clave=v('p12_clave'),mail=document.getElementById('fc_mail'),rec=document.getElementById('p12_rec')
+  if(!factGuardada()||!cfg.ruc||!cfg.razonSocial||!cfg.dirMatriz){alert('Primero revisa y guarda tus datos de emisor en Configuración → Facturación electrónica.');return}
+  if(!r.compradorId||!r.compradorNombre){alert('Completa la identificación y el nombre del cliente.');return}
+  if(r.compradorTipoId==='05'&&!cedulaValida(r.compradorId)){alert('La cédula del cliente no es válida.');return}
+  if(r.compradorTipoId==='04'&&!/^\d{13}$/.test(r.compradorId)){alert('El RUC del cliente debe tener 13 dígitos.');return}
+  if(r.compradorTipoId==='07'&&calc.total>50){alert('A consumidor final solo se puede facturar hasta $50.');return}
+  if(r._items.some(it=>!String(it.d||'').trim()||!(parseFloat(it.v)>0)||!(parseFloat(it.c)>0))){alert('Cada línea necesita descripción, cantidad y valor.');return}
+  if(!(calc.total>0)){alert('El total debe ser mayor a cero.');return}
+  if(!arch){alert('Elige tu archivo de firma electrónica (.p12).');return}
+  if(!clave){alert('Escribe la clave de tu certificado.');return}
+  const btn=document.getElementById('fc_btn'),paso=t=>{if(btn)btn.innerHTML='<span class="spin">⟳</span> '+t},reset=()=>{if(btn){btn.disabled=false;btn.textContent='🧾 Firmar y enviar al SRI'}}
+  if(btn)btn.disabled=true;paso('Abriendo certificado…')
+  let cred;try{cred=await leerP12(arch.bytes,clave)}catch(e){reset();alert(e.message);return}
+  if(!cred.vigente){reset();alert('Tu certificado no está vigente.');return}
+  if(cfg.ruc.slice(0,10)!==String(cred.cedula||'').slice(0,10)&&!confirm('El certificado ('+cred.nombre+(cred.cedula?' · '+cred.cedula:'')+') no parece corresponder al RUC emisor '+cfg.ruc+'. El SRI rechazará la factura si la firma no es del titular o su representante.\n\n¿Continuar de todas formas?')){reset();return}
+  if(rec&&rec.checked){try{localStorage.setItem(P12_KEY,JSON.stringify({nombre:arch.nombre,b64:bytesToB64(arch.bytes)}))}catch(e){}}
+  const datos={clienteId:r.clienteId||'',trabajoId:r.trabajoId||'',cuotaId:r.cuotaId||'',abonoId:r.abonoId||'',
+    compradorTipoId:r.compradorTipoId,compradorId:String(r.compradorId).trim(),compradorNombre:_limpiaTxt(r.compradorNombre),compradorDireccion:_limpiaTxt(r.compradorDireccion),
+    compradorEmail:String(r.compradorEmail||'').trim(),compradorTelefono:r.compradorTelefono||'',formaPago:r.formaPago||'20',conIva:!!r.conIva,nota:r.nota||'',
+    items:r._items.map(it=>({codigo:_limpiaTxt(it.codigo||'',25),d:_limpiaTxt(it.d),c:parseFloat(it.c)||1,v:parseFloat(it.v)||0,iva:it.iva||'0'})),calc:calc,subtotal:calc.subtotal,iva:calc.iva,total:calc.total,
+    infoAdicional:[{n:'Email',v:r.compradorEmail},{n:'Teléfono',v:r.compradorTelefono},{n:'Detalle',v:r.nota}]}
+  try{
+    paso('Reservando número…')
+    const p=await apiPost({action:'prepararFactura',id:r.facturaId||'',datos:datos})
+    if(!p||!p.ok)throw new Error(p&&p.error||'Sin respuesta del servidor')
+    const f=Object.assign({},p.factura,{datos:datos})
+    paso('Firmando '+f.numero+'…')
+    const xml=await firmarXadesSRI(xmlFactura(f,cfg),cred)
+    paso('Enviando al SRI…')
+    const e=await apiPost({action:'enviarFactura',id:f.id,xml:xml})
+    if(!e||!e.ok)throw new Error(e&&e.error||'Sin respuesta del servidor')
+    if(e.estado==='AUTORIZADO'){
+      paso('Generando RIDE…')
+      const fa=Object.assign({},f,{estado:'AUTORIZADO',numeroAutorizacion:e.numeroAutorizacion,fechaAutorizacion:e.fechaAutorizacion})
+      const pdf=await generarRide(fa,cfg)
+      const g=await apiPost({action:'guardarRide',id:f.id,base64:bytesToB64(pdf),enviar:!!(mail&&mail.checked)})
+      reset();modal=null
+      toast('Factura '+f.numero+' autorizada ✓'+(g&&g.emailEnviado?' · enviada al cliente':''))
+      descargarBytes(pdf,'Factura_'+f.numero+'.pdf','application/pdf')
+    }else{
+      reset()
+      alert((e.estado==='EN PROCESO'?'⏳ ':'❌ ')+'Factura '+e.numero+': '+(ESTADO_FACT[e.estado]||[0,e.estado])[1]+'\n\n'+(e.mensajes||[]).map(m=>(m.identificador?'['+m.identificador+'] ':'')+m.mensaje+(m.informacionAdicional?'\n   '+m.informacionAdicional:'')).join('\n'))
+      if(e.estado!=='EN PROCESO'&&modal)modal.rec.facturaId=f.id
+      if(e.estado==='EN PROCESO')modal=null
+    }
+    await loadData()
+  }catch(err){reset();alert('No se pudo emitir la factura.\n\n'+err.message+ayudaErrorServidor(err.message))}
+}
+function descargarBytes(u8,nombre,mime){
+  const url=URL.createObjectURL(new Blob([u8],{type:mime}));const a=document.createElement('a');a.href=url;a.download=nombre;document.body.appendChild(a);a.click();a.remove()
+  setTimeout(()=>URL.revokeObjectURL(url),5000)
+}
+async function consultarFacturaUI(fid){
+  toast('Consultando al SRI…')
+  const r=await apiPost({action:'consultarFactura',id:fid})
+  if(!r||!r.ok){alert(r&&r.error||'Sin respuesta');return}
+  await loadData()
+  if(r.estado==='AUTORIZADO'){toast('Factura autorizada ✓ — generando RIDE');rehacerRide(fid,true)}
+  else alert('Factura '+(r.numero||'')+': '+((ESTADO_FACT[r.estado]||[0,r.estado])[1])+'\n\n'+(r.mensajes||[]).map(m=>m.mensaje).join('\n'))
+}
+async function rehacerRide(fid,enviar){
+  const f=(data.facturas||[]).find(x=>x.id===fid);if(!f)return
+  if(enviar&&!f.compradorEmail){enviar=false}
+  if(enviar&&f.emailEnviado&&!confirm('Esta factura ya se envió ('+f.emailEnviado+'). ¿Reenviarla?'))return
+  try{
+    const pdf=await generarRide(f,cfgFactura())
+    const g=await apiPost({action:'guardarRide',id:fid,base64:bytesToB64(pdf),enviar:!!enviar})
+    if(!g||!g.ok)throw new Error(g&&g.error||'Sin respuesta')
+    toast('RIDE listo'+(g.emailEnviado?' · enviado al cliente':''));descargarBytes(pdf,'Factura_'+f.numero+'.pdf','application/pdf');await loadData()
+  }catch(e){alert('No se pudo generar el RIDE: '+e.message)}
+}
+async function anularFacturaUI(fid){
+  const f=(data.facturas||[]).find(x=>x.id===fid);if(!f)return
+  const txt=f.estado==='AUTORIZADO'
+    ?'La factura '+f.numero+' está AUTORIZADA por el SRI. Para anularla debes hacerlo en "SRI en línea" (Facturación electrónica → Anulación de comprobantes) o emitir una nota de crédito. Aquí solo quedará registrada como anulada.\n\n¿Ya la anulaste en el SRI? Escribe el motivo:'
+    :'La factura '+f.numero+' no fue autorizada. Se registrará como anulada (el número no se reutiliza).\n\nMotivo:'
+  const m=prompt(txt);if(m===null)return
+  const r=await apiPost({action:'marcarFactura',id:fid,estado:'ANULADA',motivo:m})
+  if(!r||!r.ok){alert(r&&r.error||'Sin respuesta');return}
+  toast('Factura registrada como anulada');await loadData()
+}
+// ── Configuración de la facturación (hoja Config, id="facturacion") ──
+function htmlConfigFacturacion(){
+  const c=cfgFactura(),I=(k,l,ph,full,tipo)=>'<div'+(full?' class="full"':'')+'><label>'+l+'</label><input id="cff_'+k+'"'+(tipo?' type="'+tipo+'"':'')+' value="'+esc(c[k]||'')+'" placeholder="'+esc(ph||'')+'"/></div>'
+  const S=(k,l,o)=>{const pares=Array.isArray(o)?o:Object.keys(o).map(x=>[x,o[x]]);return'<div><label>'+l+'</label><select id="cff_'+k+'">'+pares.map(p=>'<option value="'+p[0]+'"'+(String(c[k])===p[0]?' selected':'')+'>'+p[1]+'</option>').join('')+'</select></div>'}
+  return'<div class="card"><div class="card-hd"><h3>🧾 Facturación electrónica (SRI)</h3><span style="font-size:11px;color:var(--text3)">Datos del emisor que van en cada factura</span></div>'
+    +'<div style="padding:16px 18px"><div class="fg">'
+    +I('ruc','RUC *','1712345678001')+I('razonSocial','Razón social (como en el RUC) *','APELLIDOS NOMBRES')
+    +I('nombreComercial','Nombre comercial','Research Assessor')+I('correoCopia','Copia oculta de las facturas a','tu@correo.com',false,'email')
+    +I('dirMatriz','Dirección matriz *','Av. ..., Quito',true)+I('dirEstablecimiento','Dirección del establecimiento (si es distinta)','',true)
+    +I('estab','Establecimiento','001')+I('ptoEmi','Punto de emisión','001')
+    +S('ambiente','Ambiente',[['1','1 — Pruebas (sin validez tributaria)'],['2','2 — Producción']])
+    +I('siguienteSecuencial','Siguiente número de factura','1')
+    +S('regimen','Régimen tributario',REGIMENES)+S('obligadoContabilidad','Obligado a llevar contabilidad',{NO:'No',SI:'Sí'})
+    +I('contribuyenteEspecial','Contribuyente especial Nro. (si aplica)','')+I('agenteRetencion','Agente de retención — Resolución No. (si aplica)','')
+    +S('preciosConIva','Los cobros registrados',[['1','Incluyen IVA'],['0','No incluyen IVA (se suma)']])
+    +S('formaPago','Forma de pago por defecto',FP_ORDEN.map(k=>[k,k+' — '+FORMAS_PAGO_SRI[k]]))
+    +S('facturarPorDefecto','Clientes sin preferencia indicada',[['0','No piden factura'],['1','Piden factura']])
+    +'</div>'+htmlCatalogoProductos(c.productos)
+    +'<div style="font-size:11.5px;color:var(--text3);line-height:1.55;margin-top:10px">El número de factura nunca retrocede: si ya emitiste facturas en otro sistema (por ejemplo el facturador gratuito del SRI), escribe aquí el siguiente número. Para facturar necesitas estar habilitado por el SRI como emisor electrónico (primero en pruebas y luego en producción) y usar el certificado .p12 del titular del RUC.</div>'
+    +'<button class="btn btn-p" style="margin-top:12px" onclick="guardarConfigFacturacion()">Guardar datos de facturación</button></div></div>'
+}
+// Catálogo de productos (se edita en Configuración; el primero es el que se usa por defecto)
+let _prodEdit=null
+function htmlCatalogoProductos(prods){
+  if(!_prodEdit)_prodEdit=prods.map(x=>Object.assign({},x))
+  const ivaSel=(i,val)=>'<select id="cfp_iva_'+i+'">'+IVA_ORDEN.map(k=>'<option value="'+k+'"'+(String(val)===k?' selected':'')+'>'+IVA_SRI[k].l+'</option>').join('')+'</select>'
+  return'<div class="sec-t" style="margin-top:14px">Productos y servicios que facturas</div>'
+    +'<div style="font-size:11.5px;color:var(--text3);margin-bottom:6px">El primero de la lista es el que aparece por defecto en cada factura. Al facturar puedes elegir otro o escribir uno distinto en cada línea. El precio es opcional: si lo dejas vacío se usa el valor del pago.</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Impuesto</th><th></th></tr></thead><tbody>'
+    +_prodEdit.map((p,i)=>'<tr><td><input id="cfp_cod_'+i+'" value="'+esc(p.codigo||'')+'" style="width:118px" placeholder="ACOMP-002"/></td>'
+      +'<td><input id="cfp_d_'+i+'" value="'+esc(p.d||'')+'" style="width:100%;min-width:220px"/></td>'
+      +'<td><input id="cfp_v_'+i+'" type="number" min="0" step="0.01" value="'+esc(p.v||'')+'" style="width:84px" placeholder="—"/></td>'
+      +'<td>'+ivaSel(i,p.iva)+'</td>'
+      +'<td style="white-space:nowrap">'+(i>0?'<button type="button" class="btn btn-g btn-sm" title="Usar por defecto" onclick="_prodMover('+i+')">★</button> ':'<span title="Por defecto" style="font-size:11px;color:var(--gold)">★ defecto</span> ')
+      +(_prodEdit.length>1?'<button type="button" class="btn btn-r btn-sm" onclick="_prodQuitar('+i+')">✕</button>':'')+'</td></tr>').join('')
+    +'</tbody></table></div><button type="button" class="btn btn-g btn-sm" style="margin-top:6px" onclick="_prodAgregar()">+ Agregar producto</button>'
+}
+function _prodLeer(){if(!_prodEdit)return;_prodEdit.forEach((p,i)=>{const g=k=>{const el=document.getElementById('cfp_'+k+'_'+i);return el?String(el.value).trim():null};if(g('d')===null)return;p.codigo=g('cod').toUpperCase();p.d=g('d');p.v=g('v');p.iva=g('iva')||'0'})}
+function _prodAgregar(){_prodLeer();_prodEdit.push({codigo:'',d:'',v:'',iva:'0'});draw()}
+function _prodQuitar(i){_prodLeer();_prodEdit.splice(i,1);draw()}
+function _prodMover(i){_prodLeer();_prodEdit.unshift(_prodEdit.splice(i,1)[0]);draw()}
+async function guardarConfigFacturacion(){
+  _prodLeer()
+  const prods=(_prodEdit||cfgFactura().productos).filter(p=>p.codigo||p.d)
+  if(!prods.length){alert('Agrega al menos un producto o servicio.');return}
+  if(prods.some(p=>!p.codigo||!p.d)){alert('Cada producto necesita código y descripción.');return}
+  if(prods.some(p=>!/^[A-Z0-9._-]{1,25}$/.test(p.codigo))){alert('Código del producto: hasta 25 letras o números, sin espacios (se permiten . _ -).');return}
+  if(new Set(prods.map(p=>p.codigo)).size!==prods.length){alert('Hay códigos de producto repetidos.');return}
+  const c={};Object.keys(FACT_DEFAULT).forEach(k=>{const el=document.getElementById('cff_'+k);c[k]=el?String(el.value).trim():FACT_DEFAULT[k]})
+  c.productos=prods.map(p=>({codigo:p.codigo,d:p.d,v:p.v,iva:p.iva}));c.descripcion=prods[0].d;c.codigoServicio=prods[0].codigo;c.codigoIva=prods[0].iva
+  if(c.ruc&&!/^\d{13}$/.test(c.ruc)){alert('El RUC debe tener 13 dígitos');return}
+  if(!/^\d{1,3}$/.test(c.estab)||!/^\d{1,3}$/.test(c.ptoEmi)){alert('Establecimiento y punto de emisión: 3 dígitos (ej. 001)');return}
+  c.estab=('000'+c.estab).slice(-3);c.ptoEmi=('000'+c.ptoEmi).slice(-3)
+  if(c.ambiente==='2'&&cfgFactura().ambiente!=='2'&&!confirm('Vas a pasar a PRODUCCIÓN: las facturas tendrán validez tributaria. Hazlo solo cuando el SRI te haya autorizado en producción.\n\n¿Continuar?'))return
+  const rec={id:'facturacion',valor:JSON.stringify(c)}
+  const existe=(data.config||[]).some(x=>x.id==='facturacion')
+  data.config=existe?data.config.map(x=>x.id==='facturacion'?rec:x):(data.config||[]).concat([rec])
+  const r=await apiPost({action:existe?'actualizar':'insertar',tabla:'Config',id:'facturacion',fila:rec})
+  if(r&&r.ok){toast('Datos de facturación guardados ✓');_prodEdit=null}else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
+  draw()
 }
 
 // ── Diagnóstico de instalación de la app ──
