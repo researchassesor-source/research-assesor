@@ -1082,7 +1082,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.9.5'
+const VERSION='v7.9.6'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1591,7 +1591,7 @@ function htmlTrabajos(){
           +htmlStepper(t)+'</div>'
       }
       // Autores del artículo y forma de cobro (un solo pagador o por autor)
-      if(esPublicacion(t)||t.autores)h+=htmlAutoresResumen(t)
+      if(esPublicacion(t)||t.autores||autoresPendientes(t).length)h+=htmlAutoresResumen(t)
       // Todos los datos del trabajo y del cliente que se usan en el contrato
       h+='<details style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
         +'<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy)">📋 Datos del contrato y del cliente</summary>'
@@ -2179,6 +2179,7 @@ function mTrabajo(d){
     +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div>'
     +'<div class="full"><label>📁 Enlace carpeta de trabajo (Drive, Dropbox, etc.)</label>'    +'<input id="f9" type="url" value="'+esc(d.carpeta||'')+'" placeholder="https://drive.google.com/drive/folders/..."/></div>'    +'</div>'
     +'<div id="det_box">'+htmlDetCampos(modeloTrabajo(d.tipo||TIPOS[0]),detallesDe(d))+'</div>'
+  if(e)s+=htmlAutoresEnEdicion(d)
   // Edit mode: show existing cuotas with edit options
   if(e){
     const cuotasTrab=data.cuotas.filter(function(c){return c.trabajoId===d.id})
@@ -2332,7 +2333,7 @@ function previewPlan(){
   if(n>5)h+='<em style="color:var(--text3)"> ...y '+(n-5)+' más</em>'
   el.innerHTML=h
 }
-async function submitTrabajo(id,isEdit){
+async function submitTrabajo(id,isEdit,sinVolver){
   const titulo=v('f0'),clienteId=v('f1')
   if(!titulo){alert('Título obligatorio');return}
   if(!clienteId){alert('Selecciona un cliente');return}
@@ -2344,7 +2345,16 @@ async function submitTrabajo(id,isEdit){
   const rec={id:workId,clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo,estado:v('f3'),total,progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),carpeta:v('f9'),
     detalles:JSON.stringify(leerDetCampos(modeloTrabajo(tipo))),
     etapa:prevRec.etapa||'',contratoUrl:prevRec.contratoUrl||'',contratoFecha:prevRec.contratoFecha||'',
+    autores:prevRec.autores||'',modoCobro:prevRec.modoCobro||'',
     createdAt:id?(prevRec.createdAt||''):new Date().toISOString()}
+  // Si cambia el cliente titular, pasa a ser el autor encargado / de correspondencia
+  if(rec.autores&&id&&clienteId!==prevRec.clienteId){
+    let au=[];try{au=JSON.parse(rec.autores)||[]}catch(e){}
+    const ya=au.find(a=>a.clienteId===clienteId),resp=au.find(a=>a.rol==='correspondencia')
+    if(ya&&resp&&ya!==resp){resp.rol='coautor';ya.rol='correspondencia'}
+    else if(resp){resp.clienteId=clienteId;resp.nombre=cl&&cl.nombre||resp.nombre;resp.orcid=cl&&cl.orcid||''}
+    rec.autores=JSON.stringify(au)
+  }
   // Capture plan values BEFORE draw() clears the modal inputs
   const planN=parseInt(v('tp_n'))||1
   const planD=v('tp_d')||new Date().toISOString().split('T')[0]
@@ -2353,6 +2363,7 @@ async function submitTrabajo(id,isEdit){
   const crearCuotas=!isEdit&&(total>0||usaManual)
   const volver=_volverContrato
   await saveRec('Trabajos',rec,!id)
+  if(sinVolver)return true
   if(volver&&isEdit&&!modal){_volverContrato=volver;volverAlContrato();return}
   if(crearCuotas){
     let cuotasACrear=[]
@@ -2386,7 +2397,12 @@ async function submitTrabajo(id,isEdit){
     }
     await loadData()
     toast('✓ Trabajo y '+cuotasACrear.length+' cuota'+(cuotasACrear.length>1?'s':'')+' creadas')
-    abrirContrato(workId)
+    const tn=data.trabajos.find(x=>x.id===workId)
+    if(tn&&autoresPendientes(tn).length){abrirAutores(workId,{luegoContrato:true});toast('Registra a los coautores y define cuánto paga cada uno')}
+    else abrirContrato(workId)
+  }else if(!isEdit){
+    const tn=data.trabajos.find(x=>x.id===workId)
+    if(tn&&autoresPendientes(tn).length)abrirAutores(workId)
   }
 }
 
@@ -5953,16 +5969,52 @@ function htmlAutoresResumen(t){
     +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
     +'<strong style="font-size:12px;color:var(--navy)">👥 Autores ('+au.length+') · '+(modo==='porAutor'?'Cobro por autor':'Cobro al autor encargado')+'</strong>'
     +'<button class="btn btn-g btn-sm" onclick="abrirAutores(\''+t.id+'\')">✏️ Autores y forma de cobro</button></div>'
+    +(autoresPendientes(t).length?'<div style="font-size:11.5px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:6px">Coautores escritos en los detalles que aún no están registrados: <strong>'+autoresPendientes(t).map(esc).join(', ')+'</strong> · <a href="#" onclick="event.preventDefault();abrirAutores(\''+t.id+'\')">Registrarlos como autores y clientes</a></div>':'')
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+au.map(a=>'<span style="font-size:11.5px;background:'+(a.rol==='correspondencia'?'var(--gold-lt)':'#F1F5FA')+';border:1px solid var(--border);border-radius:999px;padding:3px 10px">'
       +(a.rol==='correspondencia'?'✉️ ':'')+esc(a.nombre||'—')+(a.orcid?' '+orcidLink(a.orcid):'')
       +(modo==='porAutor'?' · '+fmt(parseFloat(a.pct)||0)+' % · '+fmtUSD(montoAutor(a,t.total))+' · '+cuotasAutorTxt(a):'')+'</span>').join('')+'</div></div>'
 }
-function abrirAutores(tid){
+// Nombres escritos en el campo de texto "Autores / coautores" de los detalles del trabajo
+const _normNom=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9ñ ]/g,' ').replace(/\s+/g,' ').trim()
+function nombresAutoresTexto(t){
+  const txt=String(detallesDe(t).autores||'')
+  return txt.split(/\s*(?:;|\n|,|\s+y\s+|\s+&\s+|\/)\s*/).map(x=>x.replace(/^\d+[.)-]\s*/,'').trim()).filter(x=>x.length>2)
+}
+// Coautores escritos como texto que todavía no están registrados como autores del trabajo
+function autoresPendientes(t){
+  const ya=new Set(autoresDe(t).map(a=>_normNom(a.nombre)))
+  const vistos=new Set()
+  return nombresAutoresTexto(t).filter(n=>{const k=_normNom(n);if(!k||ya.has(k)||vistos.has(k))return false;vistos.add(k);return true})
+}
+const clientePorNombre=n=>{const k=_normNom(n);return data.clientes.find(c=>_normNom(c.nombre)===k)||null}
+function abrirAutores(tid,op){
   const t=data.trabajos.find(x=>x.id===tid);if(!t)return
-  openModal('autores',{trabajoId:tid,modo:modoCobroDe(t),_rows:autoresDe(t).map(function(a){
+  const rows=autoresDe(t).map(function(a){
     const cl=data.clientes.find(c=>c.id===a.clienteId)
     return Object.assign({nuevo:{},tipo:'pct',cuotas:'plan',orcid:cl&&cl.orcid||''},a,{orcid:a.orcid||(cl&&cl.orcid)||''})
-  })})
+  })
+  // Los coautores escritos en los detalles se agregan como filas: si ya existen como clientes se enlazan,
+  // si no, se registran como clientes nuevos al guardar
+  autoresPendientes(t).forEach(function(n){
+    const cl=clientePorNombre(n)
+    if(cl&&rows.some(r=>r.clienteId===cl.id))return
+    rows.push({id:uid(),clienteId:cl?cl.id:'',nombre:cl?cl.nombre:n,rol:'coautor',pct:0,monto:0,tipo:'pct',cuotas:'plan',orcid:cl&&cl.orcid||'',nuevo:cl?{}:{nombre:n}})
+  })
+  openModal('autores',Object.assign({trabajoId:tid,modo:modoCobroDe(t),_rows:rows},op||{}))
+}
+// Guarda los cambios del formulario del trabajo y abre la pantalla de autores
+async function guardarYAutores(id){if(await submitTrabajo(id,true,true))abrirAutores(id)}
+// Panel de autores dentro del formulario de edición del trabajo
+function htmlAutoresEnEdicion(d){
+  const t=data.trabajos.find(x=>x.id===d.id)||d,au=autoresDe(t),pend=autoresPendientes(t)
+  return'<div style="margin-top:12px;padding:12px 13px;background:#FFFDF8;border-radius:10px;border:1px solid var(--border)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+    +'<strong style="font-size:12px;color:var(--navy)">👥 Autores registrados ('+au.length+') · '+(modoCobroDe(t)==='porAutor'?'Cobro por autor':'Cobro al autor encargado')+'</strong>'
+    +'<button type="button" class="btn btn-gold btn-sm" onclick="guardarYAutores(\''+esc(d.id)+'\')">💾 Guardar y editar autores</button></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+au.map(a=>'<span style="font-size:11.5px;background:'+(a.rol==='correspondencia'?'var(--gold-lt)':'#F1F5FA')+';border:1px solid var(--border);border-radius:999px;padding:3px 10px">'
+      +(a.rol==='correspondencia'?'✉️ ':'')+esc(a.nombre||'—')+(a.orcid?' '+orcidLink(a.orcid):'')+'</span>').join('')+'</div>'
+    +(pend.length?'<div style="font-size:11.5px;color:#92400e;margin-top:8px">Escritos en "Autores / coautores" y aún sin registrar: <strong>'+pend.map(esc).join(', ')+'</strong>. Pulsa <em>Guardar y editar autores</em> para registrarlos como autores y como clientes.</div>':'')
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Aquí se registra a cada coautor como cliente (con su ORCID, cédula y correo) y se define cuánto paga cada uno.</div></div>'
 }
 const _autDraw=()=>drawDesdeEstado(/^au_/)
 function mAutores(d){
@@ -6174,6 +6226,7 @@ async function submitAutores(){
   rs.push(await apiPost({action:'actualizar',tabla:'Trabajos',id:t.id,fila:tUpd}))
   for(const c of plan.crear)rs.push(await apiPost({action:'insertar',tabla:'Cuotas',fila:c}))
   for(const id of plan.eliminar)rs.push(await apiPost({action:'eliminar',tabla:'Cuotas',id:id}))
+  if(d.luegoContrato)setTimeout(()=>abrirContrato(t.id),0)
   finSync(rs,'Autores guardados ✓'+(plan.crear.length?' · '+plan.crear.length+' cuota(s) reorganizada(s)':'')+(plan.bloqueadas?' · '+plan.bloqueadas+' cuota(s) con pagos no se modificaron':''))
 }
 
