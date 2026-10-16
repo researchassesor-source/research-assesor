@@ -387,6 +387,7 @@ const DET_CAMPOS={
   ],
   tesis:[
     {sec:'Programa académico'},
+    {k:'autores',l:'Autores / investigadores',ph:'Nombres separados por coma (se registran como clientes)',full:1},
     {k:'universidad',l:'Universidad',ph:'Se toma la del cliente si se deja vacío'},
     {k:'programa',l:'Programa / carrera',ph:'Ej: Maestría en Educación'},
     {k:'nivel',l:'Nivel',t:'select',o:['Grado','Especialización','Maestría','Doctorado']},
@@ -425,6 +426,7 @@ const DET_CAMPOS={
   ],
   general:[
     {sec:'Alcance'},
+    {k:'autores',l:'Autores / investigadores',ph:'Nombres separados por coma (se registran como clientes)',full:1},
     {k:'alcanceTxt',l:'Descripción del servicio',t:'textarea',full:1},
     {k:'entregablesTxt',l:'Entregables',t:'textarea',full:1},
     {k:'sesiones',l:'Sesiones de asesoría incluidas',t:'number'},
@@ -1082,7 +1084,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.9.6'
+const VERSION='v7.9.7'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1272,11 +1274,8 @@ function htmlDash(){
   const topTipos=Object.entries(tipoDist).sort((a,b)=>b[1]-a[1]).slice(0,5)
   let h=''
 
-  // Alert vencidas
-  if(vencidas.length){
-    h+='<div class="alert-venc">⚠️ <strong>'+vencidas.length+' cuota'+(vencidas.length>1?'s':'')+' vencida'+(vencidas.length>1?'s':'')+' — $'+fmt(vencidas.reduce((s,c)=>s+(parseFloat(c.acordado||0)-parseFloat(c.pagado||0)),0))+' pendiente</strong>'
-      +'<button class="btn btn-r btn-sm" onclick="goTo(\'cobros\')">Ver cobros →</button></div>'
-  }
+  // Pagos vencidos a la fecha (con detalle desplegable) y acceso al reporte de ingresos
+  h+=htmlAvisoAutoresSinCliente()+htmlVencidosDash()
 
 
   h+='<div class="kpis">'
@@ -1438,7 +1437,7 @@ function htmlDash(){
 function htmlClientes(){
   const q=search.toLowerCase()
   const list=recientes(data.clientes).filter(c=>!q||(c.nombre+' '+c.institucion+' '+c.ciudad).toLowerCase().includes(q))
-  let h='<div class="tb"><input id="srch" placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
+  let h=htmlAvisoAutoresSinCliente()+'<div class="tb"><input id="srch" placeholder="Buscar nombre, institución, ciudad..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:300px"/>'
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
@@ -1591,7 +1590,7 @@ function htmlTrabajos(){
           +htmlStepper(t)+'</div>'
       }
       // Autores del artículo y forma de cobro (un solo pagador o por autor)
-      if(esPublicacion(t)||t.autores||autoresPendientes(t).length)h+=htmlAutoresResumen(t)
+      h+=htmlAutoresResumen(t)
       // Todos los datos del trabajo y del cliente que se usan en el contrato
       h+='<details style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
         +'<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy)">📋 Datos del contrato y del cliente</summary>'
@@ -1661,7 +1660,7 @@ function htmlTrabajos(){
 
 // ─── COBROS ───────────────────────────────────────────────────────────────────
 function htmlCobros(){
-  const q=search.toLowerCase()
+  const q=search.toLowerCase(),_btnRep='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-p btn-sm" onclick="openModal(\'reporteIngresos\',{})">📊 Reporte de ingresos (Excel / PDF)</button></div>'
   const _ordT={};data.trabajos.forEach((t,i)=>{_ordT[t.id]=i})
   const rows=data.cuotas.map(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
@@ -1685,7 +1684,7 @@ function htmlCobros(){
   const vencido=data.cuotas.filter(c=>cStat(c)==='vencido').reduce((s,c)=>s+Math.max(parseFloat(c.acordado||0)-realPaid(c),0),0)
   const total=data.cuotas.reduce((s,c)=>s+parseFloat(c.acordado||0),0)
 
-  let h='<div class="kpis">'
+  let h=_btnRep+'<div class="kpis">'
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'Todos\';draw()"><div class="kpi-label">Total facturado</div><div class="kpi-value">$'+fmt(total)+'</div><div class="kpi-sub">'+data.cuotas.length+' cuotas</div><div class="kpi-icon">📋</div></div>'
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pagado\';draw()"><div class="kpi-label">Cobrado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(cobrado)+'</div><div class="kpi-sub">clic para ver pagadas</div><div class="kpi-icon">✅</div></div>'
     +'<div class="kpi" style="cursor:pointer" onclick="cSt=\'pendiente\';draw()"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(pendiente)+'</div><div class="kpi-sub">clic para ver pendientes</div><div class="kpi-icon">⏰</div></div>'
@@ -2111,6 +2110,7 @@ function htmlModal(){
   if(modal.type==='clave')          c=mClave(modal.rec)
   if(modal.type==='autores')        c=mAutores(modal.rec)
   if(modal.type==='factura')        c=mFactura(modal.rec)
+  if(modal.type==='reporteIngresos')c=mReporteIngresos(modal.rec)
   if(!c)return''
   const wide=['trabajo','pub_detalle','contrato','propuesta','proforma','autores','factura'].indexOf(modal.type)>-1
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal'+(wide?' wide':'')+'">'+c+'</div></div>'
@@ -5939,7 +5939,13 @@ function autoresDe(t){
   let a=[];try{a=JSON.parse(t&&t.autores||'[]')||[]}catch(e){}
   if(!Array.isArray(a))a=[]
   if(!a.length&&t&&t.clienteId){const cl=data.clientes.find(c=>c.id===t.clienteId);a=[{id:'a0',clienteId:t.clienteId,nombre:cl?cl.nombre:(t.clienteNombre||''),rol:'correspondencia',pct:100}]}
-  return a
+  // Nombre de cada autor: el de su ficha de cliente; si no lo tiene, el que quedó en sus cuotas
+  return a.map(function(x){
+    if(x.nombre&&data.clientes.some(c=>c.id===x.clienteId))return x
+    const cl=data.clientes.find(c=>c.id===x.clienteId),cq=data.cuotas.find(c=>c.clienteId===x.clienteId&&(c.clienteNombre||/ — /.test(c.label||'')))
+    const nom=cl&&cl.nombre||x.nombre||(cq&&(cq.clienteNombre||String(cq.label).split(' — ').pop()))||''
+    return nom===x.nombre?x:Object.assign({},x,{nombre:nom})
+  })
 }
 const modoCobroDe=t=>t&&t.modoCobro==='porAutor'?'porAutor':'responsable'
 // Quién paga una cuota: el autor de esa parte (cuotas divididas) o el titular del trabajo
@@ -5987,6 +5993,30 @@ function autoresPendientes(t){
   return nombresAutoresTexto(t).filter(n=>{const k=_normNom(n);if(!k||ya.has(k)||vistos.has(k))return false;vistos.add(k);return true})
 }
 const clientePorNombre=n=>{const k=_normNom(n);return data.clientes.find(c=>_normNom(c.nombre)===k)||null}
+const faltaCliente=r=>!r.clienteId||!data.clientes.some(c=>c.id===r.clienteId)
+// Autores registrados en trabajos cuyo cliente no existe en la base (p. ej. si su registro no llegó a guardarse)
+function autoresSinCliente(){
+  const ids=new Set(data.clientes.map(c=>c.id)),out={}
+  data.trabajos.forEach(t=>{if(!t.autores)return
+    autoresDe(t).forEach(a=>{if(!a.clienteId||ids.has(a.clienteId)||out[a.clienteId])return
+      out[a.clienteId]={id:a.clienteId,nombre:a.nombre||'',orcid:a.orcid||'',trabajo:t.titulo}})})
+  return Object.values(out)
+}
+async function repararAutoresClientes(){
+  const fs=autoresSinCliente(),con=fs.filter(x=>x.nombre),sin=fs.length-con.length
+  if(!con.length){alert('No hay coautores que se puedan registrar automáticamente'+(sin?' ('+sin+' sin nombre: ábrelos desde el trabajo, en Autores y forma de cobro).':'.'));return}
+  if(!confirm('Se registrarán '+con.length+' coautor(es) en la base de clientes:\n\n'+con.map(x=>'• '+x.nombre).join('\n')+'\n\nLuego puedes completar su cédula, correo y teléfono en Clientes.'))return
+  syncMsg='Registrando coautores...';syncErr=false;draw()
+  const rs=[]
+  for(const x of con){const cli={id:x.id,nombre:x.nombre,cedula:'',telefono:'',email:'',orcid:x.orcid,direccion:'',institucion:'',ciudad:'',area:'',notas:'Coautor de: '+String(x.trabajo||'').slice(0,80),createdAt:new Date().toISOString()}
+    rs.push(await apiPost({action:'insertar',tabla:'Clientes',fila:cli}));data.clientes=data.clientes.concat([cli])}
+  finSync(rs,con.length+' coautor(es) registrados en Clientes ✓')
+}
+function htmlAvisoAutoresSinCliente(){
+  const fs=autoresSinCliente();if(!fs.length)return''
+  return'<div class="alert-venc" style="background:var(--amber-bg);border-color:#fde68a;color:#92400e">👥 <strong>'+fs.length+' coautor'+(fs.length>1?'es':'')+' de tus trabajos no está'+(fs.length>1?'n':'')+' en la base de clientes'+(fs.some(x=>x.nombre)?': '+fs.filter(x=>x.nombre).slice(0,6).map(x=>esc(x.nombre)).join(', ')+(fs.length>6?'…':''):'')+'</strong>'
+    +'<button class="btn btn-gold btn-sm" onclick="repararAutoresClientes()">Registrarlos como clientes</button></div>'
+}
 function abrirAutores(tid,op){
   const t=data.trabajos.find(x=>x.id===tid);if(!t)return
   const rows=autoresDe(t).map(function(a){
@@ -6020,7 +6050,8 @@ const _autDraw=()=>drawDesdeEstado(/^au_/)
 function mAutores(d){
   const t=data.trabajos.find(x=>x.id===d.trabajoId);if(!t)return'<h3>Trabajo no encontrado</h3>'
   const rows=d._rows,porAutor=d.modo==='porAutor',total=parseFloat(t.total)||0
-  const opts=sel=>'<option value="">➕ Autor nuevo (escribir sus datos)</option>'+recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(sel===c.id?' selected':'')+'>'+esc(c.nombre)+(c.cedula?' · '+esc(c.cedula):'')+'</option>').join('')
+  const opts=(sel,nom)=>'<option value="">➕ Autor nuevo (escribir sus datos)</option>'
+    +(sel&&!data.clientes.some(c=>c.id===sel)?'<option value="'+esc(sel)+'" selected>⚠ '+esc(nom||'Autor sin nombre')+' — no está en Clientes</option>':'')+recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(sel===c.id?' selected':'')+'>'+esc(c.nombre)+(c.cedula?' · '+esc(c.cedula):'')+'</option>').join('')
   const nCuotasPlan=data.cuotas.filter(c=>c.trabajoId===t.id&&!String(c.grupo||'').startsWith('au_')).reduce((s,c)=>(s.add(c.grupo||c.id),s),new Set()).size
   const optCuotas=sel=>'<option value="plan"'+(!sel||sel==='plan'?' selected':'')+'>Según el plan del trabajo'+(nCuotasPlan?' ('+nCuotasPlan+')':'')+'</option>'
     +[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>'<option value="'+n+'"'+(String(sel)===String(n)?' selected':'')+'>'+n+(n===1?' cuota (pago único)':' cuotas mensuales')+'</option>').join('')
@@ -6032,7 +6063,7 @@ function mAutores(d){
     const ok=!r.orcid||orcidValido(r.orcid)
     h+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:'+(r.rol==='correspondencia'?'#FFFDF8':'#fff')+'">'
       +'<div style="display:grid;grid-template-columns:minmax(180px,1fr) 170px auto;gap:8px;align-items:end">'
-      +'<div><label>Autor '+(i+1)+'</label><select id="au_cl_'+i+'" onchange="_autLeer();_autDraw()">'+opts(r.clienteId)+'</select></div>'
+      +'<div><label>Autor '+(i+1)+'</label><select id="au_cl_'+i+'" onchange="_autLeer();_autDraw()">'+opts(r.clienteId,r.nombre)+'</select></div>'
       +'<div><label>ORCID</label><input id="au_orcid_'+i+'" value="'+esc(r.orcid||'')+'" placeholder="0000-0000-0000-0000" style="font-family:monospace'+(ok?'':';border-color:var(--red)')+'" onchange="_autLeer();_autDraw()"/></div>'
       +'<button type="button" class="btn btn-r btn-sm" title="Quitar autor" onclick="_autQuitar('+i+')"'+(rows.length<2?' disabled':'')+'>✕</button>'
       +'</div>'
@@ -6045,12 +6076,12 @@ function mAutores(d){
         +(r.cuotas&&r.cuotas!=='plan'?'<div><label>Primer pago</label><input id="au_f1_'+i+'" type="date" value="'+esc(r.primerPago||'')+'"/></div>':'<div></div>')
         +'<div id="au_det_'+i+'" style="grid-column:1/-1;font-size:11px;color:var(--text3)">'+_autDetalle(r,m)+'</div>'
         +'</div>':'')
-      +(!r.clienteId?'<div class="fg" style="margin-top:8px">'
+      +(faltaCliente(r)?'<div class="fg" style="margin-top:8px">'
         +'<div><label>Nombre completo *</label><input id="au_n_'+i+'" value="'+esc(nv.nombre||r.nombre||'')+'"/></div>'
         +'<div><label>Cédula / RUC (para facturar)</label><input id="au_c_'+i+'" value="'+esc(nv.cedula||'')+'"/></div>'
         +'<div><label>Email</label><input id="au_e_'+i+'" type="email" value="'+esc(nv.email||'')+'"/></div>'
         +'<div><label>Teléfono / WhatsApp</label><input id="au_t_'+i+'" value="'+esc(nv.telefono||'')+'"/></div>'
-        +'<div class="full" style="font-size:11px;color:var(--text3)">Se registrará como cliente nuevo al guardar.</div></div>':'')
+        +'<div class="full" style="font-size:11px;color:var(--text3)">'+(r.clienteId?'⚠ Este autor no está en la base de clientes: completa sus datos y se registrará al guardar.':'Se registrará como cliente nuevo al guardar.')+'</div></div>':'')
       +'</div>'
   })
   h+='</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">'
@@ -6101,7 +6132,7 @@ function _autLeer(){
     const q=document.getElementById('au_cq_'+i);if(q)r.cuotas=q.value
     const f=document.getElementById('au_f1_'+i);if(f)r.primerPago=f.value
     r.rol=rol&&+rol.value===i?'correspondencia':'coautor'
-    if(!r.clienteId){r.nuevo={nombre:v('au_n_'+i),cedula:v('au_c_'+i),email:v('au_e_'+i),telefono:v('au_t_'+i)};r.nombre=r.nuevo.nombre}
+    if(faltaCliente(r)){if(document.getElementById('au_n_'+i)){r.nuevo={nombre:v('au_n_'+i),cedula:v('au_c_'+i),email:v('au_e_'+i),telefono:v('au_t_'+i)};r.nombre=r.nuevo.nombre}}
     else{const cl=data.clientes.find(c=>c.id===r.clienteId);r.nombre=cl?cl.nombre:r.nombre}
   })
   const m=document.querySelector('input[name="au_modo"]:checked');if(m)modal.rec.modo=m.value
@@ -6187,7 +6218,7 @@ async function submitAutores(){
   const rows=d._rows,porAutor=d.modo==='porAutor',total=parseFloat(t.total)||0
   if(!rows.length){alert('Agrega al menos un autor');return}
   if(rows.filter(r=>r.rol==='correspondencia').length!==1){alert('Marca un autor como encargado / de correspondencia');return}
-  for(const r of rows)if(!r.clienteId&&!(r.nuevo&&r.nuevo.nombre)){alert('Escribe el nombre de cada autor nuevo');return}
+  for(const r of rows)if(faltaCliente(r)&&!((r.nuevo&&r.nuevo.nombre)||r.nombre)){alert('Escribe el nombre de cada autor nuevo');return}
   const malo=rows.find(r=>r.orcid&&!orcidValido(r.orcid));if(malo){alert('El ORCID de '+(malo.nombre||'un autor')+' no es válido ('+malo.orcid+'). Revísalo o déjalo vacío.');return}
   const ids=rows.map(r=>r.clienteId).filter(Boolean)
   if(new Set(ids).size!==ids.length){alert('Un mismo cliente aparece dos veces como autor');return}
@@ -6203,8 +6234,9 @@ async function submitAutores(){
   const rs=[]
   // 1) Autores nuevos → clientes nuevos
   for(const r of rows){
-    if(r.clienteId)continue
-    const nv=r.nuevo||{},cli={id:uid(),nombre:nv.nombre,cedula:nv.cedula||'',telefono:nv.telefono||'',email:nv.email||'',orcid:r.orcid||'',direccion:'',institucion:'',ciudad:'',area:'',
+    if(!faltaCliente(r))continue
+    // Autor nuevo, o autor guardado cuyo cliente no está en la base (se registra con el mismo id para no perder sus cuotas)
+    const nv=r.nuevo||{},cli={id:r.clienteId||uid(),nombre:nv.nombre||r.nombre,cedula:nv.cedula||'',telefono:nv.telefono||'',email:nv.email||'',orcid:r.orcid||'',direccion:'',institucion:'',ciudad:'',area:'',
       notas:'Coautor de: '+t.titulo.slice(0,80),createdAt:new Date().toISOString()}
     rs.push(await apiPost({action:'insertar',tabla:'Clientes',fila:cli}))
     data.clientes=data.clientes.concat([cli]);r.clienteId=cli.id;r.nombre=cli.nombre
@@ -6787,6 +6819,209 @@ async function guardarConfigFacturacion(){
   const r=await apiPost({action:existe?'actualizar':'insertar',tabla:'Config',id:'facturacion',fila:rec})
   if(r&&r.ok){toast('Datos de facturación guardados ✓');_prodEdit=null}else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
   draw()
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// PAGOS VENCIDOS A LA FECHA y REPORTE DE INGRESOS (Excel y PDF)
+// ════════════════════════════════════════════════════════════════
+const hoyISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+// Nombre de quien paga una cuota, aunque su ficha de cliente no exista
+function nombrePagador(c,t,cl){cl=cl||(c?pagadorDe(c,t):null);return cl&&cl.nombre||c&&(c.clienteNombre||(/ — /.test(c.label||'')?String(c.label).split(' — ').pop():''))||t&&t.clienteNombre||'—'}
+const saldoCuota=c=>r2(Math.max((parseFloat(c.acordado)||0)-realPaid(c),0))
+// Cuotas con saldo cuya fecha de pago ya pasó (incluye las pagadas en parte). corte = fecha ISO
+function cuotasVencidas(corte){
+  corte=corte||hoyISO()
+  return data.cuotas.map(function(c){
+    const f=toISO(c.fechaVencimiento||''),s=saldoCuota(c)
+    if(!f||f>=corte||!(s>0))return null
+    const t=data.trabajos.find(x=>x.id===c.trabajoId);if(!t||t.estado==='Cancelado')return null
+    const cl=pagadorDe(c,t),dias=Math.round((new Date(corte+'T12:00:00')-new Date(f+'T12:00:00'))/864e5)
+    return{c:c,t:t,cl:cl,nombre:nombrePagador(c,t,cl),fecha:f,saldo:s,dias:dias,pagado:r2(realPaid(c))}
+  }).filter(Boolean).sort((a,b)=>b.dias-a.dias)
+}
+let _dashVenc=false
+function htmlVencidosDash(){
+  const vs=cuotasVencidas(),tot=r2(vs.reduce((s,x)=>s+x.saldo,0))
+  if(!vs.length)return'<div class="chart-wrap" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+    +'<div><div class="chart-title">✅ Pagos vencidos a la fecha</div><div class="chart-sub">No hay cuotas vencidas al '+fmtDCorto(hoyISO())+'</div></div>'
+    +'<button class="btn btn-g btn-sm" onclick="openModal(\'reporteIngresos\',{})">📊 Reporte de ingresos</button></div>'
+  const clientesV=new Set(vs.map(x=>x.cl?x.cl.id:x.nombre)).size
+  const tramo=(a,b)=>r2(vs.filter(x=>x.dias>=a&&x.dias<=b).reduce((s,x)=>s+x.saldo,0))
+  let h='<div class="chart-wrap" style="margin-bottom:16px;border:1.5px solid #fecaca">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+    +'<div><div class="chart-title" style="color:var(--red)">⏰ Pagos vencidos a la fecha</div>'
+    +'<div class="chart-sub">Al '+fmtDCorto(hoyISO())+' · '+vs.length+' cuota'+(vs.length>1?'s':'')+' de '+clientesV+' cliente'+(clientesV!==1?'s':'')+' · el atraso mayor es de '+vs[0].dias+' días</div></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-r btn-sm" onclick="_dashVenc=!_dashVenc;draw()">'+(_dashVenc?'Ocultar detalle':'Ver detalle')+'</button>'
+    +'<button class="btn btn-g btn-sm" onclick="openModal(\'reporteIngresos\',{})">📊 Reporte de ingresos</button></div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px">'
+    +[['Total vencido',tot,'var(--red)'],['1 a 30 días',tramo(0,30),'#b45309'],['31 a 60 días',tramo(31,60),'#c2410c'],['61 a 90 días',tramo(61,90),'#b91c1c'],['Más de 90 días',tramo(91,1e9),'#7f1d1d']]
+      .map(x=>'<div style="background:#FEF2F2;border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3);font-weight:700">'+x[0]+'</div><div style="font-size:17px;font-weight:800;color:'+x[2]+'">'+fmtUSD(x[1])+'</div></div>').join('')
+    +'</div>'
+  if(_dashVenc){
+    h+='<div style="overflow-x:auto;margin-top:12px"><table style="width:100%;font-size:12px"><thead><tr><th>Cliente</th><th>Trabajo</th><th>Cuota</th><th>Venció</th><th style="text-align:right">Días</th><th style="text-align:right">Saldo</th><th></th></tr></thead><tbody>'
+      +vs.map(x=>'<tr><td><strong>'+esc(x.nombre)+'</strong>'+(x.cl&&x.cl.telefono?'<div style="font-size:10.5px;color:var(--text3)">'+esc(x.cl.telefono)+'</div>':'')+'</td>'
+        +'<td style="max-width:240px">'+esc(String(x.t.titulo||'').slice(0,70))+'</td><td>'+esc(x.c.label||'Cuota')+(x.pagado>0?'<div style="font-size:10.5px;color:var(--brand)">abonado '+fmtUSD(x.pagado)+'</div>':'')+'</td>'
+        +'<td>'+fmtDCorto(x.fecha)+'</td><td style="text-align:right;font-weight:700;color:'+(x.dias>60?'var(--red)':'#b45309')+'">'+x.dias+'</td>'
+        +'<td style="text-align:right;font-weight:800">'+fmtUSD(x.saldo)+'</td>'
+        +'<td style="white-space:nowrap">'+(x.cl?'<button class="btn btn-g btn-sm" title="Recordatorio por WhatsApp" onclick="waDeudor(\''+x.cl.id+'\')">💬</button> ':'')
+        +'<button class="btn btn-green btn-sm" title="Registrar pago" onclick="openModal(\'abono\',{cuotaId:\''+x.c.id+'\',trabajoId:\''+x.t.id+'\',acordado:\''+esc(x.c.acordado)+'\',pagado:\''+x.pagado+'\',label:\''+esc(String(x.c.label||'Cuota').replace(/'/g,''))+'\'})">💵</button></td></tr>').join('')
+      +'<tr><td colspan="5" style="text-align:right;font-weight:800">Total vencido</td><td style="text-align:right;font-weight:800;color:var(--red)">'+fmtUSD(tot)+'</td><td></td></tr></tbody></table></div>'
+  }
+  return h+'</div>'
+}
+
+// ── Reporte de ingresos ──
+const LIB_XLSX='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+function _rangoPreset(k){
+  const d=new Date(hoyISO()+'T12:00:00'),y=d.getFullYear(),m=d.getMonth(),iso=x=>new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10)
+  if(k==='mes')return[iso(new Date(y,m,1)),hoyISO()]
+  if(k==='mesAnt')return[iso(new Date(y,m-1,1)),iso(new Date(y,m,0))]
+  if(k==='trim'){const q=Math.floor(m/3)*3;return[iso(new Date(y,q,1)),hoyISO()]}
+  if(k==='anio')return[iso(new Date(y,0,1)),hoyISO()]
+  if(k==='anioAnt')return[iso(new Date(y-1,0,1)),iso(new Date(y-1,11,31))]
+  if(k==='30')return[iso(new Date(d.getTime()-29*864e5)),hoyISO()]
+  return[iso(new Date(y,m,1)),hoyISO()]
+}
+// Reúne los pagos del periodo con sus datos sustanciales
+function datosReporteIngresos(desde,hasta,tipo){
+  const filas=(data.abonos||[]).map(function(a){
+    const f=toISO(a.fecha||'');if(!f||f<desde||f>hasta)return null
+    const c=data.cuotas.find(x=>x.id===a.cuotaId),t=data.trabajos.find(x=>x.id===(a.trabajoId||c&&c.trabajoId))
+    if(tipo&&(!t||t.tipo!==tipo))return null
+    const cl=c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null)
+    const fa=facturasDeAbono(a.id)[0]
+    return{fecha:f,cliente:nombrePagador(c,t,cl),cedula:cl&&cl.cedula||'',trabajo:t?t.titulo:(c&&c.trabajoTitulo)||'—',
+      tipo:t&&t.tipo||'—',cuota:c&&c.label||'—',comprobante:a.comprobante||'',nota:a.nota||'',factura:fa?fa.numero+(fa.estado!=='AUTORIZADO'?' ('+(ESTADO_FACT[fa.estado]||[0,fa.estado])[1]+')':''):'',
+      facturado:!!(fa&&fa.estado==='AUTORIZADO'),monto:r2(parseFloat(a.monto)||0)}
+  }).filter(Boolean).sort((a,b)=>a.fecha.localeCompare(b.fecha))
+  const total=r2(filas.reduce((s,x)=>s+x.monto,0))
+  const agrupar=k=>{const o={};filas.forEach(x=>{const g=typeof k==='function'?k(x):x[k];o[g]=o[g]||{n:0,monto:0};o[g].n++;o[g].monto=r2(o[g].monto+x.monto)});return o}
+  const porMes=agrupar(x=>x.fecha.slice(0,7)),porTipo=agrupar('tipo'),porCliente=agrupar('cliente')
+  const facturado=r2(filas.filter(x=>x.facturado).reduce((s,x)=>s+x.monto,0))
+  const vencidas=cuotasVencidas(_sumarDia(hasta,1))
+  const porCobrar=r2(data.cuotas.filter(c=>{const t=data.trabajos.find(x=>x.id===c.trabajoId);return t&&t.estado!=='Cancelado'}).reduce((s,c)=>s+saldoCuota(c),0))
+  return{desde:desde,hasta:hasta,tipo:tipo||'',filas:filas,total:total,n:filas.length,promedio:filas.length?r2(total/filas.length):0,
+    porMes:porMes,porTipo:porTipo,porCliente:porCliente,facturado:facturado,sinFactura:r2(total-facturado),
+    vencidas:vencidas,totalVencido:r2(vencidas.reduce((s,x)=>s+x.saldo,0)),porCobrar:porCobrar}
+}
+function _sumarDia(f,n){const d=new Date(f+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+const _mesTxt=k=>{const p=k.split('-');return MESES_FULL[(+p[1])-1]+' '+p[0]}
+function mReporteIngresos(d){
+  if(!d.desde){const r=_rangoPreset('mes');d.desde=r[0];d.hasta=r[1]}
+  const R=datosReporteIngresos(d.desde,d.hasta,d.tipo)
+  const tipos=[...new Set(data.trabajos.map(t=>t.tipo).filter(Boolean))]
+  const pre=[['mes','Este mes'],['mesAnt','Mes anterior'],['30','Últimos 30 días'],['trim','Este trimestre'],['anio','Este año'],['anioAnt','Año anterior']]
+  return'<h3>📊 Reporte de ingresos</h3>'
+    +'<div style="font-size:12px;color:var(--text3);margin:-6px 0 12px">Pagos recibidos en el periodo, con resumen por mes, tipo de trabajo y cliente, y los pagos vencidos al corte.</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+pre.map(p=>'<button type="button" class="btn btn-g btn-sm" onclick="_repPreset(\''+p[0]+'\')">'+p[1]+'</button>').join('')+'</div>'
+    +'<div class="fg"><div><label>Desde</label><input id="ri_desde" type="date" value="'+esc(d.desde)+'" onchange="_repLeer()"/></div>'
+    +'<div><label>Hasta</label><input id="ri_hasta" type="date" value="'+esc(d.hasta)+'" onchange="_repLeer()"/></div>'
+    +'<div class="full"><label>Tipo de trabajo</label><select id="ri_tipo" onchange="_repLeer()"><option value="">Todos</option>'+tipos.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0">'
+    +[['Ingresos del periodo',fmtUSD(R.total),'var(--green)'],['Pagos recibidos',String(R.n),'var(--navy)'],['Con factura',fmtUSD(R.facturado),'var(--brand)'],['Vencido al corte',fmtUSD(R.totalVencido),'var(--red)']]
+      .map(x=>'<div style="background:#F8F7F3;border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3);font-weight:700">'+x[0]+'</div><div style="font-size:17px;font-weight:800;color:'+x[2]+'">'+x[1]+'</div></div>').join('')
+    +'</div>'
+    +(R.n?'<div style="font-size:12px;color:var(--text2)">'+Object.keys(R.porMes).sort().map(k=>_mesTxt(k)+': <strong>'+fmtUSD(R.porMes[k].monto)+'</strong>').join(' · ')+'</div>'
+      :'<div style="font-size:12px;color:var(--text3)">No hay pagos registrados en este periodo.</div>')
+    +'<div class="ma"><button class="btn btn-g" onclick="closeModal()">Cerrar</button>'
+    +'<button class="btn btn-green" id="ri_xls" onclick="reporteIngresosExcel()">📗 Excel</button>'
+    +'<button class="btn btn-p" id="ri_pdf" onclick="reporteIngresosPdf()">📄 PDF</button></div>'
+}
+function _repLeer(){if(!modal||modal.type!=='reporteIngresos')return;const r=modal.rec;r.desde=v('ri_desde');r.hasta=v('ri_hasta');r.tipo=v('ri_tipo');if(r.desde&&r.hasta&&r.desde>r.hasta){const x=r.desde;r.desde=r.hasta;r.hasta=x}drawDesdeEstado(/^ri_/)}
+function _repPreset(k){const r=_rangoPreset(k);modal.rec.desde=r[0];modal.rec.hasta=r[1];drawDesdeEstado(/^ri_/)}
+const _nomArchivoRep=R=>'Reporte_ingresos_'+R.desde+'_a_'+R.hasta
+async function reporteIngresosExcel(){
+  const d=modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo),btn=document.getElementById('ri_xls')
+  if(btn){btn.disabled=true;btn.textContent='Generando…'}
+  try{
+    await cargarLib(LIB_XLSX,'XLSX')
+    const p=prestador(),wb=XLSX.utils.book_new(),num='#,##0.00'
+    const hoja=(aoa,anchos,colsNum,desdeFila)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=anchos.map(w=>({wch:w}))
+      for(let r=desdeFila;r<aoa.length;r++)colsNum.forEach(cn=>{const ref=XLSX.utils.encode_cell({r:r,c:cn});if(ws[ref]&&typeof ws[ref].v==='number')ws[ref].z=num});return ws}
+    const cab=[['Reporte de ingresos — '+(p.nombre||'Research Assessor')],['Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.tipo?' · Tipo: '+R.tipo:'')],['Generado: '+new Date().toLocaleString('es-EC')],[]]
+    // 1) Detalle de ingresos
+    const det=cab.concat([['Fecha','Cliente / autor','Cédula / RUC','Trabajo','Tipo de trabajo','Cuota','Comprobante','Factura','Nota','Monto (USD)']])
+      .concat(R.filas.map(x=>[x.fecha,x.cliente,x.cedula,x.trabajo,x.tipo,x.cuota,x.comprobante,x.factura||'Sin factura',x.nota,x.monto]))
+      .concat([[],['','','','','','','','','TOTAL',R.total]])
+    XLSX.utils.book_append_sheet(wb,hoja(det,[11,28,14,40,26,22,14,22,22,13],[9],5),'Ingresos')
+    // 2) Resumen
+    const res=cab.concat([['Indicador','Valor'],['Ingresos del periodo',R.total],['Pagos recibidos',R.n],['Pago promedio',R.promedio],['Con factura autorizada',R.facturado],['Sin factura',R.sinFactura],
+      ['Por cobrar (saldo total)',R.porCobrar],['Vencido al '+fmtDCorto(R.hasta),R.totalVencido],[],['Por mes','Pagos','Monto (USD)']])
+      .concat(Object.keys(R.porMes).sort().map(k=>[_mesTxt(k),R.porMes[k].n,R.porMes[k].monto]))
+      .concat([[],['Por tipo de trabajo','Pagos','Monto (USD)']]).concat(Object.keys(R.porTipo).sort((a,b)=>R.porTipo[b].monto-R.porTipo[a].monto).map(k=>[k,R.porTipo[k].n,R.porTipo[k].monto]))
+      .concat([[],['Por cliente','Pagos','Monto (USD)']]).concat(Object.keys(R.porCliente).sort((a,b)=>R.porCliente[b].monto-R.porCliente[a].monto).map(k=>[k,R.porCliente[k].n,R.porCliente[k].monto]))
+    XLSX.utils.book_append_sheet(wb,hoja(res,[34,14,14],[1,2],5),'Resumen')
+    // 3) Vencidos al corte
+    const ven=cab.concat([['Cliente / autor','Teléfono','Trabajo','Cuota','Venció','Días de atraso','Abonado','Saldo (USD)']])
+      .concat(R.vencidas.map(x=>[x.nombre,x.cl&&x.cl.telefono||'',x.t.titulo,x.c.label||'Cuota',x.fecha,x.dias,x.pagado,x.saldo]))
+      .concat([[],['','','','','','','TOTAL',R.totalVencido]])
+    XLSX.utils.book_append_sheet(wb,hoja(ven,[28,14,40,22,11,10,12,13],[6,7],5),'Vencidos')
+    XLSX.writeFile(wb,_nomArchivoRep(R)+'.xlsx')
+    toast('Excel generado ✓')
+  }catch(e){alert('No se pudo generar el Excel: '+e.message)}
+  if(btn){btn.disabled=false;btn.textContent='📗 Excel'}
+}
+async function reporteIngresosPdf(){
+  const d=modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo),btn=document.getElementById('ri_pdf')
+  if(btn){btn.disabled=true;btn.textContent='Generando…'}
+  try{
+    await cargarLib(LIB_PDFLIB,'PDFLib')
+    const L=PDFLib,doc=await L.PDFDocument.create(),F=await _fuentesPdf(doc),p=prestador()
+    const PW=841.89,PH=595.28,M=32,NAVY=hexRgb('0B2545'),GRIS=hexRgb('475569'),BORDE=hexRgb('B8C4D6'),FONDO=hexRgb('E3ECF6'),VERDE=hexRgb('15803D'),ROJO=hexRgb('B91C1C')
+    const logo=await doc.embedPng(Uint8Array.from(atob(LOGO_B64),c=>c.charCodeAt(0)))
+    let pg,y
+    const T=(s,x,yy,o)=>{o=o||{};const font=o.b?F.bold:F.reg,sz=o.s||8;let t=_txtPdf(font,String(s==null?'':s));if(o.w)while(t.length>1&&font.widthOfTextAtSize(t,sz)>o.w)t=t.slice(0,-1)
+      const w=font.widthOfTextAtSize(t,sz);pg.drawText(t,{x:o.al==='r'?x-w:o.al==='c'?x-w/2:x,y:yy,size:sz,font:font,color:o.c||NAVY})}
+    const nueva=()=>{pg=doc.addPage([PW,PH]);pg.drawImage(logo,{x:M,y:PH-M-40,width:112,height:40})
+      T('REPORTE DE INGRESOS',PW-M,PH-M-14,{b:1,s:14,al:'r'})
+      T('Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.tipo?' · '+R.tipo:''),PW-M,PH-M-28,{s:9,al:'r',c:GRIS})
+      T((p.nombre||'')+(p.cedula?' · C.I. '+p.cedula:''),PW-M,PH-M-40,{s:8,al:'r',c:GRIS})
+      pg.drawLine({start:{x:M,y:PH-M-48},end:{x:PW-M,y:PH-M-48},thickness:0.8,color:BORDE});y=PH-M-62}
+    const pie=()=>{const ps=doc.getPages();ps.forEach((x,i)=>{pg=x;T('Generado el '+new Date().toLocaleString('es-EC')+' · Research Assessor',M,18,{s:7,c:GRIS});T('Página '+(i+1)+' de '+ps.length,PW-M,18,{s:7,al:'r',c:GRIS})})}
+    const espacio=h=>{if(y-h<36)nueva()}
+    const tabla=(cols,filas,o)=>{o=o||{}
+      const fila=(vals,head,fin)=>{espacio(15);let x=M;cols.forEach((c,i)=>{pg.drawRectangle({x:x,y:y-14,width:c.w,height:14,borderColor:BORDE,borderWidth:0.5,color:head||fin?FONDO:L.rgb(1,1,1)})
+        T(vals[i],c.al==='r'?x+c.w-4:x+4,y-10,{s:7.4,b:head||fin,al:c.al==='r'?'r':'l',w:c.w-7,c:c.color&&!head?c.color:NAVY});x+=c.w});y-=14}
+      fila(cols.map(c=>c.l),true);filas.forEach((f,i)=>{if(y-14<36){nueva();fila(cols.map(c=>c.l),true)}fila(f,false,o.ultimaTotal&&i===filas.length-1)})}
+    const titulo=s=>{espacio(40);y-=20;T(s,M,y,{b:1,s:10.5});y-=8}
+    nueva()
+    // Indicadores
+    const kp=[['Ingresos del periodo',fmtUSD(R.total),VERDE],['Pagos recibidos',String(R.n),NAVY],['Pago promedio',fmtUSD(R.promedio),NAVY],['Con factura',fmtUSD(R.facturado),NAVY],['Por cobrar (saldo total)',fmtUSD(R.porCobrar),NAVY],['Vencido al corte',fmtUSD(R.totalVencido),ROJO]]
+    const kw=(PW-2*M-5*8)/6
+    kp.forEach((k,i)=>{const x=M+i*(kw+8);pg.drawRectangle({x:x,y:y-38,width:kw,height:38,color:hexRgb('F8F7F3'),borderColor:BORDE,borderWidth:0.5});T(k[0],x+7,y-13,{s:7.2,c:GRIS,w:kw-12});T(k[1],x+7,y-30,{b:1,s:12,c:k[2],w:kw-12})})
+    y-=52
+    // Resúmenes en dos columnas: por mes y por tipo
+    const mes=Object.keys(R.porMes).sort().map(k=>[_mesTxt(k),String(R.porMes[k].n),fmtUSD(R.porMes[k].monto)])
+    const tip=Object.keys(R.porTipo).sort((a,b)=>R.porTipo[b].monto-R.porTipo[a].monto).map(k=>[k,String(R.porTipo[k].n),fmtUSD(R.porTipo[k].monto)])
+    const yIni=y,half=(PW-2*M-16)/2
+    const mini=(x0,tit,filas)=>{let yy=yIni;T(tit,x0,yy-4,{b:1,s:10});yy-=12
+      const cols=[{l:tit.indexOf('mes')>-1?'Mes':'Tipo de trabajo',w:half-150},{l:'Pagos',w:50,al:'r'},{l:'Monto',w:100,al:'r'}]
+      const f=(vals,head)=>{let x=x0;cols.forEach((c,i)=>{pg.drawRectangle({x:x,y:yy-14,width:c.w,height:14,borderColor:BORDE,borderWidth:0.5,color:head?FONDO:L.rgb(1,1,1)});T(vals[i],c.al==='r'?x+c.w-4:x+4,yy-10,{s:7.4,b:head,al:c.al==='r'?'r':'l',w:c.w-7});x+=c.w});yy-=14}
+      f(cols.map(c=>c.l),true);filas.slice(0,14).forEach(r=>f(r));if(filas.length>14)f(['… y '+(filas.length-14)+' más','',''])
+      return yy}
+    const y1=mini(M,'Ingresos por mes',mes.length?mes:[['Sin pagos','0',fmtUSD(0)]]),y2=mini(M+half+16,'Ingresos por tipo de trabajo',tip.length?tip:[['Sin pagos','0',fmtUSD(0)]])
+    y=Math.min(y1,y2)-10
+    // Detalle
+    titulo('Detalle de pagos recibidos ('+R.n+')')
+    tabla([{l:'Fecha',w:52},{l:'Cliente / autor',w:140},{l:'Trabajo',w:190},{l:'Tipo',w:96},{l:'Cuota',w:96},{l:'Comprobante',w:62},{l:'Factura',w:68},{l:'Monto',w:PW-2*M-704,al:'r'}],
+      R.filas.map(x=>[fmtDCorto(x.fecha),x.cliente,x.trabajo,x.tipo,x.cuota,x.comprobante||'—',x.factura||'Sin factura',fmtUSD(x.monto)]).concat([['','','','','','','TOTAL',fmtUSD(R.total)]]),{ultimaTotal:true})
+    // Por cliente
+    const cli=Object.keys(R.porCliente).sort((a,b)=>R.porCliente[b].monto-R.porCliente[a].monto)
+    if(cli.length){titulo('Ingresos por cliente');tabla([{l:'Cliente / autor',w:360},{l:'Pagos',w:70,al:'r'},{l:'Monto',w:120,al:'r'},{l:'% del periodo',w:90,al:'r'}],
+      cli.map(k=>[k,String(R.porCliente[k].n),fmtUSD(R.porCliente[k].monto),(R.total?Math.round(R.porCliente[k].monto/R.total*1000)/10:0)+' %']))}
+    // Vencidos al corte
+    titulo('Pagos vencidos al '+fmtDCorto(R.hasta)+' ('+R.vencidas.length+')')
+    if(R.vencidas.length)tabla([{l:'Cliente / autor',w:150},{l:'Teléfono',w:72},{l:'Trabajo',w:220},{l:'Cuota',w:110},{l:'Venció',w:56},{l:'Días',w:40,al:'r'},{l:'Abonado',w:62,al:'r'},{l:'Saldo',w:PW-2*M-710,al:'r',color:ROJO}],
+      R.vencidas.map(x=>[x.nombre,x.cl&&x.cl.telefono||'',x.t.titulo,x.c.label||'Cuota',fmtDCorto(x.fecha),String(x.dias),fmtUSD(x.pagado),fmtUSD(x.saldo)])
+        .concat([['','','','','','','TOTAL',fmtUSD(R.totalVencido)]]),{ultimaTotal:true})
+    else{espacio(14);T('No había pagos vencidos a esa fecha.',M,y-8,{s:8,c:GRIS});y-=16}
+    pie()
+    doc.setTitle('Reporte de ingresos '+R.desde+' a '+R.hasta);doc.setAuthor(p.nombre||'')
+    descargarBytes(await doc.save(),_nomArchivoRep(R)+'.pdf','application/pdf')
+    toast('PDF generado ✓')
+  }catch(e){alert('No se pudo generar el PDF: '+e.message)}
+  if(btn){btn.disabled=false;btn.textContent='📄 PDF'}
 }
 
 // ── Diagnóstico de instalación de la app ──

@@ -6,7 +6,7 @@
 // • Las llamadas al Apps Script (datos) NUNCA se guardan aquí.
 // Al publicar cambios importantes, sube el número de VERSION.
 // ================================================================
-const VERSION = 'ra-v7.9.6';
+const VERSION = 'ra-v7.9.7';
 const APP_SHELL = [
   './',
   './index.html',
@@ -23,7 +23,8 @@ const CDN_LIBS = [CDN_JSZIP,
   'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
   'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Regular.ttf',
   'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/crimsontext/CrimsonText-Bold.ttf',
-  'https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js'];
+  'https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
