@@ -6,7 +6,7 @@
 // • Las llamadas al Apps Script (datos) NUNCA se guardan aquí.
 // Al publicar cambios importantes, sube el número de VERSION.
 // ================================================================
-const VERSION = 'ra-v7.9.7';
+const VERSION = 'ra-v7.9.8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -73,6 +73,9 @@ self.addEventListener('fetch', function (e) {
     );
     return;
   }
+
+  // Consultas con parámetros (p. ej. la comprobación de versión): siempre a la red, sin guardar
+  if (url.origin === self.location.origin && url.search) return;
 
   // Archivos propios y JSZip: caché primero, y se actualiza en segundo plano
   if (url.origin === self.location.origin || CDN_LIBS.indexOf(req.url) > -1) {

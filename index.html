@@ -1068,6 +1068,7 @@ const NAV_MAIN=[
   {id:'propuestas',   l:'Propuestas',     ic:'📑',nuevo:1},
   {id:'publicaciones',l:'Publicaciones',  ic:'📰',nuevo:1},
   {id:'cobros',       l:'Cobros',         ic:'◎'},
+  {id:'ingresos',     l:'Ingresos e informes',ic:'📈',nuevo:1},
   {id:'facturas',     l:'Facturas',       ic:'🧾',nuevo:1},
   {id:'deudores',     l:'Deudores',       ic:'💸'},
   {id:'reuniones',    l:'Reuniones',      ic:'◷'},
@@ -1083,8 +1084,8 @@ const NAV_CLIENTE=[
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.9.7'
+const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const VERSION='v7.9.8'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1114,9 +1115,10 @@ function htmlApp(){
     +'</aside>'
     +'<div class="m-overlay '+(mobileNavOpen?'m-open':'')+'" onclick="mobileNavOpen=false;draw()"></div>'
     +'<main>'
-    +(_swNuevo?'<div class="upd-bar">✨ Hay una versión nueva de la app <button class="btn btn-gold btn-sm" onclick="actualizarApp()">Actualizar ahora</button></div>':'')
+    +(_versionPublicada&&_versionPublicada!==VERSION?'<div class="upd-bar">✨ Estás usando la '+esc(VERSION)+' y la versión publicada es la '+esc(_versionPublicada)+'. <button class="btn btn-gold btn-sm" onclick="forzarActualizacion()">Actualizar ahora</button></div>'
+      :_swNuevo?'<div class="upd-bar">✨ Hay una versión nueva de la app <button class="btn btn-gold btn-sm" onclick="actualizarApp()">Actualizar ahora</button></div>':'')
     +(sinConexion?'<div class="off-bar">📴 Sin conexión: estás viendo la última copia guardada. Los cambios no se guardarán hasta que vuelva internet.</div>':'')
-    +'<div class="topbar"><button class="m-menu-btn" onclick="mobileNavOpen=!mobileNavOpen;draw()">☰</button><h2>'+TITLES[page]+'</h2><span style="font-size:10px;color:var(--text3);margin-right:4px">'+VERSION+'</span>'
+    +'<div class="topbar"><button class="m-menu-btn" onclick="mobileNavOpen=!mobileNavOpen;draw()">☰</button><h2>'+TITLES[page]+'</h2><span style="font-size:10px;color:var(--text3);margin-right:4px;cursor:pointer" title="Versión de la app · clic para buscar actualizaciones" onclick="buscarActualizacion(true)">'+VERSION+'</span>'
     +'<div class="sp '+sc+'">'+(loading||syncing?'<span class="spin">⟳</span> ':'')+esc(syncMsg||'Listo')+'</div>'
     +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
     +'</div>'
@@ -1143,6 +1145,7 @@ function htmlPage(){
   if(page==='configuracion') return htmlConfiguracion()
   if(page==='cobros')   return htmlCobros()
   if(page==='facturas') return htmlFacturas()
+  if(page==='ingresos') return htmlIngresos()
   if(page==='deudores') return htmlDeudores()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
@@ -1660,7 +1663,7 @@ function htmlTrabajos(){
 
 // ─── COBROS ───────────────────────────────────────────────────────────────────
 function htmlCobros(){
-  const q=search.toLowerCase(),_btnRep='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-p btn-sm" onclick="openModal(\'reporteIngresos\',{})">📊 Reporte de ingresos (Excel / PDF)</button></div>'
+  const q=search.toLowerCase(),_btnRep='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-g btn-sm" style="margin-right:6px" onclick="goTo(\'ingresos\')">📈 Ver tablero de ingresos</button><button class="btn btn-p btn-sm" onclick="openModal(\'reporteIngresos\',{})">📊 Informe de ingresos (Excel / PDF)</button></div>'
   const _ordT={};data.trabajos.forEach((t,i)=>{_ordT[t.id]=i})
   const rows=data.cuotas.map(c=>{
     const t=data.trabajos.find(x=>x.id===c.trabajoId)
@@ -2941,7 +2944,45 @@ function _ctxContrato(trabajoId,silencioso){
   if(!t){if(!silencioso)toast('Trabajo no encontrado','err');return null}
   const cl=data.clientes.find(x=>x.id===t.clienteId)
   const cuotas=data.cuotas.filter(c=>c.trabajoId===trabajoId).slice().sort(function(a,b){return new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
-  return{t:t,cl:cl,cuotas:cuotas,det:detallesDe(t),modelo:modeloTrabajo(t.tipo),pr:prestador()}
+  return{t:t,cl:cl,cuotas:cuotas,det:detallesDe(t),modelo:modeloTrabajo(t.tipo),pr:prestador(),firmantes:firmantesDe(t)}
+}
+// Quiénes firman el contrato: siempre el autor encargado / de correspondencia y, si se eligieron, los demás autores
+const _listaPc=a=>a.length<2?a.join(''):a.slice(0,-1).join('; ')+'; y, '+a[a.length-1]
+function firmantesDe(t){
+  const au=autoresDe(t)
+  let fs=au.filter(a=>a.rol==='correspondencia'||a.firma)
+  if(!fs.length)fs=au.slice(0,1)
+  fs=fs.slice().sort((a,b)=>(b.rol==='correspondencia')-(a.rol==='correspondencia'))
+  return fs.map(a=>{const cl=data.clientes.find(c=>c.id===a.clienteId);return Object.assign({},cl||{},{id:a.clienteId,nombre:cl&&cl.nombre||a.nombre||'',autorId:a.id,rol:a.rol,orcid:a.orcid||(cl&&cl.orcid)||''})})
+}
+function htmlFirmantesContrato(t,emitido){
+  const au=autoresDe(t),pend=autoresPendientes(t)
+  if(au.length<2&&!pend.length)return''
+  const fs=firmantesDe(t),ids=new Set(fs.map(x=>x.autorId)),varios=fs.length>1,resp=au.find(a=>a.rol==='correspondencia')||au[0]
+  let h='<div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:#fff">'
+    +'<div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:8px">✍️ Quiénes firman el contrato</div>'
+  if(pend.length)h+='<div style="font-size:11.5px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:8px">Hay autores escritos que aún no están registrados ('+pend.map(esc).join(', ')+'). <a href="#" onclick="event.preventDefault();abrirAutores(\''+t.id+'\')">Registrarlos</a> para poder incluirlos.</div>'
+  if(au.length>=2){
+    h+='<label class="chk"><input type="radio" name="ctf_modo"'+(varios?'':' checked')+(emitido?' disabled':'')+' onchange="guardarFirmantes(\''+t.id+'\',\'uno\')"/> <strong>Solo el autor encargado:</strong> '+esc(resp&&resp.nombre||'—')+'</label>'
+      +'<label class="chk" style="margin-top:6px"><input type="radio" name="ctf_modo"'+(varios?' checked':'')+(emitido?' disabled':'')+' onchange="guardarFirmantes(\''+t.id+'\',\'varios\')"/> <strong>Varios autores</strong> (elige quiénes firman)</label>'
+    if(varios)h+='<div style="display:grid;gap:4px;margin:8px 0 0 24px">'+au.map(a=>'<label class="chk" style="margin:0"><input type="checkbox" id="ctf_'+esc(a.id)+'"'+(ids.has(a.id)?' checked':'')+(a.rol==='correspondencia'||emitido?' disabled':'')+' onchange="guardarFirmantes(\''+t.id+'\',\'sel\')"/> '+esc(a.nombre||'—')+(a.rol==='correspondencia'?' <span style="font-size:11px;color:var(--gold-dk)">(encargado, siempre firma)</span>':'')+(data.clientes.some(c=>c.id===a.clienteId&&c.cedula)?'':' <span style="font-size:11px;color:#b45309">· sin cédula</span>')+'</label>').join('')+'</div>'
+    h+='<div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.5">'+(varios?'En el contrato se nombra a <strong>'+fs.length+' autores</strong> como EL CONTRATANTE (en COMPARECIENTES, con su cédula y domicilio) y cada uno tiene su línea de firma.':'En el contrato solo aparece el autor encargado como EL CONTRATANTE.')
+      +(emitido?' <strong>El contrato ya fue emitido:</strong> para cambiar los firmantes emite una nueva versión.':'')+'</div>'
+  }
+  return h+'</div>'
+}
+async function guardarFirmantes(tid,modo){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  let au=[];try{au=JSON.parse(t.autores||'[]')||[]}catch(e){}
+  if(!Array.isArray(au)||!au.length)au=autoresDe(t)
+  if(modo==='uno')au=au.map(a=>Object.assign({},a,{firma:false}))
+  else if(modo==='varios')au=au.map(a=>Object.assign({},a,{firma:true}))
+  else au=au.map(a=>{const cb=document.getElementById('ctf_'+a.id);return Object.assign({},a,{firma:a.rol==='correspondencia'||!!(cb&&cb.checked)})})
+  const val=JSON.stringify(au)
+  data.trabajos=data.trabajos.map(x=>x.id===tid?Object.assign({},x,{autores:val}):x)
+  draw()
+  const r=await apiPost({action:'actualizar',tabla:'Trabajos',id:tid,fila:{autores:val}})
+  if(r&&r.ok)toast('Firmantes del contrato guardados ✓');else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
 }
 
 const CLAUSULAS_NUM=['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','SÉPTIMA','OCTAVA','NOVENA','DÉCIMA','UNDÉCIMA','DUODÉCIMA','DECIMOTERCERA','DECIMOCUARTA','DECIMOQUINTA','DECIMOSEXTA','DECIMOSÉPTIMA','DECIMOCTAVA','DECIMONOVENA','VIGÉSIMA','VIGÉSIMA PRIMERA','VIGÉSIMA SEGUNDA']
@@ -2999,6 +3040,8 @@ function _construirContrato(ctx,em){
   const fecha=_fmtFecha()
   const total=parseFloat(t.total||0)
   const nombreCl=(cl&&cl.nombre||'EL CONTRATANTE').toUpperCase()
+  const fir=ctx.firmantes&&ctx.firmantes.length?ctx.firmantes:[cl||{}],variosFir=fir.length>1
+  const persona=x=>(x.nombre||'').toUpperCase()+(x.cedula?', portador(a) de la cédula de ciudadanía / RUC N.° '+x.cedula:'')+(x.orcid?', ORCID '+x.orcid:'')+((x.direccion||x.ciudad)?', con domicilio en '+[x.direccion,x.ciudad].filter(Boolean).join(', '):'')
   const idCl=cl&&cl.cedula?', portador(a) de la cédula de ciudadanía / RUC N.° '+cl.cedula:''
   const domCl=cl&&(cl.direccion||cl.ciudad)?', con domicilio en '+[cl.direccion,cl.ciudad].filter(Boolean).join(', '):''
   const nombrePr=(pr.nombre||'EL PRESTADOR').toUpperCase()
@@ -3020,8 +3063,10 @@ function _construirContrato(ctx,em){
   body+=_p(_tituloContrato(modelo,t),{sz:26,bold:true,color:'0B2545',align:'center',before:80,after:100})
 
   body+=_p('COMPARECIENTES',{sz:21,bold:true,color:'0F4C81',before:60,after:50})
-  body+=T('Comparecen a la celebración del presente contrato, por una parte, '+nombrePr+idPr+profPr+domPr+', en calidad de prestador(a) de servicios profesionales de asesoría e investigación bajo la marca '+marca+', a quien en adelante y para efectos de este instrumento se denominará "EL PRESTADOR"; y, por otra parte, '+nombreCl+idCl+domCl+', a quien en adelante se denominará "EL CONTRATANTE". Ambas partes, por sus propios y personales derechos, en pleno uso de sus facultades y libre y voluntariamente, convienen en celebrar el presente contrato de prestación de servicios profesionales, al tenor de las siguientes cláusulas:')
+  body+=T('Comparecen a la celebración del presente contrato, por una parte, '+nombrePr+idPr+profPr+domPr+', en calidad de prestador(a) de servicios profesionales de asesoría e investigación bajo la marca '+marca+', a quien en adelante y para efectos de este instrumento se denominará "EL PRESTADOR"; y, por otra parte, '+(variosFir?_listaPc(fir.map(x=>persona(x)+(x.rol==='correspondencia'?' (autor(a) encargado(a) y de correspondencia)':'')))+', en calidad de '+(modelo==='publicacion'?'autores del manuscrito':'autores / investigadores')+', a quienes en adelante y en conjunto se denominará "EL CONTRATANTE"':nombreCl+idCl+domCl+', a quien en adelante se denominará "EL CONTRATANTE"')+'. Ambas partes, por sus propios y personales derechos, en pleno uso de sus facultades y libre y voluntariamente, convienen en celebrar el presente contrato de prestación de servicios profesionales, al tenor de las siguientes cláusulas:')
 
+  if(variosFir){const rp=fir.find(x=>x.rol==='correspondencia')||fir[0]
+    body+=T('Las personas que integran EL CONTRATANTE suscriben el presente contrato de manera conjunta y cada una se obliga en los términos aquí previstos. Las comunicaciones, entregas y coordinaciones se realizarán a través del autor(a) encargado(a) y de correspondencia, '+(rp.nombre||'').toUpperCase()+', sin perjuicio de que cualquiera de ellas pueda comunicarse directamente con EL PRESTADOR.')}
   // ── Antecedentes ──
   body+=C('ANTECEDENTES')
   const antecedentes={
@@ -3249,26 +3294,20 @@ function _construirContrato(ctx,em){
 
   body+=_p('Lugar y fecha de suscripción: '+(pr.ciudad?pr.ciudad:'______________________________')+', '+fecha,{sz:20,color:'333333',before:160,after:0})
 
-  // ── Firmas ──
+  // ── Firmas ── (prestador y cada autor firmante; dos por fila)
   // Espacio sobre las líneas de firma (allí va el sello de la firma electrónica)
-  body+='<w:p><w:pPr><w:keepNext/><w:spacing w:before="1300" w:after="0"/></w:pPr></w:p>'
-  body+=_tblStart([4200,600,4200])
-  body+='<w:tr>'
-    +_cell('_________________________',4200,{align:'center'})+_cell('',600,{})+_cell('_________________________',4200,{align:'center'})
-    +'</w:tr>'
-  body+='<w:tr>'
-    +_cell('EL PRESTADOR',4200,{align:'center',sz:18,bold:true,color:'333333'})+_cell('',600,{})
-    +_cell('EL CONTRATANTE',4200,{align:'center',sz:18,bold:true,color:'333333'})
-    +'</w:tr>'
-  body+='<w:tr>'
-    +_cell((pr.nombre||'')+' — '+marca,4200,{align:'center',sz:18,color:'555555'})+_cell('',600,{})
-    +_cell(cl&&cl.nombre||'Cliente',4200,{align:'center',sz:18,color:'555555'})
-    +'</w:tr>'
-  body+='<w:tr>'
-    +_cell('C.I./RUC: '+(pr.cedula||'________________'),4200,{align:'center',sz:18,color:'555555'})+_cell('',600,{})
-    +_cell('C.I./RUC: '+(cl&&cl.cedula||'________________'),4200,{align:'center',sz:18,color:'555555'})
-    +'</w:tr>'
-  body+='</w:tbl>'
+  const bloques=[{rol:'EL PRESTADOR',nom:(pr.nombre||'')+' — '+marca,ci:pr.cedula}].concat(fir.map(x=>({rol:variosFir?(x.rol==='correspondencia'?'EL CONTRATANTE · AUTOR(A) ENCARGADO(A)':'EL CONTRATANTE · COAUTOR(A)'):'EL CONTRATANTE',nom:x.nombre||'Cliente',ci:x.cedula})))
+  for(let i=0;i<bloques.length;i+=2){
+    const a=bloques[i],b=bloques[i+1]
+    const fila=(va,vb,o)=>'<w:tr>'+_cell(va,4200,o)+_cell('',600,{})+_cell(b?vb:'',4200,o)+'</w:tr>'
+    body+='<w:p><w:pPr><w:keepNext/><w:spacing w:before="'+(i===0?1300:1100)+'" w:after="0"/></w:pPr></w:p>'
+    body+=_tblStart([4200,600,4200])
+    body+=fila('_________________________','_________________________',{align:'center'})
+    body+=fila(a.rol,b&&b.rol,{align:'center',sz:18,bold:true,color:'333333'})
+    body+=fila(a.nom,b&&b.nom,{align:'center',sz:18,color:'555555'})
+    body+=fila('C.I./RUC: '+(a.ci||'________________'),b?'C.I./RUC: '+(b.ci||'________________'):'',{align:'center',sz:18,color:'555555'})
+    body+='</w:tbl>'
+  }
 
   body+=_hline()
   body+=_p('Documento generado por '+marca+' · '+fecha+(pr.telefono||pr.email?' · '+[pr.telefono,pr.email].filter(Boolean).join(' · '):''),{sz:16,color:'999999',align:'center',before:80,after:0})
@@ -4588,6 +4627,7 @@ function msgContrato(ctx,url){
 }
 function avisosContrato(ctx){
   const t=ctx.t,cl=ctx.cl,det=ctx.det,a=[]
+  ;(ctx.firmantes||[]).slice(1).forEach(x=>{if(!x.cedula)a.push('El firmante '+esc(x.nombre||'—')+' no tiene cédula/RUC registrada.')})
   if(!cl)a.push('El trabajo no tiene cliente asignado.')
   else{
     if(!cl.cedula)a.push('El cliente no tiene cédula/RUC registrada.')
@@ -4638,6 +4678,7 @@ function mContrato(d){
     +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Los datos del prestador (tu nombre, cédula, dirección) se editan en Configuración → Datos del prestador.</div>'
     +'</details>'
   const reg=contratoVigente(t.id)
+  h+=htmlFirmantesContrato(t,!!reg&&!(modal&&modal.rec&&modal.rec._nueva))
   if(reg){
     // Contrato emitido: el flujo pasa a firma electrónica y auditoría
     h+=htmlAuditoriaContrato(ctx,reg)
@@ -5407,8 +5448,9 @@ async function subirFirmadoUI(codigo,etapa,input){
     if(!an.firmas.length)avisos.push('El PDF no tiene firmas electrónicas: parece una copia impresa y escaneada. Tu firma electrónica no se conserva en este archivo, pero la versión firmada por ti sigue registrada.')
     else if(mia&&!conservada)avisos.push('No se encontró tu firma electrónica válida en este PDF: es posible que el cliente haya generado o modificado el documento en lugar de firmar el que le enviaste.')
   }
-  if(etapa==='ambos'&&an.firmas.length===1)avisos.push('Solo se detectó 1 firma electrónica. Si el cliente firmó a mano y escaneó, puedes continuar.')
-  if(etapa==='ambos'&&cl&&cl.cedula&&an.firmas.length>=2&&!an.firmas.some(f=>f.cedula&&cl.cedula.indexOf(f.cedula.slice(0,10))===0))avisos.push('Ninguna firma coincide con la cédula del cliente ('+cl.cedula+').')
+  const fir=t?firmantesDe(t):(cl?[cl]:[])
+  if(etapa==='ambos'&&an.firmas.length&&an.firmas.length<fir.length+1)avisos.push('Se detectaron '+an.firmas.length+' firma(s) electrónica(s) y el contrato tiene '+(fir.length+1)+' firmantes. Si alguno firmó a mano y escaneó, puedes continuar.')
+  if(etapa==='ambos'&&an.firmas.length>=2)fir.filter(x=>x.cedula&&!an.firmas.some(f=>f.cedula&&x.cedula.indexOf(f.cedula.slice(0,10))===0)).forEach(x=>avisos.push('No se encontró la firma electrónica de '+x.nombre+' (C.I. '+x.cedula+').'))
   const resumen=an.firmas.map(textoFirma).join('\n')||'Sin firmas electrónicas (firma manuscrita escaneada)'
   if(!confirm('Firmas encontradas:\n'+resumen+(avisos.length?'\n\n⚠ '+avisos.join('\n⚠ '):'\n\n✓ Todo en orden.')
     +'\n\n¿Registrar este PDF como contrato firmado '+(etapa==='ambos'?'POR AMBAS PARTES':'POR EL PRESTADOR')+'?'))return
@@ -5447,6 +5489,14 @@ function msgContratoFirmado(reg,cl,t,etapa){
   return waTpl(etapa==='ambos'?'contrato_completo':'contrato_firmado',{nombre:cl&&cl.nombre||'',trabajo:t&&t.titulo||reg.titulo,
     link:etapa==='ambos'?reg.urlFirmaAmbos:reg.urlFirmaPrestador,codigo:reg.id,verificar:urlVerificacion(reg.id),prestador:prestador().nombre})
 }
+// Botones de WhatsApp para cada autor que firma el contrato
+function _waFirmantes(ctx,reg,pdf){
+  const fs=(ctx.firmantes&&ctx.firmantes.length?ctx.firmantes:[ctx.cl]).filter(Boolean)
+  if(!pdf)return'Comparte el enlace del PDF firmado.'
+  return(fs.length>1?'Los '+fs.length+' autores deben firmar el mismo PDF (uno después de otro, sin generar uno nuevo) y devolvértelo.<br/>':'')
+    +fs.map(x=>x.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none;margin:4px 6px 0 0" target="_blank" href="'+esc(waUrl(x.telefono,msgContratoFirmado(Object.assign({},reg,{urlFirmaPrestador:pdf}),x,ctx.t,'prestador')))+'">💬 '+(fs.length>1?esc(String(x.nombre||'').split(' ')[0])+': ':'')+'Enviar PDF por WhatsApp</a>'
+      :'<span style="font-size:11.5px;color:var(--text3);margin-right:8px">'+esc(x.nombre||'Cliente')+' no tiene teléfono registrado.</span>').join('')
+}
 function htmlFirmasLista(json){
   const fs=_json1(json);if(!fs.length)return''
   return fs.map(f=>'<div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+(f.valida?'✅':'⚠️')+' '+(f.parte?'<span style="color:var(--text3)">'+(f.parte==='prestador'?'Prestador':'Cliente')+':</span> ':'')+esc(f.nombre||'—')+(f.cedula?' · C.I. '+esc(f.cedula):'')+(f.emisor?' · <span style="color:var(--text3)">'+esc(f.emisor)+'</span>':'')+(f.fecha?' · '+fmtFechaHora(f.fecha):'')+'</div>').join('')
@@ -5474,8 +5524,7 @@ function htmlAuditoriaContrato(ctx,reg){
       +(window._emitidos&&window._emitidos[reg.id]?'<button class="btn btn-g btn-sm" onclick="descargarEmitido(\''+esc(reg.id)+'\')">⬇ Descargar PDF firmado</button>':'')
       +(pdfPrest?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(pdfPrest)+'">🔗 PDF firmado en Drive</a>':'')+'</div>')
     h+=paso(fa,2,'Enviar al cliente para su firma',fa?'El cliente devolvió el contrato firmado.'
-      :(cl&&cl.telefono&&pdfPrest?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgContratoFirmado(Object.assign({},reg,{urlFirmaPrestador:pdfPrest}),cl,t,'prestador')))+'">💬 Enviar PDF firmado por WhatsApp</a>'
-        :'El cliente no tiene teléfono registrado; comparte el enlace del PDF firmado.'))
+      :_waFirmantes(ctx,reg,pdfPrest))
     h+=paso(fa,3,'Contrato firmado por ambas partes',fa
       ?'Registrado el '+fmtFechaHora(reg.fechaFirmaAmbos)+' · huella '+esc(corto(reg.hashFirmaAmbos))+htmlFirmasLista(reg.firmasAmbos)
         +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+(reg.urlFirmaAmbos?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(reg.urlFirmaAmbos)+'">📄 PDF firmado por ambos</a>':'')
@@ -5976,9 +6025,7 @@ function htmlAutoresResumen(t){
     +'<strong style="font-size:12px;color:var(--navy)">👥 Autores ('+au.length+') · '+(modo==='porAutor'?'Cobro por autor':'Cobro al autor encargado')+'</strong>'
     +'<button class="btn btn-g btn-sm" onclick="abrirAutores(\''+t.id+'\')">✏️ Autores y forma de cobro</button></div>'
     +(autoresPendientes(t).length?'<div style="font-size:11.5px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:6px">Coautores escritos en los detalles que aún no están registrados: <strong>'+autoresPendientes(t).map(esc).join(', ')+'</strong> · <a href="#" onclick="event.preventDefault();abrirAutores(\''+t.id+'\')">Registrarlos como autores y clientes</a></div>':'')
-    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+au.map(a=>'<span style="font-size:11.5px;background:'+(a.rol==='correspondencia'?'var(--gold-lt)':'#F1F5FA')+';border:1px solid var(--border);border-radius:999px;padding:3px 10px">'
-      +(a.rol==='correspondencia'?'✉️ ':'')+esc(a.nombre||'—')+(a.orcid?' '+orcidLink(a.orcid):'')
-      +(modo==='porAutor'?' · '+fmt(parseFloat(a.pct)||0)+' % · '+fmtUSD(montoAutor(a,t.total))+' · '+cuotasAutorTxt(a):'')+'</span>').join('')+'</div></div>'
+    +htmlTablaAutores(t)+'</div>'
 }
 // Nombres escritos en el campo de texto "Autores / coautores" de los detalles del trabajo
 const _normNom=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9ñ ]/g,' ').replace(/\s+/g,' ').trim()
@@ -6016,6 +6063,21 @@ function htmlAvisoAutoresSinCliente(){
   const fs=autoresSinCliente();if(!fs.length)return''
   return'<div class="alert-venc" style="background:var(--amber-bg);border-color:#fde68a;color:#92400e">👥 <strong>'+fs.length+' coautor'+(fs.length>1?'es':'')+' de tus trabajos no está'+(fs.length>1?'n':'')+' en la base de clientes'+(fs.some(x=>x.nombre)?': '+fs.filter(x=>x.nombre).slice(0,6).map(x=>esc(x.nombre)).join(', ')+(fs.length>6?'…':''):'')+'</strong>'
     +'<button class="btn btn-gold btn-sm" onclick="repararAutoresClientes()">Registrarlos como clientes</button></div>'
+}
+// Tabla con los datos de cada autor: identificación, contacto, ORCID, valor, forma de pago, pagado y saldo
+function htmlTablaAutores(t){
+  const filas=resumenPorAutor(t),modo=modoCobroDe(t),fir=new Set(firmantesDe(t).map(x=>x.id))
+  if(!filas.length)return''
+  return'<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><thead><tr><th>Autor</th><th>Cédula / RUC</th><th>Contacto</th><th>ORCID</th>'+(modo==='porAutor'?'<th style="text-align:right">Valor</th><th>Forma de pago</th>':'')+'<th style="text-align:right">Pagado</th><th style="text-align:right">Saldo</th><th title="Firma el contrato">✍️</th></tr></thead><tbody>'
+    +filas.map(function(x){const a=x.a,cl=x.cl
+      return'<tr><td><strong>'+(a.rol==='correspondencia'?'✉️ ':'')+esc(a.nombre||'—')+'</strong>'+(a.rol==='correspondencia'?'<div style="font-size:10.5px;color:var(--gold-dk)">Encargado / correspondencia</div>':'')
+        +(!cl?'<div style="font-size:10.5px;color:#b45309">⚠ no está en Clientes</div>':'')+'</td>'
+        +'<td>'+esc(cl&&cl.cedula||'—')+'</td><td style="font-size:11.5px">'+[cl&&cl.email,cl&&cl.telefono].filter(Boolean).map(esc).join('<br/>')+'</td>'
+        +'<td>'+(a.orcid?'<a href="https://orcid.org/'+esc(a.orcid)+'" target="_blank" rel="noopener" style="font-family:monospace;font-size:11px">'+esc(a.orcid)+'</a>':'—')+'</td>'
+        +(modo==='porAutor'?'<td style="text-align:right;white-space:nowrap">'+fmtUSD(x.acordado>0?x.acordado:montoAutor(a,t.total))+'<div style="font-size:10.5px;color:var(--text3)">'+fmt(parseFloat(a.pct)||0)+' %</div></td><td style="font-size:11.5px">'+(!a.cuotas||a.cuotas==='plan'?'Según el plan'+(x.cuotas?' ('+x.cuotas+' cuota'+(x.cuotas>1?'s':'')+')':''):esc(cuotasAutorTxt(a)))+'</td>':'')
+        +'<td style="text-align:right;color:var(--green);font-weight:700">'+fmtUSD(x.pagado)+'</td><td style="text-align:right;font-weight:700;color:'+(x.saldo>0?'#b45309':'var(--green)')+'">'+fmtUSD(x.saldo)+'</td>'
+        +'<td style="text-align:center">'+(fir.has(a.clienteId)?'✓':'')+'</td></tr>'}).join('')
+    +'</tbody></table></div>'
 }
 function abrirAutores(tid,op){
   const t=data.trabajos.find(x=>x.id===tid);if(!t)return
@@ -6242,7 +6304,7 @@ async function submitAutores(){
     data.clientes=data.clientes.concat([cli]);r.clienteId=cli.id;r.nombre=cli.nombre
   }
   const autores=rows.map(r=>{const m=porAutor?montoAutor(r,total):(r.rol==='correspondencia'?total:0)
-    return{id:r.id||uid(),clienteId:r.clienteId,nombre:r.nombre,rol:r.rol,orcid:r.orcid||'',tipo:porAutor?(r.tipo==='valor'?'valor':'pct'):'pct',
+    return{id:r.id||uid(),clienteId:r.clienteId,nombre:r.nombre,rol:r.rol,orcid:r.orcid||'',firma:!!r.firma,tipo:porAutor?(r.tipo==='valor'?'valor':'pct'):'pct',
       pct:porAutor?(r.tipo==='valor'?(total?Math.round(m/total*1e6)/1e4:0):(parseFloat(r.pct)||0)):(r.rol==='correspondencia'?100:0),monto:m,
       cuotas:porAutor&&r.cuotas&&r.cuotas!=='plan'?String(r.cuotas):'plan',primerPago:porAutor&&r.cuotas&&r.cuotas!=='plan'?(r.primerPago||''):''}})
   // El ORCID también queda en la ficha del cliente (se reutiliza en otros trabajos)
@@ -6884,13 +6946,17 @@ function _rangoPreset(k){
   return[iso(new Date(y,m,1)),hoyISO()]
 }
 // Reúne los pagos del periodo con sus datos sustanciales
-function datosReporteIngresos(desde,hasta,tipo){
+function datosReporteIngresos(desde,hasta,tipo,extra){
+  extra=extra||{}
   const filas=(data.abonos||[]).map(function(a){
     const f=toISO(a.fecha||'');if(!f||f<desde||f>hasta)return null
     const c=data.cuotas.find(x=>x.id===a.cuotaId),t=data.trabajos.find(x=>x.id===(a.trabajoId||c&&c.trabajoId))
     if(tipo&&(!t||t.tipo!==tipo))return null
     const cl=c?pagadorDe(c,t):(t?data.clientes.find(x=>x.id===t.clienteId):null)
     const fa=facturasDeAbono(a.id)[0]
+    if(extra.cliente&&(cl?cl.id:nombrePagador(c,t,cl))!==extra.cliente)return null
+    if(extra.fact==='con'&&!(fa&&fa.estado==='AUTORIZADO'))return null
+    if(extra.fact==='sin'&&fa&&fa.estado==='AUTORIZADO')return null
     return{fecha:f,cliente:nombrePagador(c,t,cl),cedula:cl&&cl.cedula||'',trabajo:t?t.titulo:(c&&c.trabajoTitulo)||'—',
       tipo:t&&t.tipo||'—',cuota:c&&c.label||'—',comprobante:a.comprobante||'',nota:a.nota||'',factura:fa?fa.numero+(fa.estado!=='AUTORIZADO'?' ('+(ESTADO_FACT[fa.estado]||[0,fa.estado])[1]+')':''):'',
       facturado:!!(fa&&fa.estado==='AUTORIZADO'),monto:r2(parseFloat(a.monto)||0)}
@@ -6899,9 +6965,10 @@ function datosReporteIngresos(desde,hasta,tipo){
   const agrupar=k=>{const o={};filas.forEach(x=>{const g=typeof k==='function'?k(x):x[k];o[g]=o[g]||{n:0,monto:0};o[g].n++;o[g].monto=r2(o[g].monto+x.monto)});return o}
   const porMes=agrupar(x=>x.fecha.slice(0,7)),porTipo=agrupar('tipo'),porCliente=agrupar('cliente')
   const facturado=r2(filas.filter(x=>x.facturado).reduce((s,x)=>s+x.monto,0))
-  const vencidas=cuotasVencidas(_sumarDia(hasta,1))
+  const vencidas=cuotasVencidas(hasta<hoyISO()?_sumarDia(hasta,1):hoyISO())
   const porCobrar=r2(data.cuotas.filter(c=>{const t=data.trabajos.find(x=>x.id===c.trabajoId);return t&&t.estado!=='Cancelado'}).reduce((s,c)=>s+saldoCuota(c),0))
-  return{desde:desde,hasta:hasta,tipo:tipo||'',filas:filas,total:total,n:filas.length,promedio:filas.length?r2(total/filas.length):0,
+  const fCli=extra.cliente?((data.clientes.find(c=>c.id===extra.cliente)||{}).nombre||extra.cliente):''
+  return{desde:desde,hasta:hasta,tipo:tipo||'',filtros:[tipo?'Tipo: '+tipo:'',fCli?'Cliente: '+fCli:'',extra.fact==='con'?'Solo con factura':extra.fact==='sin'?'Solo sin factura':''].filter(Boolean).join(' · '),filas:filas,total:total,n:filas.length,promedio:filas.length?r2(total/filas.length):0,
     porMes:porMes,porTipo:porTipo,porCliente:porCliente,facturado:facturado,sinFactura:r2(total-facturado),
     vencidas:vencidas,totalVencido:r2(vencidas.reduce((s,x)=>s+x.saldo,0)),porCobrar:porCobrar}
 }
@@ -6931,15 +6998,15 @@ function mReporteIngresos(d){
 function _repLeer(){if(!modal||modal.type!=='reporteIngresos')return;const r=modal.rec;r.desde=v('ri_desde');r.hasta=v('ri_hasta');r.tipo=v('ri_tipo');if(r.desde&&r.hasta&&r.desde>r.hasta){const x=r.desde;r.desde=r.hasta;r.hasta=x}drawDesdeEstado(/^ri_/)}
 function _repPreset(k){const r=_rangoPreset(k);modal.rec.desde=r[0];modal.rec.hasta=r[1];drawDesdeEstado(/^ri_/)}
 const _nomArchivoRep=R=>'Reporte_ingresos_'+R.desde+'_a_'+R.hasta
-async function reporteIngresosExcel(){
-  const d=modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo),btn=document.getElementById('ri_xls')
+async function reporteIngresosExcel(o){
+  const d=o||modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo,{cliente:d.cliente,fact:d.fact}),btn=document.getElementById(o?'ing_xls':'ri_xls'),txtBtn=btn&&btn.textContent
   if(btn){btn.disabled=true;btn.textContent='Generando…'}
   try{
     await cargarLib(LIB_XLSX,'XLSX')
     const p=prestador(),wb=XLSX.utils.book_new(),num='#,##0.00'
     const hoja=(aoa,anchos,colsNum,desdeFila)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=anchos.map(w=>({wch:w}))
       for(let r=desdeFila;r<aoa.length;r++)colsNum.forEach(cn=>{const ref=XLSX.utils.encode_cell({r:r,c:cn});if(ws[ref]&&typeof ws[ref].v==='number')ws[ref].z=num});return ws}
-    const cab=[['Reporte de ingresos — '+(p.nombre||'Research Assessor')],['Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.tipo?' · Tipo: '+R.tipo:'')],['Generado: '+new Date().toLocaleString('es-EC')],[]]
+    const cab=[['Reporte de ingresos — '+(p.nombre||'Research Assessor')],['Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.filtros?' · '+R.filtros:'')],['Generado: '+new Date().toLocaleString('es-EC')],[]]
     // 1) Detalle de ingresos
     const det=cab.concat([['Fecha','Cliente / autor','Cédula / RUC','Trabajo','Tipo de trabajo','Cuota','Comprobante','Factura','Nota','Monto (USD)']])
       .concat(R.filas.map(x=>[x.fecha,x.cliente,x.cedula,x.trabajo,x.tipo,x.cuota,x.comprobante,x.factura||'Sin factura',x.nota,x.monto]))
@@ -6960,10 +7027,10 @@ async function reporteIngresosExcel(){
     XLSX.writeFile(wb,_nomArchivoRep(R)+'.xlsx')
     toast('Excel generado ✓')
   }catch(e){alert('No se pudo generar el Excel: '+e.message)}
-  if(btn){btn.disabled=false;btn.textContent='📗 Excel'}
+  if(btn){btn.disabled=false;btn.textContent=txtBtn}
 }
-async function reporteIngresosPdf(){
-  const d=modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo),btn=document.getElementById('ri_pdf')
+async function reporteIngresosPdf(o){
+  const d=o||modal.rec,R=datosReporteIngresos(d.desde,d.hasta,d.tipo,{cliente:d.cliente,fact:d.fact}),btn=document.getElementById(o?'ing_pdf':'ri_pdf'),txtBtn=btn&&btn.textContent
   if(btn){btn.disabled=true;btn.textContent='Generando…'}
   try{
     await cargarLib(LIB_PDFLIB,'PDFLib')
@@ -6975,7 +7042,7 @@ async function reporteIngresosPdf(){
       const w=font.widthOfTextAtSize(t,sz);pg.drawText(t,{x:o.al==='r'?x-w:o.al==='c'?x-w/2:x,y:yy,size:sz,font:font,color:o.c||NAVY})}
     const nueva=()=>{pg=doc.addPage([PW,PH]);pg.drawImage(logo,{x:M,y:PH-M-40,width:112,height:40})
       T('REPORTE DE INGRESOS',PW-M,PH-M-14,{b:1,s:14,al:'r'})
-      T('Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.tipo?' · '+R.tipo:''),PW-M,PH-M-28,{s:9,al:'r',c:GRIS})
+      T('Periodo: '+fmtDCorto(R.desde)+' al '+fmtDCorto(R.hasta)+(R.filtros?' · '+R.filtros:''),PW-M,PH-M-28,{s:9,al:'r',c:GRIS,w:PW-2*M-140})
       T((p.nombre||'')+(p.cedula?' · C.I. '+p.cedula:''),PW-M,PH-M-40,{s:8,al:'r',c:GRIS})
       pg.drawLine({start:{x:M,y:PH-M-48},end:{x:PW-M,y:PH-M-48},thickness:0.8,color:BORDE});y=PH-M-62}
     const pie=()=>{const ps=doc.getPages();ps.forEach((x,i)=>{pg=x;T('Generado el '+new Date().toLocaleString('es-EC')+' · Research Assessor',M,18,{s:7,c:GRIS});T('Página '+(i+1)+' de '+ps.length,PW-M,18,{s:7,al:'r',c:GRIS})})}
@@ -7021,7 +7088,199 @@ async function reporteIngresosPdf(){
     descargarBytes(await doc.save(),_nomArchivoRep(R)+'.pdf','application/pdf')
     toast('PDF generado ✓')
   }catch(e){alert('No se pudo generar el PDF: '+e.message)}
-  if(btn){btn.disabled=false;btn.textContent='📄 PDF'}
+  if(btn){btn.disabled=false;btn.textContent=txtBtn}
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// INGRESOS: dashboard dinámico (filtros, gráficos interactivos) + informes Excel/PDF
+// ════════════════════════════════════════════════════════════════
+const ING={desde:'',hasta:'',agr:'mes',tipo:'',cliente:'',fact:'',proy:true,verTodo:false}
+const ING_AZUL='#1E6FB8',ING_ORO='#C9973F'
+function _inicioPer(iso,agr){
+  const d=new Date(iso+'T12:00:00'),y=d.getFullYear(),m=d.getMonth(),f=x=>new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10)
+  if(agr==='dia')return iso
+  if(agr==='semana'){d.setDate(d.getDate()-(d.getDay()+6)%7);return f(d)}
+  if(agr==='mes')return f(new Date(y,m,1,12))
+  if(agr==='trimestre')return f(new Date(y,Math.floor(m/3)*3,1,12))
+  return f(new Date(y,0,1,12))
+}
+function _sigPer(iso,agr){
+  const d=new Date(iso+'T12:00:00'),f=x=>new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10)
+  if(agr==='dia')return _sumarDia(iso,1)
+  if(agr==='semana')return _sumarDia(iso,7)
+  if(agr==='mes')return f(new Date(d.getFullYear(),d.getMonth()+1,1,12))
+  if(agr==='trimestre')return f(new Date(d.getFullYear(),d.getMonth()+3,1,12))
+  return f(new Date(d.getFullYear()+1,0,1,12))
+}
+function _etiquetaPer(iso,agr){
+  const d=new Date(iso+'T12:00:00')
+  if(agr==='dia')return d.getDate()+' '+MESES[d.getMonth()]
+  if(agr==='semana')return d.getDate()+' '+MESES[d.getMonth()]
+  if(agr==='mes')return MESES[d.getMonth()]+' '+String(d.getFullYear()).slice(2)
+  if(agr==='trimestre')return'T'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear()
+  return String(d.getFullYear())
+}
+const _diasEntre=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5)
+// Agrupación efectiva: si hay demasiados periodos, sube a la siguiente
+function _agrEfectiva(desde,hasta,agr){
+  const d=_diasEntre(desde,hasta),orden=['dia','semana','mes','trimestre','anio'],lim={dia:62,semana:110,mes:72,trimestre:60,anio:99}
+  let i=orden.indexOf(agr);if(i<0)i=2
+  while(i<orden.length-1&&d/({dia:1,semana:7,mes:30.4,trimestre:91,anio:365}[orden[i]])>lim[orden[i]])i++
+  return orden[i]
+}
+function _periodos(desde,hasta,agr){
+  const out=[];let cur=_inicioPer(desde,agr)
+  while(cur<=hasta&&out.length<400){const sig=_sigPer(cur,agr);out.push({ini:cur<desde?desde:cur,fin:_sumarDia(sig,-1)>hasta?hasta:_sumarDia(sig,-1),k:cur,l:_etiquetaPer(cur,agr),real:0,n:0,proy:0});cur=sig}
+  return out
+}
+const _compactUSD=v=>v>=1e6?'$'+(Math.round(v/1e5)/10)+'M':v>=1e3?'$'+(Math.round(v/100)/10)+'K':'$'+Math.round(v)
+function _ticks(max){
+  if(!(max>0))return[0,1]
+  const p=Math.pow(10,Math.floor(Math.log10(max))),paso=[1,2,2.5,5,10].map(x=>x*p).find(s=>max/s<=5)||p*10
+  const t=[];for(let v=0;v<=max+paso*0.001;v+=paso)t.push(v);if(t[t.length-1]<max)t.push(t[t.length-1]+paso);return t
+}
+// Datos del tablero con los filtros actuales
+function datosIngresos(){
+  if(!ING.desde){const r=_rangoTablero('anio');ING.desde=r[0];ING.hasta=r[1]}
+  const R=datosReporteIngresos(ING.desde,ING.hasta,ING.tipo,{cliente:ING.cliente,fact:ING.fact})
+  const agr=_agrEfectiva(ING.desde,ING.hasta,ING.agr),per=_periodos(ING.desde,ING.hasta,agr)
+  const idx=f=>{for(let i=0;i<per.length;i++)if(f>=per[i].ini&&f<=per[i].fin)return i;return -1}
+  R.filas.forEach(x=>{const i=idx(x.fecha);if(i>-1){per[i].real=r2(per[i].real+x.monto);per[i].n++}})
+  // Proyección: saldos de cuotas que vencen desde hoy dentro del periodo
+  const hoy=hoyISO()
+  if(ING.proy)data.cuotas.forEach(function(c){
+    const f=toISO(c.fechaVencimiento||''),s=saldoCuota(c);if(!f||f<hoy||f<ING.desde||f>ING.hasta||!(s>0))return
+    const t=data.trabajos.find(x=>x.id===c.trabajoId);if(!t||t.estado==='Cancelado')return
+    if(ING.tipo&&t.tipo!==ING.tipo)return
+    const cl=pagadorDe(c,t);if(ING.cliente&&(cl?cl.id:nombrePagador(c,t,cl))!==ING.cliente)return
+    const i=idx(f);if(i>-1)per[i].proy=r2(per[i].proy+s)
+  })
+  // Periodo anterior de igual duración (para comparar)
+  const dur=_diasEntre(ING.desde,ING.hasta)+1,pHasta=_sumarDia(ING.desde,-1),pDesde=_sumarDia(pHasta,-(dur-1))
+  const P=datosReporteIngresos(pDesde,pHasta,ING.tipo,{cliente:ING.cliente,fact:ING.fact})
+  return{R:R,per:per,agr:agr,ant:{desde:pDesde,hasta:pHasta,total:P.total},proyTotal:r2(per.reduce((s,p)=>s+p.proy,0))}
+}
+function _ingSet(k,v){ING[k]=v;if(k==='desde'||k==='hasta'){if(ING.desde&&ING.hasta&&ING.desde>ING.hasta){const x=ING.desde;ING.desde=ING.hasta;ING.hasta=x}}ING.verTodo=false;draw()}
+// En el tablero "Este año" abarca el año completo para ver también lo que falta cobrar
+const _rangoTablero=k=>{if(k==='anio'){const y=new Date().getFullYear();return[y+'-01-01',y+'-12-31']}return _rangoPreset(k)}
+function _ingPreset(k){const r=_rangoTablero(k);ING.desde=r[0];ING.hasta=r[1];ING.verTodo=false;draw()}
+function _ingLimpiar(){const r=_rangoTablero('anio');Object.assign(ING,{desde:r[0],hasta:r[1],agr:'mes',tipo:'',cliente:'',fact:'',proy:true,verTodo:false});draw()}
+function _ingTip(e,html){const t=document.getElementById('ing_tip');if(!t)return;t.innerHTML=html;t.style.display='block'
+  const x=Math.min(e.clientX+14,window.innerWidth-t.offsetWidth-8),y=Math.max(8,e.clientY-t.offsetHeight-12);t.style.left=x+'px';t.style.top=y+'px'}
+function _ingTipOff(){const t=document.getElementById('ing_tip');if(t)t.style.display='none'}
+function _ingZoom(i){const D=datosIngresos(),p=D.per[i];if(!p)return;ING.desde=p.ini;ING.hasta=p.fin;ING.agr=D.agr==='anio'?'mes':D.agr==='trimestre'?'mes':D.agr==='mes'?'dia':'dia';draw()}
+// Gráfico de columnas: cobrado real + proyectado (misma escala, un solo eje)
+function _svgIngresos(per,proy){
+  const W=900,H=280,ml=54,mr=12,mt=16,mb=34,iw=W-ml-mr,ih=H-mt-mb
+  const max=Math.max(1,...per.map(p=>p.real+(proy?p.proy:0))),ticks=_ticks(max),top=ticks[ticks.length-1]
+  const n=per.length,slot=iw/n,bw=Math.max(3,Math.min(24,slot*0.62)),y=v=>mt+ih-(v/top)*ih
+  const col=(x,y0,y1,color,round,extra)=>{const h=y0-y1;if(h<=0)return'';const r=round?Math.min(4,h,bw/2):0
+    return'<path d="M'+x+','+y0+' V'+(y1+r)+(r?' Q'+x+','+y1+' '+(x+r)+','+y1:'')+' H'+(x+bw-r)+(r?' Q'+(x+bw)+','+y1+' '+(x+bw)+','+(y1+r):'')+' V'+y0+' Z" fill="'+color+'"'+(extra||'')+'/>'}
+  let s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block" role="img" aria-label="Ingresos por periodo">'
+    +'<defs><pattern id="ingRay" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#E3EDF8"/><line x1="0" y1="0" x2="0" y2="6" stroke="'+ING_AZUL+'" stroke-width="2"/></pattern></defs>'
+  ticks.forEach(v=>{s+='<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="#ECEAE4" stroke-width="1"/><text x="'+(ml-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="#6b7280">'+_compactUSD(v)+'</text>'})
+  const cadaEt=Math.ceil(n/14)
+  per.forEach(function(p,i){
+    const x=ml+i*slot+(slot-bw)/2,y0=y(0),yr=y(p.real),yp=y(p.real+(proy?p.proy:0))
+    s+=col(x,y0,yr,ING_AZUL,!(proy&&p.proy>0))
+    if(proy&&p.proy>0)s+=col(x,yr-(p.real>0?2:0),yp,'url(#ingRay)',true)
+    if(i%cadaEt===0)s+='<text x="'+(ml+i*slot+slot/2)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="#6b7280">'+esc(p.l)+'</text>'
+    const tip='<strong>'+esc(p.ini===p.fin?fmtDCorto(p.ini):fmtDCorto(p.ini)+' – '+fmtDCorto(p.fin))+'</strong><br/>Cobrado: <strong>'+fmtUSD(p.real)+'</strong> ('+p.n+' pago'+(p.n!==1?'s':'')+')'+(proy&&p.proy>0?'<br/>Por cobrar: '+fmtUSD(p.proy):'')+'<br/><span style="opacity:.7">Clic para ver este periodo</span>'
+    s+='<rect x="'+(ml+i*slot)+'" y="'+mt+'" width="'+slot+'" height="'+ih+'" fill="transparent" style="cursor:pointer" onmousemove="_ingTip(event,\''+esc(tip).replace(/'/g,"\\'")+'\')" onmouseleave="_ingTipOff()" onclick="_ingTipOff();_ingZoom('+i+')"/>'
+  })
+  // Valor del mayor periodo cobrado (etiqueta selectiva)
+  const im=per.reduce((b,p,i)=>p.real>per[b].real?i:b,0)
+  if(per[im]&&per[im].real>0)s+='<text x="'+(ml+im*slot+slot/2)+'" y="'+(y(per[im].real+(proy?per[im].proy:0))-6)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#0B2545">'+_compactUSD(per[im].real)+'</text>'
+  s+='<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#CFCBC1" stroke-width="1"/></svg>'
+  return s
+}
+// Barras horizontales (magnitud, un solo color) con clic para filtrar
+function _barrasH(obj,total,onclick,activo){
+  const ks=Object.keys(obj).sort((a,b)=>obj[b].monto-obj[a].monto),top=ks.slice(0,8),otros=ks.slice(8)
+  const max=Math.max(1,...top.map(k=>obj[k].monto))
+  let h=top.map(k=>'<div style="display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:8px;align-items:center;margin:5px 0;cursor:pointer'+(activo&&activo!==k?';opacity:.45':'')+'" onclick="'+onclick(k)+'" title="Clic para filtrar">'
+    +'<span style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(k)+'</span>'
+    +'<span style="background:#F1EFEA;border-radius:4px;height:14px;display:block"><span style="display:block;height:14px;width:'+Math.max(2,obj[k].monto/max*100)+'%;background:'+ING_AZUL+';border-radius:0 4px 4px 0"></span></span>'
+    +'<span style="font-size:12px;font-weight:700;color:var(--navy);min-width:86px;text-align:right">'+fmtUSD(obj[k].monto)+' <span style="font-weight:400;color:var(--text3)">'+(total?Math.round(obj[k].monto/total*100):0)+'%</span></span></div>').join('')
+  if(otros.length)h+='<div style="font-size:11px;color:var(--text3);margin-top:4px">+ '+otros.length+' más ('+fmtUSD(r2(otros.reduce((s,k)=>s+obj[k].monto,0)))+')</div>'
+  return h||'<div style="font-size:12px;color:var(--text3)">Sin pagos en el periodo.</div>'
+}
+function htmlIngresos(){
+  if(user.role!=='admin'&&user.role!=='lector')return'<p style="padding:24px;color:var(--text3)">Solo administradores</p>'
+  const D=datosIngresos(),R=D.R
+  const tipos=[...new Set(data.trabajos.map(t=>t.tipo).filter(Boolean))].sort()
+  // Clientes que tienen pagos o cuotas (id o nombre si no tienen ficha)
+  const cls={};data.cuotas.forEach(c=>{const t=data.trabajos.find(x=>x.id===c.trabajoId);if(!t)return;const cl=pagadorDe(c,t);const k=cl?cl.id:nombrePagador(c,t,cl);cls[k]=cl?cl.nombre:k})
+  const var_=D.ant.total>0?Math.round((R.total-D.ant.total)/D.ant.total*100):null
+  const pre=[['mes','Este mes'],['mesAnt','Mes anterior'],['30','30 días'],['trim','Trimestre'],['anio','Este año'],['anioAnt','Año anterior']]
+  const sel=(id,val,opts,fn)=>'<select id="'+id+'" onchange="'+fn+'" style="min-width:0">'+opts.map(o=>'<option value="'+esc(o[0])+'"'+(String(val)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select>'
+  let h='<div id="ing_tip" style="position:fixed;display:none;z-index:999;background:#0B2545;color:#fff;font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;pointer-events:none;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.18)"></div>'
+  // Filtros (una fila)
+  h+='<div class="card" style="padding:12px 14px;margin-bottom:14px">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+pre.map(p=>'<button class="btn btn-g btn-sm" onclick="_ingPreset(\''+p[0]+'\')">'+p[1]+'</button>').join('')
+    +'<span style="flex:1"></span><button class="btn btn-green btn-sm" id="ing_xls" onclick="reporteIngresosExcel(ING)">📗 Informe Excel</button><button class="btn btn-p btn-sm" id="ing_pdf" onclick="reporteIngresosPdf(ING)">📄 Informe PDF</button></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end">'
+    +'<div><label>Desde</label><input type="date" value="'+esc(ING.desde)+'" onchange="_ingSet(\'desde\',this.value)"/></div>'
+    +'<div><label>Hasta</label><input type="date" value="'+esc(ING.hasta)+'" onchange="_ingSet(\'hasta\',this.value)"/></div>'
+    +'<div><label>Agrupar por</label>'+sel('ing_agr',ING.agr,[['dia','Día'],['semana','Semana'],['mes','Mes'],['trimestre','Trimestre'],['anio','Año']],"_ingSet('agr',this.value)")+'</div>'
+    +'<div><label>Tipo de trabajo</label>'+sel('ing_tipo',ING.tipo,[['','Todos']].concat(tipos.map(t=>[t,t])),"_ingSet('tipo',this.value)")+'</div>'
+    +'<div><label>Cliente / autor</label>'+sel('ing_cli',ING.cliente,[['','Todos']].concat(Object.keys(cls).sort((a,b)=>cls[a].localeCompare(cls[b])).map(k=>[k,cls[k]])),"_ingSet('cliente',this.value)")+'</div>'
+    +'<div><label>Factura</label>'+sel('ing_fact',ING.fact,[['','Todos los pagos'],['con','Con factura'],['sin','Sin factura']],"_ingSet('fact',this.value)")+'</div>'
+    +'</div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px">'
+    +'<label class="chk" style="margin:0"><input type="checkbox"'+(ING.proy?' checked':'')+' onchange="_ingSet(\'proy\',this.checked)"/> Mostrar lo que está por cobrar</label>'
+    +((ING.tipo||ING.cliente||ING.fact)?'<button class="btn btn-g btn-sm" onclick="_ingLimpiar()">✕ Quitar filtros</button>':'')
+    +(D.agr!==ING.agr?'<span style="font-size:11px;color:var(--text3)">Agrupado por '+({dia:'día',semana:'semana',mes:'mes',trimestre:'trimestre',anio:'año'}[D.agr])+' por la duración del periodo</span>':'')
+    +'</div></div>'
+  // Indicadores
+  const kpi=(l,v,sub,c)=>'<div class="kpi"><div class="kpi-label">'+l+'</div><div class="kpi-value"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="kpi-sub">'+sub+'</div></div>'
+  h+='<div class="kpis">'
+    +kpi('Ingresos del periodo',fmtUSD(R.total),var_===null?'sin datos del periodo anterior':'<span style="color:'+(var_>=0?'var(--green)':'var(--red)')+'">'+(var_>=0?'▲':'▼')+' '+Math.abs(var_)+'%</span> vs '+fmtDCorto(D.ant.desde)+' – '+fmtDCorto(D.ant.hasta),'var(--green)')
+    +kpi('Pagos recibidos',String(R.n),'promedio '+fmtUSD(R.promedio))
+    +kpi('Con factura',fmtUSD(R.facturado),'sin factura '+fmtUSD(R.sinFactura))
+    +kpi('Por cobrar en el periodo',fmtUSD(D.proyTotal),'cuotas que vencen desde hoy','var(--brand)')
+    +kpi('Vencido al '+fmtDCorto(R.hasta>=hoyISO()?hoyISO():R.hasta),fmtUSD(R.totalVencido),R.vencidas.length+' cuota(s)','var(--red)')
+    +'</div>'
+  // Gráfico principal
+  h+='<div class="chart-wrap" style="margin-bottom:16px">'
+    +'<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">'
+    +'<div><div class="chart-title">Ingresos por '+({dia:'día',semana:'semana',mes:'mes',trimestre:'trimestre',anio:'año'}[D.agr])+'</div><div class="chart-sub">'+fmtDCorto(ING.desde)+' al '+fmtDCorto(ING.hasta)+' · pasa el cursor sobre una columna para ver el detalle; haz clic para entrar a ese periodo</div></div>'
+    +(ING.proy?'<div style="display:flex;gap:14px;font-size:11.5px;color:var(--text2);align-items:center"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+ING_AZUL+';margin-right:5px"></span>Cobrado</span><span><svg width="10" height="10" style="margin-right:5px;vertical-align:-1px"><rect width="10" height="10" fill="url(#ingRay)"/></svg>Por cobrar</span></div>':'')
+    +'</div><div style="margin-top:10px">'+_svgIngresos(D.per,ING.proy)+'</div></div>'
+  // Desgloses
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px">'
+    +'<div class="chart-wrap"><div class="chart-title">Por tipo de trabajo</div><div class="chart-sub">Clic en una barra para filtrar</div><div style="margin-top:8px">'+_barrasH(R.porTipo,R.total,k=>"_ingSet('tipo',"+jss(k).replace(/"/g,'&quot;')+")",ING.tipo)+'</div></div>'
+    +'<div class="chart-wrap"><div class="chart-title">Principales clientes / autores</div><div class="chart-sub">Clic en una barra para filtrar</div><div style="margin-top:8px">'
+      +_barrasH(R.porCliente,R.total,function(k){const id=Object.keys(cls).find(x=>cls[x]===k)||k;return"_ingSet('cliente',"+jss(id).replace(/"/g,'&quot;')+")"},ING.cliente?cls[ING.cliente]:'')+'</div></div>'
+    +'</div>'
+  // Facturación: barra apilada de dos categorías con leyenda
+  if(R.total>0){const pc=Math.round(R.facturado/R.total*100)
+    h+='<div class="chart-wrap" style="margin-bottom:16px"><div class="chart-title">Ingresos con y sin factura</div>'
+      +'<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;gap:2px;margin:10px 0 8px;background:#fff">'
+      +(R.facturado>0?'<div title="Con factura: '+fmtUSD(R.facturado)+'" style="width:'+pc+'%;background:'+ING_AZUL+'"></div>':'')
+      +(R.sinFactura>0?'<div title="Sin factura: '+fmtUSD(R.sinFactura)+'" style="flex:1;background:'+ING_ORO+'"></div>':'')+'</div>'
+      +'<div style="display:flex;gap:18px;font-size:12px;color:var(--text2);flex-wrap:wrap">'
+      +'<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+ING_AZUL+';margin-right:6px"></span>Con factura: <strong>'+fmtUSD(R.facturado)+'</strong> ('+pc+'%)</span>'
+      +'<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+ING_ORO+';margin-right:6px"></span>Sin factura: <strong>'+fmtUSD(R.sinFactura)+'</strong> ('+(100-pc)+'%)</span></div></div>'}
+  // Tabla de pagos (vista de datos)
+  const filas=R.filas.slice().reverse(),vis=ING.verTodo?filas:filas.slice(0,25)
+  h+='<div class="card"><div class="card-hd"><h3>Pagos del periodo ('+R.n+')</h3><span style="font-size:12px;font-weight:700;color:var(--green)">'+fmtUSD(R.total)+'</span></div>'
+    +'<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Cliente / autor</th><th>Trabajo</th><th>Tipo</th><th>Cuota</th><th>Factura</th><th style="text-align:right">Monto</th></tr></thead><tbody>'
+    +(vis.length?vis.map(x=>'<tr><td style="white-space:nowrap">'+fmtDCorto(x.fecha)+'</td><td><strong>'+esc(x.cliente)+'</strong></td><td style="max-width:260px">'+esc(String(x.trabajo).slice(0,80))+'</td><td style="font-size:11.5px;color:var(--text3)">'+esc(x.tipo)+'</td><td style="font-size:12px">'+esc(x.cuota)+'</td>'
+      +'<td style="font-size:11.5px">'+(x.factura?esc(x.factura):'<span style="color:var(--text3)">Sin factura</span>')+'</td><td style="text-align:right;font-weight:700">'+fmtUSD(x.monto)+'</td></tr>').join('')
+      :'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No hay pagos con estos filtros.</td></tr>')
+    +'</tbody></table></div>'
+    +(filas.length>25?'<div style="padding:10px 14px"><button class="btn btn-g btn-sm" onclick="ING.verTodo=!ING.verTodo;draw()">'+(ING.verTodo?'Ver menos':'Ver los '+filas.length+' pagos')+'</button></div>':'')
+    +'</div>'
+  return h
+}
+// Datos por autor de un trabajo: valor, pagado y saldo de cada uno
+function resumenPorAutor(t){
+  const au=autoresDe(t),cs=data.cuotas.filter(c=>c.trabajoId===t.id)
+  return au.map(function(a){
+    const mias=cs.filter(c=>pagadorIdDe(c,t)===a.clienteId),acordado=r2(mias.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0)),pagado=r2(mias.reduce((s,c)=>s+realPaid(c),0))
+    return{a:a,cl:data.clientes.find(c=>c.id===a.clienteId)||null,acordado:acordado,pagado:pagado,saldo:r2(Math.max(acordado-pagado,0)),cuotas:mias.length}
+  })
 }
 
 // ── Diagnóstico de instalación de la app ──
@@ -7114,6 +7373,24 @@ function mInstalar(){
     +paso(1,'Haz clic en el ícono de <strong>instalar</strong> ⊕ al final de la barra de direcciones.')+paso(2,'Confirma con <strong>Instalar</strong>. Quedará en el menú Inicio / escritorio.')
     +'<div class="ma"><button class="btn btn-p" onclick="closeModal()">Entendido</button></div>'
 }
+// Compara la versión que corre en este equipo con la publicada en GitHub (sin caché)
+let _versionPublicada=''
+async function buscarActualizacion(manual){
+  if(location.protocol==='file:')return
+  try{
+    const r=await fetch('index.html?v='+Date.now(),{cache:'no-store'});const t=await r.text()
+    const m=t.match(/const VERSION='([^']+)'/);_versionPublicada=m?m[1]:''
+    if(_versionPublicada&&_versionPublicada!==VERSION){if(user)draw();if(manual&&confirm('Hay una versión nueva ('+_versionPublicada+'). ¿Actualizar ahora?'))forzarActualizacion()}
+    else if(manual)toast('Tienes la última versión ('+VERSION+') ✓')
+  }catch(e){if(manual)toast('No se pudo comprobar la versión','err')}
+}
+// Borra la copia guardada de la app en este equipo y recarga la versión publicada
+async function forzarActualizacion(){
+  try{if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}}catch(e){}
+  try{if(window.caches){const ks=await caches.keys();for(const k of ks)await caches.delete(k)}}catch(e){}
+  location.replace(location.pathname+'?act='+Date.now()+location.hash)
+}
+setTimeout(function(){buscarActualizacion(false)},4000);setInterval(function(){buscarActualizacion(false)},30*60*1000)
 function actualizarApp(){
   if(_swNuevo&&_swNuevo.waiting)_swNuevo.waiting.postMessage('activar')
   else location.reload()
