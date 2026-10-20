@@ -853,7 +853,13 @@ function waUrl(phone,msg){
 function waTpl(id,vars){
   WA_TPLS=cargarTpls()
   const t=WA_TPLS.find(x=>x.id===id)||WA_TPLS[0]
-  return t.msg.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?String(vars[k]):'')
+  vars=Object.assign({formas_pago:textoFormasPago(),cuentas:textoFormasPago(true)},vars||{})
+  let msg=t.msg
+  // Recordatorios y avisos de pago: se agregan las formas de pago antes de la firma (si se activó en Configuración)
+  if(cfgFormasPago().enCobros&&t.categoria==='cobros'&&t.id!=='paid'&&vars.formas_pago&&!/{{(formas_pago|cuentas)}}/.test(msg)){
+    const i=msg.lastIndexOf('\n\n—');msg=i>-1?msg.slice(0,i)+'\n\n{{formas_pago}}'+msg.slice(i):msg+'\n\n{{formas_pago}}'
+  }
+  return msg.replace(/{{(\w+)}}/g,(_,k)=>vars[k]!==undefined?String(vars[k]):'').replace(/\n{3,}/g,'\n\n').trim()
 }
 function toast(msg,err){
   const d=document.createElement('div');d.className='toast'
@@ -1085,7 +1091,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.9.8'
+const VERSION='v7.9.9'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1423,14 +1429,14 @@ function htmlDash(){
   h+='<div class="card"><div class="card-hd"><h3>Clientes recientes</h3><button class="btn btn-g btn-sm" onclick="goTo(\'clientes\')">Ver todos →</button></div>'
     +'<table><thead><tr><th>Nombre</th><th>Institución</th><th>Trabajos</th></tr></thead><tbody>'
   const recCli=[...clientes].reverse().slice(0,4)
-  if(recCli.length){recCli.forEach(c=>{const nT=trabajos.filter(t=>t.clienteId===c.id).length;h+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td style="color:var(--text3)">'+esc(c.institucion||'—')+'</td><td>'+bdg(nT,'blue')+'</td></tr>'})}
+  if(recCli.length){recCli.forEach(c=>{const nT=trabajos.filter(t=>esDelCliente(t,c.id)).length;h+='<tr><td><strong>'+esc(c.nombre)+'</strong></td><td style="color:var(--text3)">'+esc(c.institucion||'—')+'</td><td>'+bdg(nT,'blue')+'</td></tr>'})}
   else h+='<tr><td colspan="3" class="empty">Sin clientes aún</td></tr>'
   h+='</tbody></table></div>'
 
   h+='<div class="card"><div class="card-hd"><h3>Trabajos activos</h3><button class="btn btn-g btn-sm" onclick="goTo(\'trabajos\')">Ver todos →</button></div>'
     +'<table><thead><tr><th>Trabajo</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'
   const actTrab=trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').slice(0,4)
-  if(actTrab.length){actTrab.forEach(t=>{const bal=wBal(t);h+='<tr><td><strong style="font-size:12px">'+esc(t.titulo.slice(0,30))+(t.titulo.length>30?'…':'')+'</strong></td>'+'<td>'+bdg(t.estado||'Nuevo',{Completado:'green','En progreso':'blue',Revisión:'amber',Cancelado:'gray'}[t.estado]||'amber')+'</td>'+'<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:60px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><span style="font-size:11px;color:var(--text3)">'+bal.pct+'%</span></div></td></tr>'})}
+  if(actTrab.length){actTrab.forEach(t=>{const bal=wBal(t);h+='<tr><td><strong style="font-size:12px">'+esc(t.titulo.slice(0,30))+(t.titulo.length>30?'…':'')+'</strong><div style="font-size:10.5px;color:var(--text3)">'+esc(autoresTxt(t).slice(0,70))+'</div></td>'+'<td>'+bdg(t.estado||'Nuevo',{Completado:'green','En progreso':'blue',Revisión:'amber',Cancelado:'gray'}[t.estado]||'amber')+'</td>'+'<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:60px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><span style="font-size:11px;color:var(--text3)">'+bal.pct+'%</span></div></td></tr>'})}
   else h+='<tr><td colspan="3" class="empty">Sin trabajos activos</td></tr>'
   h+='</tbody></table></div>'
   h+='</div>'
@@ -1444,12 +1450,13 @@ function htmlClientes(){
     +'<button class="btn btn-p" onclick="openModal(\'cliente\',null)">+ Nuevo cliente</button></div>'
   h+='<div class="card"><table><thead><tr><th>Nombre</th><th>Institución</th><th>Ciudad</th><th>Teléfono</th><th>Email</th><th>Trabajos</th><th></th><th></th></tr></thead><tbody>'
   if(list.length){list.forEach(c=>{
-    const trabsC=recientes(data.trabajos).filter(t=>t.clienteId===c.id)
+    const trabsC=recientes(data.trabajos).filter(t=>esDelCliente(t,c.id))
     const nT=trabsC.length
     const isExpC=(wExp===('c_'+c.id))
-    const cuotasC=data.cuotas.filter(q=>trabsC.some(t=>t.id===q.trabajoId))
-    const pagadoC=cuotasC.reduce((s,q)=>s+parseFloat(q.pagado||0),0)
-    const saldoC=cuotasC.reduce((s,q)=>s+(parseFloat(q.acordado||0)-parseFloat(q.pagado||0)),0)
+    // Solo las cuotas que paga este cliente (un coautor paga únicamente su parte)
+    const cuotasC=data.cuotas.filter(q=>{const t=trabsC.find(x=>x.id===q.trabajoId);return t&&pagadorIdDe(q,t)===c.id})
+    const pagadoC=cuotasC.reduce((s,q)=>s+realPaid(q),0)
+    const saldoC=cuotasC.reduce((s,q)=>s+Math.max(parseFloat(q.acordado||0)-realPaid(q),0),0)
     const venceC=cuotasC.filter(q=>cStat(q)==='vencido').length
     h+='<tr style="cursor:pointer" onclick="wExp=wExp===\'c_'+c.id+'\'?null:\'c_'+c.id+'\';draw()">'
       +'<td><strong>'+esc(c.nombre)+'</strong>'+(pideFactura(c)?' <span title="Pide factura" style="font-size:11px">🧾</span>':'')+(c.cedula?'<div style="font-size:11px;color:var(--text3)">'+esc(c.cedula)+'</div>':'')+'</td>'
@@ -1494,13 +1501,15 @@ function htmlClientes(){
         +'<th style="padding:5px 8px;text-align:center">Cuotas</th>'
         +'<th></th></tr></thead><tbody>'
       trabsC.forEach(t=>{
-        const bal=wBal(t)
+        const coautor=t.clienteId!==c.id,propias=coautor||modoCobroDe(t)==='porAutor'
+        const bal=propias?balCliente(t,c.id):wBal(t)
         const sc={Completado:'#15803d','En progreso':'#0F4C81',Revisión:'#b45309',Cancelado:'#94a3b8',Nuevo:'#6366f1'}
         const stC=sc[t.estado]||'#64748b'
-        const cuotasT=data.cuotas.filter(q=>q.trabajoId===t.id)
+        const cuotasT=propias?bal.cuotas:data.cuotas.filter(q=>q.trabajoId===t.id)
         const vT=cuotasT.filter(q=>cStat(q)==='vencido').length
         h+='<tr style="border-top:1px solid #f1f5f9">'
-          +'<td style="padding:6px 8px"><strong>'+esc(t.titulo)+'</strong><div style="font-size:10px;color:var(--text3)">'+esc(t.tipo||'')+(t.fechaFin?' · Entrega: '+fmtDCorto(t.fechaFin):'')+'</div></td>'
+          +'<td style="padding:6px 8px"><strong>'+esc(t.titulo)+'</strong>'+(coautor?' <span class="b bv" style="font-size:10px">Coautor</span>':autoresDe(t).length>1?' <span class="b bb" style="font-size:10px">Encargado</span>':'')
+          +'<div style="font-size:10px;color:var(--text3)">'+esc(t.tipo||'')+(t.fechaFin?' · Entrega: '+fmtDCorto(t.fechaFin):'')+(autoresDe(t).length>1?' · Autores: '+esc(autoresTxt(t)):'')+'</div></td>'
           +'<td style="padding:6px 8px"><span style="font-size:11px;font-weight:700;color:'+stC+'">'+esc(t.estado||'—')+'</span></td>'
           +'<td style="padding:6px 8px;text-align:right;font-weight:700">$'+fmt(bal.total)+'</td>'
           +'<td style="padding:6px 8px;text-align:right;color:var(--green)">$'+fmt(bal.paid)+'</td>'
@@ -1509,7 +1518,7 @@ function htmlClientes(){
           +'<td style="padding:6px 8px"><button class="btn btn-g btn-sm" onclick="page=\'trabajos\';wExp=\''+t.id+'\';draw()">Ver →</button></td>'
           +'</tr>'
         // Show abonos for this trabajo
-        const absT=recientes(data.abonos).filter(function(a){return a.trabajoId===t.id})
+        const absT=recientes(data.abonos).filter(function(a){return a.trabajoId===t.id&&(!propias||cuotasT.some(q=>q.id===a.cuotaId))})
         if(absT.length){
           h+='<tr><td colspan="7" style="padding:5px 20px 8px;background:#f0fdf4">'
             +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
@@ -1537,7 +1546,7 @@ function htmlTrabajos(){
   const q=search.toLowerCase()
   const list=recientes(data.trabajos).filter(t=>{
     const cl=data.clientes.find(c=>c.id===t.clienteId)
-    return(!q||(t.titulo+' '+(cl&&cl.nombre||'')+' '+t.tipo).toLowerCase().includes(q))
+    return(!q||(t.titulo+' '+autoresTxt(t)+' '+t.tipo).toLowerCase().includes(q))
       &&(wSt==='Todos'||t.estado===wSt)
   })
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
@@ -1562,7 +1571,7 @@ function htmlTrabajos(){
       +bdg(t.estado||'Nuevo',SC[t.estado]||'amber')
       +(hasVenc?'<span class="b br">⚠ vencido</span>':'')
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+esc(cl&&cl.nombre||'—')+' · '+esc(t.tipo||'—')+'</div></div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+(autoresDe(t).length>1?'👥 ':'')+esc(autoresTxt(t))+' · '+esc(t.tipo||'—')+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
       +'<div style="text-align:right;font-size:12px"><div style="font-weight:700">$'+fmt(bal.total)+'</div><div style="color:var(--green)">$'+fmt(bal.paid)+' cobrado</div></div>'
       +'<div style="min-width:76px">'
@@ -1867,6 +1876,7 @@ function waDeudor(clienteId){
     +lineas
     +'\n\n💵 *Total pendiente: $'+fmt(totalSaldo)+'*'
     +'\n\nSi ya realizaste algún pago, por favor envíame el comprobante para actualizarlo. Cualquier consulta, aquí estoy. 🙏'
+    +(textoFormasPago()?'\n\n'+textoFormasPago():'')
     +'\n\n— Edison Bonifaz | Research Assessor'
   window.open(waUrl(cl.telefono,msg),'_blank')
 }
@@ -2620,7 +2630,7 @@ async function repararHojas(){
 function descargarReporte(clienteId){
   const cl=data.clientes.find(x=>x.id===clienteId)
   if(!cl){toast('Cliente no encontrado','err');return}
-  const trabajosCl=data.trabajos.filter(t=>t.clienteId===clienteId)
+  const trabajosCl=data.trabajos.filter(t=>esDelCliente(t,clienteId))
   if(!trabajosCl.length){toast('Este cliente no tiene trabajos registrados','err');return}
   _cargarJSZip(function(){_generarDocx(cl,trabajosCl,'cliente')})
 }
@@ -3338,7 +3348,7 @@ function htmlMensajes(){
   h+='<div style="background:#E3ECF6;border:1px solid #C9D9EB;border-radius:12px;padding:14px 18px;margin-bottom:20px">'
     +'<div style="font-size:12px;font-weight:700;color:#0F4C81;margin-bottom:8px">📌 Variables disponibles</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{pagado}}','{{saldo}}','{{saldo_total}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}','{{tipo}}','{{etapa}}','{{revista}}','{{nota}}','{{avance}}','{{prestador}}','{{cantidad}}','{{usuario}}','{{clave}}','{{codigo}}','{{verificar}}'].map(function(vr){
+    +['{{nombre}}','{{trabajo}}','{{cuota}}','{{monto}}','{{pagado}}','{{saldo}}','{{saldo_total}}','{{formas_pago}}','{{cuentas}}','{{fecha}}','{{hora}}','{{plat}}','{{link}}','{{tipo}}','{{etapa}}','{{revista}}','{{nota}}','{{avance}}','{{prestador}}','{{cantidad}}','{{usuario}}','{{clave}}','{{codigo}}','{{verificar}}'].map(function(vr){
       return'<code style="background:#fff;border:1px solid #C9D9EB;border-radius:5px;padding:2px 8px;font-size:12px;color:#0F4C81">'+vr+'</code>'
     }).join('')
     +'</div></div>'
@@ -3419,7 +3429,7 @@ function mTpl(d){
     +'<textarea id="tp3" rows="12" style="font-family:monospace;font-size:12px;line-height:1.6">'+esc(d.msg||'')+'</textarea></div>'
     +'</div>'
     +'<div style="background:#E3ECF6;border-radius:8px;padding:10px 13px;font-size:12px;color:#0F4C81;margin-top:8px;line-height:1.7">'
-    +'Variables: {{nombre}} {{trabajo}} {{cuota}} {{monto}} {{fecha}} {{hora}} {{plat}} {{link}}<br>'
+    +'Variables: {{nombre}} {{trabajo}} {{cuota}} {{monto}} {{saldo}} {{fecha}} {{hora}} {{plat}} {{link}} {{formas_pago}} {{cuentas}}<br>'
     +'Negrita en WhatsApp: escribe *texto* &nbsp;·&nbsp; Salto de línea: Enter normal'
     +'</div>'
     +'<div class="ma">'
@@ -3449,6 +3459,7 @@ function previewTplForm(){
 function previewVarsExtra(s){
   return s.replace(/{{tipo}}/g,TIPO_PUB).replace(/{{etapa}}/g,'En revisión por pares')
     .replace(/{{revista}}/g,'Revista Iberoamericana de Educación').replace(/{{nota}}/g,'El artículo está con los revisores.')
+    .replace(/{{formas_pago}}/g,textoFormasPago()||'(configura tus formas de pago en Configuración)').replace(/{{cuentas}}/g,textoFormasPago(true)||'(configura tus cuentas en Configuración)')
     .replace(/{{avance}}/g,'70').replace(/{{prestador}}/g,prestador().nombre).replace(/{{cantidad}}/g,'7').replace(/{{usuario}}/g,'anagarcia').replace(/{{clave}}/g,'clave123').replace(/{{codigo}}/g,'RA-2026-7K3Q9XPM').replace(/{{verificar}}/g,urlVerificacion('RA-2026-7K3Q9XPM'))
 }
 
@@ -3631,8 +3642,9 @@ function htmlPortalProgreso(){
   }
   h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">📋 Mis trabajos</div>'
   trabajosCl.forEach(function(t){
-    const cuotasTrab=data.cuotas.filter(function(c){return c.trabajoId===t.id})
-    const bal=wBal(t)
+    const propias=t.clienteId!==user.clienteId||modoCobroDe(t)==='porAutor'
+    const bal=propias?balCliente(t,user.clienteId):wBal(t)
+    const cuotasTrab=propias?bal.cuotas:data.cuotas.filter(function(c){return c.trabajoId===t.id})
     const prog=parseInt(t.progreso)||0
     const SC={Completado:'#15803d','En progreso':'#0F4C81',Revisión:'#b45309',Cancelado:'#64748b',Nuevo:'#6366f1'}
     const stColor=SC[t.estado]||'#475569'
@@ -3698,11 +3710,11 @@ function htmlPortalProgreso(){
 function htmlPortalCuentas(){
   const trabajosCl=recientes(data.trabajos).filter(function(t){return esDelCliente(t,user.clienteId)})
   const idsTrab=trabajosCl.map(function(t){return t.id})
-  const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)})
+  const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)&&pagadorIdDe(c)===user.clienteId})
   let h=htmlPortalHeader()
   // Summary KPIs
   const totalAcord=cuotasCl.reduce(function(s,c){return s+parseFloat(c.acordado||0)},0)
-  const totalPag=cuotasCl.reduce(function(s,c){return s+parseFloat(c.pagado||0)},0)
+  const totalPag=cuotasCl.reduce(function(s,c){return s+realPaid(c)},0)
   const totalSaldo=totalAcord-totalPag
   const vencidas=cuotasCl.filter(function(c){return cStat(c)==='vencido'})
   h+='<div class="kpis" style="margin-bottom:20px">'
@@ -3711,6 +3723,7 @@ function htmlPortalCuentas(){
     +'<div class="kpi"><div class="kpi-label">Saldo pendiente</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(totalSaldo)+'</div><div class="kpi-icon">⏳</div></div>'
     +(vencidas.length?'<div class="kpi"><div class="kpi-label">Vencidas</div><div class="kpi-value" style="color:var(--red)">'+vencidas.length+'</div><div class="kpi-icon">⚠️</div></div>':'')
     +'</div>'
+  if(totalSaldo>0)h+=htmlComoPagar()
   h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">💳 Mis cuotas</div>'
   if(!cuotasCl.length){
     return h+'<div class="card"><p class="empty">No tienes cuotas registradas.</p></div>'
@@ -5114,6 +5127,7 @@ function htmlConfiguracion(){
     +'<div style="padding:16px 20px"><div class="fg">'
     +CFG_CAMPOS.map(function(f){return'<div'+(f.full?' class="full"':'')+'><label>'+esc(f.l)+'</label><input id="cf_'+f.k+'" value="'+esc(p[f.k]||'')+'" placeholder="'+esc(f.ph||'')+'"/></div>'}).join('')
     +'</div><div class="ma"><button class="btn btn-p" onclick="guardarPrestador()">Guardar datos</button></div></div></div>'
+  h+=htmlConfigFormasPago()
   h+=htmlConfigFacturacion()
   h+='<div class="card"><div class="card-hd"><h3>📲 Instalación de la app</h3></div>'
     +'<div style="padding:16px 20px"><div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Revisa en este equipo por qué no se puede instalar la app y qué hacer.</div>'
@@ -5148,8 +5162,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<795
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.9.5 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<799
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.9.9 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
@@ -7281,6 +7295,102 @@ function resumenPorAutor(t){
     const mias=cs.filter(c=>pagadorIdDe(c,t)===a.clienteId),acordado=r2(mias.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0)),pagado=r2(mias.reduce((s,c)=>s+realPaid(c),0))
     return{a:a,cl:data.clientes.find(c=>c.id===a.clienteId)||null,acordado:acordado,pagado:pagado,saldo:r2(Math.max(acordado-pagado,0)),cuotas:mias.length}
   })
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// FORMAS DE PAGO (cuentas para transferencia, tarjeta y otros) — Config id="formasPago"
+// Se usan en los mensajes de WhatsApp ({{formas_pago}} / {{cuentas}}) y en el portal del cliente.
+// ════════════════════════════════════════════════════════════════
+const TIPOS_PAGO={transferencia:'🏦 Transferencia / depósito',tarjeta:'💳 Tarjeta de crédito o débito',deuna:'📱 Deuna / billetera digital',paypal:'🌐 PayPal',efectivo:'💵 Efectivo',otro:'➕ Otra forma de pago'}
+function cfgFormasPago(){
+  const row=(data.config||[]).find(c=>c.id==='formasPago');let p={}
+  if(row&&row.valor){try{p=JSON.parse(row.valor)||{}}catch(e){}}
+  return{metodos:Array.isArray(p.metodos)?p.metodos:[],enCobros:p.enCobros!==false,nota:p.nota||''}
+}
+// Texto para WhatsApp con las formas de pago activas (soloCuentas: solo transferencias)
+function textoFormasPago(soloCuentas){
+  const c=cfgFormasPago(),ms=c.metodos.filter(m=>m.activo!==false&&(!soloCuentas||m.tipo==='transferencia'))
+  if(!ms.length)return''
+  const L=ms.map(function(m){
+    if(m.tipo==='transferencia')return'🏦 *'+(m.banco||'Transferencia')+'*'+(m.tipoCuenta?' · Cuenta '+m.tipoCuenta.toLowerCase():'')
+      +(m.numero?'\n   N.° '+m.numero:'')+(m.titular?'\n   Titular: '+m.titular:'')+(m.identificacion?'\n   C.I./RUC: '+m.identificacion:'')+(m.email?'\n   Comprobante a: '+m.email:'')
+    const ic=(TIPOS_PAGO[m.tipo]||'➕').split(' ')[0]
+    return ic+' *'+(m.nombre||TIPOS_PAGO[m.tipo].replace(/^\S+\s/,''))+'*'+(m.enlace?'\n   '+m.enlace:'')+(m.numero?'\n   '+m.numero:'')+(m.detalle?'\n   '+m.detalle:'')
+  })
+  return(soloCuentas?'🏦 *Cuenta'+(ms.length>1?'s':'')+' para transferencia:*':'💳 *Formas de pago:*')+'\n\n'+L.join('\n\n')+(c.nota&&!soloCuentas?'\n\n'+c.nota:'')
+}
+let _fpEdit=null
+function htmlConfigFormasPago(){
+  const c=cfgFormasPago();if(!_fpEdit)_fpEdit=c.metodos.map(x=>Object.assign({},x))
+  const I=(i,k,l,ph,w)=>'<div'+(w?' style="grid-column:span '+w+'"':'')+'><label>'+l+'</label><input id="fp_'+k+'_'+i+'" value="'+esc(_fpEdit[i][k]||'')+'" placeholder="'+esc(ph||'')+'"/></div>'
+  let h='<div class="card"><div class="card-hd"><h3>💳 Formas de pago</h3><span style="font-size:11px;color:var(--text3)">Cuentas, tarjeta y otros medios para los mensajes de WhatsApp y el portal</span></div><div style="padding:16px 18px">'
+  if(!_fpEdit.length)h+='<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Aún no has agregado formas de pago.</div>'
+  _fpEdit.forEach(function(m,i){
+    h+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:'+(m.activo===false?'#f8fafc':'#fff')+'">'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><select id="fp_tipo_'+i+'" onchange="_fpLeer();_fpEdit['+i+'].tipo=this.value;draw()">'
+      +Object.keys(TIPOS_PAGO).map(k=>'<option value="'+k+'"'+(m.tipo===k?' selected':'')+'>'+TIPOS_PAGO[k]+'</option>').join('')+'</select>'
+      +'<label class="chk" style="margin:0"><input type="checkbox" id="fp_activo_'+i+'"'+(m.activo===false?'':' checked')+'/> Mostrar en mensajes</label>'
+      +'<span style="flex:1"></span>'+(i>0?'<button type="button" class="btn btn-g btn-sm" title="Subir" onclick="_fpMover('+i+',-1)">↑</button>':'')
+      +'<button type="button" class="btn btn-r btn-sm" onclick="_fpQuitar('+i+')">✕</button></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">'
+    if(m.tipo==='transferencia')h+=I(i,'banco','Banco / cooperativa','Banco Pichincha')
+      +'<div><label>Tipo de cuenta</label><select id="fp_tipoCuenta_'+i+'">'+['Ahorros','Corriente'].map(x=>'<option'+(m.tipoCuenta===x?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+      +I(i,'numero','Número de cuenta','2200000000')+I(i,'titular','Titular','Nombre del titular')+I(i,'identificacion','C.I. / RUC del titular','')+I(i,'email','Correo para enviar el comprobante','')
+    else h+=I(i,'nombre','Nombre que verá el cliente',TIPOS_PAGO[m.tipo].replace(/^\S+\s/,''))
+      +I(i,'enlace',m.tipo==='tarjeta'?'Enlace de pago (Payphone, Kushki, Datafast…)':m.tipo==='paypal'?'Enlace o correo de PayPal':'Enlace (opcional)','https://')
+      +(m.tipo==='deuna'||m.tipo==='otro'?I(i,'numero','Número / usuario (opcional)',''):'')
+      +I(i,'detalle','Detalle (opcional)',m.tipo==='tarjeta'?'Ej.: recargo del 5 %, hasta 3 meses sin intereses':'',2)
+    h+='</div></div>'
+  })
+  h+='<button type="button" class="btn btn-g btn-sm" onclick="_fpAgregar(\'transferencia\')">+ Cuenta bancaria</button> '
+    +'<button type="button" class="btn btn-g btn-sm" onclick="_fpAgregar(\'tarjeta\')">+ Tarjeta</button> '
+    +'<button type="button" class="btn btn-g btn-sm" onclick="_fpAgregar(\'deuna\')">+ Deuna / otra</button>'
+    +'<div class="fg" style="margin-top:12px"><div class="full"><label>Nota final (opcional)</label><input id="fp_nota" value="'+esc(c.nota)+'" placeholder="Ej.: Envía el comprobante por este medio para registrar tu pago."/></div>'
+    +'<div class="full"><label class="chk"><input type="checkbox" id="fp_enCobros"'+(c.enCobros?' checked':'')+'/> Agregar las formas de pago automáticamente a los recordatorios y avisos de pago</label></div></div>'
+    +'<div style="font-size:11.5px;color:var(--text3);line-height:1.55;margin-top:8px">En cualquier plantilla puedes escribir <code>{{formas_pago}}</code> (todas las formas activas) o <code>{{cuentas}}</code> (solo las cuentas bancarias). Los clientes también las ven en su portal, en <em>Mis pagos</em>.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-p" onclick="guardarFormasPago()">Guardar formas de pago</button>'
+    +'<button class="btn btn-g" onclick="_fpLeer();alert(\'=== Así se verá en WhatsApp ===\\n\\n\'+(_fpTextoPrueba()||\'(sin formas de pago activas)\'))">👁 Vista previa</button></div>'
+    +'</div></div>'
+  return h
+}
+function _fpLeer(){if(!_fpEdit)return;_fpEdit.forEach(function(m,i){['banco','tipoCuenta','numero','titular','identificacion','email','nombre','enlace','detalle'].forEach(function(k){const el=document.getElementById('fp_'+k+'_'+i);if(el)m[k]=String(el.value).trim()})
+  const a=document.getElementById('fp_activo_'+i);if(a)m.activo=a.checked})}
+function _fpTextoPrueba(){const row={id:'formasPago',valor:JSON.stringify({metodos:_fpEdit,nota:v('fp_nota'),enCobros:true})},cfg=data.config;data.config=(cfg||[]).filter(c=>c.id!=='formasPago').concat([row]);const t=textoFormasPago();data.config=cfg;return t}
+function _fpAgregar(tipo){_fpLeer();_fpEdit.push({id:uid(),tipo:tipo,activo:true});draw()}
+function _fpQuitar(i){_fpLeer();_fpEdit.splice(i,1);draw()}
+function _fpMover(i,d){_fpLeer();const x=_fpEdit.splice(i,1)[0];_fpEdit.splice(i+d,0,x);draw()}
+async function guardarFormasPago(){
+  _fpLeer()
+  for(const m of _fpEdit){
+    if(m.tipo==='transferencia'&&(!m.banco||!m.numero)){alert('Cada cuenta bancaria necesita el banco y el número de cuenta.');return}
+    if(m.tipo!=='transferencia'&&!m.nombre&&!m.enlace&&!m.detalle&&!m.numero){alert('Completa al menos el nombre, el enlace o el detalle de cada forma de pago.');return}
+  }
+  const ef=document.getElementById('fp_enCobros')
+  const rec={id:'formasPago',valor:JSON.stringify({metodos:_fpEdit,nota:v('fp_nota'),enCobros:!!(ef&&ef.checked)})}
+  const existe=(data.config||[]).some(x=>x.id==='formasPago')
+  data.config=existe?data.config.map(x=>x.id==='formasPago'?rec:x):(data.config||[]).concat([rec])
+  const r=await apiPost({action:existe?'actualizar':'insertar',tabla:'Config',id:'formasPago',fila:rec})
+  if(r&&r.ok){toast('Formas de pago guardadas ✓');_fpEdit=null}else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
+  draw()
+}
+// Tarjeta "Cómo pagar" en el portal del cliente
+function htmlComoPagar(){
+  const t=textoFormasPago();if(!t)return''
+  const html=esc(t).replace(/\*([^*\n]+)\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br/>')
+  return'<div class="card" style="margin-bottom:16px"><div class="card-hd"><h3>💳 Cómo pagar</h3></div><div style="padding:14px 18px;font-size:13px;line-height:1.6">'+html+'</div></div>'
+}
+// Trabajo con sus coautores para mostrarlo en listas: "Ana Pérez + Rosa Mena, Pedro Sánchez"
+function autoresTxt(t){
+  const au=autoresDe(t),resp=au.find(a=>a.rol==='correspondencia')||au[0],co=au.filter(a=>a!==resp)
+  const cl=data.clientes.find(c=>c.id===t.clienteId)
+  return(resp&&resp.nombre||cl&&cl.nombre||t.clienteNombre||'—')+(co.length?' + '+co.map(a=>a.nombre||'—').join(', '):'')
+}
+// Cuotas de un trabajo que paga un cliente (en un cobro por autor, solo las suyas)
+const cuotasDeCliente=(t,cid)=>data.cuotas.filter(c=>c.trabajoId===t.id&&pagadorIdDe(c,t)===cid)
+function balCliente(t,cid){
+  const cs=cuotasDeCliente(t,cid),total=r2(cs.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0)),paid=r2(cs.reduce((s,c)=>s+realPaid(c),0))
+  return{total:total,paid:paid,bal:r2(Math.max(total-paid,0)),pct:total>0?Math.min(Math.round(paid/total*100),100):0,cuotas:cs}
 }
 
 // ── Diagnóstico de instalación de la app ──
