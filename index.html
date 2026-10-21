@@ -336,7 +336,8 @@ function normalizarUsuarioAdmin(r){
   }
 }
 const TIPO_PUB='Asesoramiento metodológico de publicación'
-const TIPOS=[TIPO_PUB,'Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
+const TIPO_LIBRO='Asesoría para publicación de libros'
+const TIPOS=[TIPO_PUB,TIPO_LIBRO,'Asesoría de tesis/proyectos','Análisis estadístico','Artículo científico','Publicación en revistas','Revisión bibliográfica','Diseño de instrumentos','Otro']
 const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
 
 // ─── MODELOS DE CONTRATO POR TIPO DE TRABAJO ─────────────────────────────────
@@ -344,6 +345,7 @@ const ESTADOS=['Nuevo','En progreso','Revisión','Completado','Cancelado']
 // (guardados como JSON en la columna "detalles" de la hoja Trabajos).
 function modeloTrabajo(tipo){
   if(tipo===TIPO_PUB||tipo==='Artículo científico'||tipo==='Publicación en revistas')return'publicacion'
+  if(tipo===TIPO_LIBRO||tipo==='Publicación de libros'||tipo==='Capítulo de libro')return'libro'
   if(tipo==='Asesoría de tesis/proyectos')return'tesis'
   if(tipo==='Análisis estadístico')return'estadistica'
   if(tipo==='Revisión bibliográfica'||tipo==='Diseño de instrumentos')return'revision'
@@ -384,6 +386,34 @@ const DET_CAMPOS={
     {k:'reenviosMax',l:'Reenvíos sin costo si hay rechazo',t:'number',ph:'2'},
     {k:'apcIncluido',l:'Costo de publicación (APC)',t:'select',o:['No incluido — lo paga el cliente','Incluido en el valor del contrato','La revista no cobra APC']},
     {k:'apcMonto',l:'APC estimado ($)',t:'number',ph:'0'},
+  ],
+  libro:[
+    {sec:'La obra'},
+    {k:'tipoObra',l:'Tipo de obra',t:'select',o:['Libro de autor','Libro colectivo / compilación','Capítulo de libro','Libro de texto / manual','Memorias de congreso','Libro de divulgación']},
+    {k:'area',l:'Área del conocimiento',ph:'Ej: Ciencias de la Educación'},
+    {k:'idioma',l:'Idioma de la obra',t:'select',o:['Español','Inglés','Portugués','Bilingüe']},
+    {k:'formato',l:'Formato de publicación',t:'select',o:['Impreso y digital','Digital (e-book)','Impreso']},
+    {k:'paginas',l:'Extensión estimada (páginas)',t:'number',ph:'180'},
+    {k:'autores',l:'Autores / coautores',ph:'Nombres separados por coma (se registran como clientes)',full:1},
+    {k:'numAutores',l:'Nº de autores (para valor por autor)',t:'number',ph:'1'},
+    {sec:'Editorial, registro y visibilidad'},
+    {k:'editorial',l:'Editorial objetivo',ph:'Nombre de la editorial o sello',full:1},
+    {k:'tipoEditorial',l:'Tipo de editorial',t:'select',o:['Por definir','Editorial universitaria','Editorial comercial','Autoedición / sello propio']},
+    {k:'revisionPares',l:'Revisión por pares',t:'select',o:['Sí — doble ciego','Sí — revisión por pares','No requiere','Por definir']},
+    {k:'registros',l:'Registros a gestionar',t:'multi',full:1,o:['ISBN','DOI','Depósito legal','Registro de derechos de autor (SENADI)','Ficha catalográfica']},
+    {k:'visibilidad',l:'Indexación / visibilidad',t:'multi',full:1,o:['Scholarly Publishers Indicators (SPI)','Book Citation Index (WoS)','Scopus Books','Google Books','Google Scholar','Repositorio institucional']},
+    {sec:'Servicios incluidos'},
+    {k:'alcanceLibro',l:'Servicios de la asesoría',t:'multi',full:1,o:['Estructura y propuesta editorial','Revisión metodológica y de contenido','Normalización de citas y referencias (APA)','Corrección de estilo','Revisión de similitud (antiplagio)','Selección de la editorial y gestión del envío','Acompañamiento en la evaluación por pares','Coordinación de diagramación y portada','Gestión de ISBN / DOI','Presentación o lanzamiento de la obra']},
+    {sec:'Fechas de entrega'},
+    {k:'fechaManuscrito',l:'Cliente entrega el manuscrito completo',t:'date'},
+    {k:'fechaEditorial',l:'Envío estimado a la editorial',t:'date'},
+    {k:'fechaPublicacion',l:'Publicación estimada',t:'date'},
+    {sec:'Seguimiento y costos editoriales'},
+    {k:'sesiones',l:'Sesiones de asesoría incluidas',t:'number',ph:'8'},
+    {k:'frecuencia',l:'Frecuencia de seguimiento',t:'select',o:FRECUENCIAS},
+    {k:'costoEdicion',l:'Costos de edición / impresión',t:'select',o:['No incluidos — los paga el autor','Incluidos en el valor del contrato','La editorial no cobra']},
+    {k:'costoEdicionMonto',l:'Costo editorial estimado ($)',t:'number',ph:'0'},
+    {k:'ejemplares',l:'Ejemplares impresos (si aplica)',t:'number',ph:'0'},
   ],
   tesis:[
     {sec:'Programa académico'},
@@ -1091,7 +1121,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.10.0'
+const VERSION='v7.11.1'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -2142,7 +2172,7 @@ function mCliente(d){
     +'<div><label>Cédula / RUC</label><input id="fc" value="'+esc(d.cedula||'')+'" placeholder="1712345678 o 1790123456001"/></div>'
     +'<div><label>Teléfono / WhatsApp</label><input id="f1" value="'+esc(d.telefono||'')+'" placeholder="0998765432"/></div>'
     +'<div><label>Email</label><input id="f2" type="email" value="'+esc(d.email||'')+'" placeholder="correo@dominio.com"/></div>'
-    +'<div><label>ORCID</label><input id="forc" value="'+esc(d.orcid||'')+'" placeholder="0000-0000-0000-0000" style="font-family:monospace"/></div><div></div>'
+    +'<div><label>ORCID (para autores de publicaciones)</label><input id="forc" value="'+esc(d.orcid||'')+'" placeholder="0000-0000-0000-0000" style="font-family:monospace"/></div><div style="font-size:11px;color:var(--text3);align-self:end">Pídelo al registrar a un autor: se usa en el contrato y en la publicación. <a href="https://orcid.org/orcid-search/search" target="_blank" rel="noopener">Buscar en orcid.org</a></div>'
     +'<div class="full"><label>Dirección</label><input id="fd" value="'+esc(d.direccion||'')+'" placeholder="Av. Principal 123, sector, ciudad"/></div>'
     +'<div class="full"><label>Institución</label>'
     +'<select id="f3" onchange="this.nextElementSibling.style.display=this.value===\'Otra\'?\'block\':\'none\'"><option value="">Seleccionar...</option>'+instOpts+'</select>'
@@ -2180,7 +2210,7 @@ function mTrabajo(d){
   const e=!!d.id,hoy=new Date().toISOString().split('T')[0]
   let s='<h3>'+(e?'Editar':'Nuevo')+' trabajo</h3><div class="fg">'
     +'<div class="full"><label>Título *</label><input id="f0" value="'+esc(d.titulo||'')+'"/></div>'
-    +'<div class="full"><label>Cliente *</label><select id="f1"><option value="">Seleccionar...</option>'
+    +'<div class="full"><label>Cliente *</label><select id="f1" onchange="_detAutorCliente(this)"><option value="">Seleccionar...</option>'
     +recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+'</option>').join('')
     +'</select></div>'
     +'<div><label>Tipo</label><select id="f2" onchange="renderDetTrabajo()">'+TIPOS.map(t=>'<option'+(d.tipo===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'
@@ -2191,7 +2221,7 @@ function mTrabajo(d){
     +'<div><label>Fecha entrega</label><input id="f7" type="date" value="'+esc(toISO(d.fechaFin||''))+'"/></div>'
     +'<div class="full"><label>Notas</label><textarea id="f8">'+esc(d.notas||'')+'</textarea></div>'
     +'<div class="full"><label>📁 Enlace carpeta de trabajo (Drive, Dropbox, etc.)</label>'    +'<input id="f9" type="url" value="'+esc(d.carpeta||'')+'" placeholder="https://drive.google.com/drive/folders/..."/></div>'    +'</div>'
-    +'<div id="det_box">'+htmlDetCampos(modeloTrabajo(d.tipo||TIPOS[0]),detallesDe(d))+'</div>'
+    +'<div id="det_box">'+htmlDetCampos(modeloTrabajo(d.tipo||TIPOS[0]),detallesDe(d),d)+'</div>'
   if(e)s+=htmlAutoresEnEdicion(d)
   // Edit mode: show existing cuotas with edit options
   if(e){
@@ -2236,9 +2266,12 @@ function mTrabajo(d){
   return s
 }
 // ── Campos específicos por tipo de trabajo ────────────────────────
-const MODELO_TIT={publicacion:'📰 Detalles de la publicación científica',tesis:'🎓 Detalles de la asesoría de tesis',estadistica:'📊 Detalles del análisis estadístico',revision:'📚 Detalles de la revisión / instrumento',general:'📋 Detalles del servicio'}
-function htmlDetCampos(modelo,det){
+const MODELO_TIT={libro:'📖 Detalles de la publicación del libro',publicacion:'📰 Detalles de la publicación científica',tesis:'🎓 Detalles de la asesoría de tesis',estadistica:'📊 Detalles del análisis estadístico',revision:'📚 Detalles de la revisión / instrumento',general:'📋 Detalles del servicio'}
+// Autores registrados (estructura de la pantalla 👥) de un trabajo, si los tiene
+function _autoresRegistrados(t){let a=[];try{a=JSON.parse(t&&t.autores||'[]')||[]}catch(e){}return Array.isArray(a)?a:[]}
+function htmlDetCampos(modelo,det,t){
   det=det||{}
+  const reg=t&&t.id?_autoresRegistrados(t):[],clT=t&&t.clienteId?data.clientes.find(c=>c.id===t.clienteId):null
   const campos=(DET_CAMPOS[modelo]||DET_CAMPOS.general).concat(DET_EXTRA)
   let h='<div style="margin-top:14px;padding:14px;background:#FAFAF7;border:1px solid var(--border);border-radius:12px">'
     +'<div style="font-size:13px;font-weight:800;color:var(--navy);margin-bottom:2px">'+MODELO_TIT[modelo]+'</div>'
@@ -2249,6 +2282,15 @@ function htmlDetCampos(modelo,det){
     const id='det_'+f.k,val=det[f.k]
     const cls=f.full?' class="full"':''
     let inp
+    // Autores: si ya están registrados se muestran (se editan en 👥 Autores); si no, empieza con el cliente
+    if(f.k==='autores'){
+      if(reg.length){h+='<div class="full"><label>'+esc(f.l)+'</label><input id="'+id+'" readonly style="background:#F5F4F0;color:var(--text2)" value="'+esc(autoresDe(t).map(a=>a.nombre).join('; '))+'"/>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:3px">Se editan en <strong>👥 Autores registrados</strong> (más abajo), con su ORCID, cédula y lo que paga cada uno.</div></div>';return}
+      const ini=val||(clT?clT.nombre:'')
+      h+='<div class="full"><label>'+esc(f.l)+'</label><input id="'+id+'" value="'+esc(ini)+'" placeholder="Primero el cliente (autor principal); luego los coautores, separados por coma"/>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:3px">El cliente va como autor principal. Agrega los coautores separados por coma: al guardar se registran como clientes y se te pedirá su ORCID.</div></div>';return
+    }
+    if(f.k==='numAutores'&&reg.length>1){h+='<div'+cls+'><label>'+esc(f.l)+'</label><input id="'+id+'" readonly style="background:#F5F4F0" value="'+nAutoresTrabajo(t)+'"/></div>';return}
     if(f.t==='select'){
       inp='<select id="'+id+'"><option value="">—</option>'+f.o.map(function(o){return'<option'+(val===o?' selected':'')+'>'+esc(o)+'</option>'}).join('')+'</select>'
     }else if(f.t==='multi'){
@@ -2319,6 +2361,17 @@ function volverAlContrato(){
   if(tid&&data.trabajos.some(x=>x.id===tid)){abrirContrato(tid);return true}
   return false
 }
+let _autorClientePrev=null
+function _detAutorCliente(sel){
+  const inp=document.getElementById('det_autores');if(!inp||inp.readOnly)return
+  const cl=data.clientes.find(c=>c.id===sel.value),nuevo=cl?cl.nombre:''
+  const prev=_autorClientePrev!==null?_autorClientePrev:((data.clientes.find(c=>c.id===(modal&&modal.rec&&modal.rec.clienteId))||{}).nombre||'')
+  const v0=inp.value.trim()
+  if(!v0)inp.value=nuevo
+  else if(prev&&v0.indexOf(prev)===0)inp.value=nuevo+v0.slice(prev.length)
+  else if(nuevo&&v0.indexOf(nuevo)<0)inp.value=nuevo+', '+v0
+  _autorClientePrev=nuevo
+}
 function renderDetTrabajo(){
   const box=document.getElementById('det_box');if(!box||!modal)return
   // Conserva lo que ya se escribió al cambiar de tipo
@@ -2328,7 +2381,7 @@ function renderDetTrabajo(){
   modal._modelo=modeloTrabajo(v('f2'))
   // El tipo y los detalles quedan en el estado del formulario para que un redibujado no los pierda
   modal.rec=Object.assign({},modal.rec,{tipo:v('f2'),detalles:JSON.stringify(prev)})
-  box.innerHTML=htmlDetCampos(modal._modelo,prev)
+  box.innerHTML=htmlDetCampos(modal._modelo,prev,modal.rec)
 }
 function previewPlan(){
   const total=parseFloat((document.getElementById('f4')||{}).value||0)
@@ -2347,6 +2400,7 @@ function previewPlan(){
   el.innerHTML=h
 }
 async function submitTrabajo(id,isEdit,sinVolver){
+  _autorClientePrev=null
   const titulo=v('f0'),clienteId=v('f1')
   if(!titulo){alert('Título obligatorio');return}
   if(!clienteId){alert('Selecciona un cliente');return}
@@ -2356,7 +2410,13 @@ async function submitTrabajo(id,isEdit,sinVolver){
   const tipo=v('f2')
   const prevRec=id?(modal.rec||{}):{}
   const rec={id:workId,clienteId,clienteNombre:cl&&cl.nombre||'',titulo,tipo,estado:v('f3'),total,progreso:v('f5'),fechaInicio:v('f6'),fechaFin:v('f7'),notas:v('f8'),carpeta:v('f9'),
-    detalles:JSON.stringify(leerDetCampos(modeloTrabajo(tipo))),
+    detalles:JSON.stringify((function(det){
+      if(!_autoresRegistrados(prevRec).length&&'autores' in det){
+        const nom=cl&&cl.nombre||'',txt=String(det.autores||'').trim()
+        if(nom&&_normNom(txt).indexOf(_normNom(nom))<0)det.autores=nom+(txt?', '+txt:'')
+        if('numAutores' in det&&!(parseInt(det.numAutores)>0))det.numAutores=String(Math.max(1,nombresAutoresTexto({detalles:JSON.stringify(det)}).length))
+      }
+      return det})(leerDetCampos(modeloTrabajo(tipo)))),
     etapa:prevRec.etapa||'',contratoUrl:prevRec.contratoUrl||'',contratoFecha:prevRec.contratoFecha||'',
     autores:prevRec.autores||'',modoCobro:prevRec.modoCobro||'',
     createdAt:id?(prevRec.createdAt||''):new Date().toISOString()}
@@ -2376,6 +2436,7 @@ async function submitTrabajo(id,isEdit,sinVolver){
   const crearCuotas=!isEdit&&(total>0||usaManual)
   const volver=_volverContrato
   await saveRec('Trabajos',rec,!id)
+  if(id)sincronizarPropuestaDeTrabajo(id)
   if(sinVolver)return true
   if(volver&&isEdit&&!modal){_volverContrato=volver;volverAlContrato();return}
   if(crearCuotas){
@@ -3013,7 +3074,7 @@ async function guardarFirmantes(tid,modo){
 
 const CLAUSULAS_NUM=['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','SÉPTIMA','OCTAVA','NOVENA','DÉCIMA','UNDÉCIMA','DUODÉCIMA','DECIMOTERCERA','DECIMOCUARTA','DECIMOQUINTA','DECIMOSEXTA','DECIMOSÉPTIMA','DECIMOCTAVA','DECIMONOVENA','VIGÉSIMA','VIGÉSIMA PRIMERA','VIGÉSIMA SEGUNDA']
 const NUM_TXT=['cero','un','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez']
-const NOMBRE_MODELO={publicacion:'Producción y publicación científica',tesis:'Asesoría de tesis/proyectos',estadistica:'Análisis estadístico',revision:'Revisión bibliográfica / instrumentos',general:'General'}
+const NOMBRE_MODELO={libro:'Publicación de libros',publicacion:'Producción y publicación científica',tesis:'Asesoría de tesis/proyectos',estadistica:'Análisis estadístico',revision:'Revisión bibliográfica / instrumentos',general:'General'}
 function _clausula(n,titulo){
   return _p('CLÁUSULA '+(CLAUSULAS_NUM[n-1]||String(n))+'.- '+titulo,{sz:21,bold:true,color:'0F4C81',before:140,after:50,keep:true})
 }
@@ -3052,6 +3113,7 @@ const DESC_ETAPAS={
 
 function _tituloContrato(modelo,t){
   if(modelo==='publicacion')return'CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES DE ACOMPAÑAMIENTO METODOLÓGICO PARA LA PRODUCCIÓN Y PUBLICACIÓN CIENTÍFICA'
+  if(modelo==='libro')return'CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES DE ASESORÍA PARA LA PUBLICACIÓN DE '+(t&&detallesDe(t).tipoObra==='Capítulo de libro'?'CAPÍTULOS DE LIBRO':'LIBROS')
   if(modelo==='tesis')return'CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES DE ASESORÍA DE TESIS Y PROYECTOS DE INVESTIGACIÓN'
   if(modelo==='estadistica')return'CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES DE ANÁLISIS ESTADÍSTICO'
   if(modelo==='revision')return t.tipo==='Diseño de instrumentos'
@@ -3089,7 +3151,7 @@ function _construirContrato(ctx,em){
   body+=_p(_tituloContrato(modelo,t),{sz:26,bold:true,color:'0B2545',align:'center',before:80,after:100})
 
   body+=_p('COMPARECIENTES',{sz:21,bold:true,color:'0F4C81',before:60,after:50})
-  body+=T('Comparecen a la celebración del presente contrato, por una parte, '+nombrePr+idPr+profPr+domPr+', en calidad de prestador(a) de servicios profesionales de asesoría e investigación bajo la marca '+marca+', a quien en adelante y para efectos de este instrumento se denominará "EL PRESTADOR"; y, por otra parte, '+(variosFir?_listaPc(fir.map(x=>persona(x)+(x.rol==='correspondencia'?' (autor(a) encargado(a) y de correspondencia)':'')))+', en calidad de '+(modelo==='publicacion'?'autores del manuscrito':'autores / investigadores')+', a quienes en adelante y en conjunto se denominará "EL CONTRATANTE"':nombreCl+idCl+domCl+', a quien en adelante se denominará "EL CONTRATANTE"')+'. Ambas partes, por sus propios y personales derechos, en pleno uso de sus facultades y libre y voluntariamente, convienen en celebrar el presente contrato de prestación de servicios profesionales, al tenor de las siguientes cláusulas:')
+  body+=T('Comparecen a la celebración del presente contrato, por una parte, '+nombrePr+idPr+profPr+domPr+', en calidad de prestador(a) de servicios profesionales de asesoría e investigación bajo la marca '+marca+', a quien en adelante y para efectos de este instrumento se denominará "EL PRESTADOR"; y, por otra parte, '+(variosFir?_listaPc(fir.map(x=>persona(x)+(x.rol==='correspondencia'?' (autor(a) encargado(a) y de correspondencia)':'')))+', en calidad de '+(modelo==='publicacion'?'autores del manuscrito':modelo==='libro'?'autores de la obra':'autores / investigadores')+', a quienes en adelante y en conjunto se denominará "EL CONTRATANTE"':nombreCl+idCl+domCl+', a quien en adelante se denominará "EL CONTRATANTE"')+'. Ambas partes, por sus propios y personales derechos, en pleno uso de sus facultades y libre y voluntariamente, convienen en celebrar el presente contrato de prestación de servicios profesionales, al tenor de las siguientes cláusulas:')
 
   if(variosFir){const rp=fir.find(x=>x.rol==='correspondencia')||fir[0]
     body+=T('Las personas que integran EL CONTRATANTE suscriben el presente contrato de manera conjunta y cada una se obliga en los términos aquí previstos. Las comunicaciones, entregas y coordinaciones se realizarán a través del autor(a) encargado(a) y de correspondencia, '+(rp.nombre||'').toUpperCase()+', sin perjuicio de que cualquiera de ellas pueda comunicarse directamente con EL PRESTADOR.')}
@@ -3097,6 +3159,7 @@ function _construirContrato(ctx,em){
   body+=C('ANTECEDENTES')
   const antecedentes={
     publicacion:'EL CONTRATANTE, en calidad de autor(a) de la investigación, requiere acompañamiento metodológico profesional para preparar su manuscrito científico y gestionar su publicación en una revista indexada. EL PRESTADOR manifiesta contar con la experiencia, conocimientos y capacidad técnica necesarios para brindar dicho acompañamiento.',
+    libro:'EL CONTRATANTE, en calidad de autor(a) de la obra, requiere asesoría profesional para la preparación, revisión y gestión editorial de su '+(det.tipoObra==='Capítulo de libro'?'capítulo de libro':'libro')+' con miras a su publicación. EL PRESTADOR manifiesta contar con la experiencia, conocimientos y capacidad técnica necesarios para brindar dicha asesoría.',
     tesis:'EL CONTRATANTE se encuentra desarrollando su trabajo de titulación'+(univ?' en '+univ:'')+' y requiere asesoría metodológica profesional para su elaboración. EL PRESTADOR manifiesta contar con la experiencia, conocimientos y capacidad técnica necesarios para la correcta ejecución del servicio.',
     estadistica:'EL CONTRATANTE requiere el procesamiento y análisis estadístico de los datos de su investigación. EL PRESTADOR manifiesta contar con la experiencia, conocimientos y herramientas técnicas necesarios para la correcta ejecución del servicio.',
     revision:'EL CONTRATANTE requiere apoyo profesional para '+(t.tipo==='Diseño de instrumentos'?'el diseño y la validación de instrumentos de investigación':'la búsqueda, selección y análisis de literatura científica')+'. EL PRESTADOR manifiesta contar con la experiencia, conocimientos y capacidad técnica necesarios para la correcta ejecución del servicio.',
@@ -3113,6 +3176,15 @@ function _construirContrato(ctx,em){
       +(det.idioma?', redactado en '+det.idioma.toLowerCase():'')
       +', conforme a los términos, condiciones, valor y plazos establecidos en el presente instrumento.'
       +(det.autores?' Constan como autores del manuscrito: '+det.autores+'.':''))
+  }else if(modelo==='libro'){
+    body+=T('EL PRESTADOR se obliga a brindar a EL CONTRATANTE el servicio de asesoría para la preparación y publicación de la obra titulada "'+t.titulo+'"'
+      +(det.tipoObra?', en la modalidad de '+det.tipoObra.toLowerCase():'')
+      +(det.area?', del área de '+det.area:'')
+      +(det.idioma?', escrita en '+det.idioma.toLowerCase():'')
+      +(parseInt(det.paginas)>0?', con una extensión estimada de '+parseInt(det.paginas)+' páginas':'')
+      +(det.formato?', para su publicación en formato '+det.formato.toLowerCase():'')
+      +', conforme a los términos, condiciones, valor y plazos establecidos en el presente instrumento.'
+      +(det.autores?' Constan como autores de la obra: '+det.autores+'.':''))
   }else if(modelo==='tesis'){
     body+=T('EL PRESTADOR se obliga a brindar a EL CONTRATANTE el servicio de asesoría metodológica para el desarrollo del trabajo de titulación "'+t.titulo+'"'
       +(det.modalidad?', en la modalidad de '+det.modalidad.toLowerCase():'')
@@ -3144,6 +3216,23 @@ function _construirContrato(ctx,em){
     body+=C('ALCANCE DEL SERVICIO Y ETAPAS DEL PROCESO')
     body+=T('El acompañamiento comprende las siguientes etapas, cuyo avance será registrado en la plataforma de seguimiento de EL PRESTADOR:')
     Object.keys(DESC_ETAPAS).forEach(function(k){body+=_vineta(DESC_ETAPAS[k])})
+  }else if(modelo==='libro'){
+    body+=C('EDITORIAL, REGISTRO Y VISIBILIDAD')
+    body+=T('Las partes acuerdan que la obra será preparada para su publicación conforme a los siguientes datos editoriales:')
+    body+=_tablaKV([
+      ['Editorial',det.editorial||'Por definir de mutuo acuerdo'],
+      ['Tipo de editorial',det.tipoEditorial&&det.tipoEditorial!=='Por definir'?det.tipoEditorial:''],
+      ['Revisión por pares',det.revisionPares&&det.revisionPares!=='Por definir'?det.revisionPares:''],
+      ['Registros a gestionar',_lista(det.registros)],
+      ['Indexación / visibilidad',_lista(det.visibilidad)],
+      ['Formato',det.formato],
+      ['Ejemplares impresos',parseInt(det.ejemplares)>0?String(parseInt(det.ejemplares)):'']
+    ])
+    body+=T('La editorial definitiva podrá ajustarse de mutuo acuerdo. La aceptación de la obra, su evaluación y las condiciones de edición corresponden exclusivamente a la editorial.')
+    body+=C('ALCANCE DEL SERVICIO')
+    const sl=Array.isArray(det.alcanceLibro)?det.alcanceLibro:[]
+    body+=T('La asesoría comprende'+(sl.length?' los siguientes servicios, cuyo avance será registrado en la plataforma de seguimiento de EL PRESTADOR:':' la orientación en las etapas de preparación y gestión editorial que las partes acuerden durante su ejecución.'))
+    sl.forEach(function(x){body+=_vineta(x)})
   }else if(modelo==='tesis'){
     body+=C('ALCANCE DEL SERVICIO')
     const comps=Array.isArray(det.alcance)?det.alcance:[]
@@ -3184,6 +3273,7 @@ function _construirContrato(ctx,em){
   // ── Cronograma / plazo ──
   const hitos={
     publicacion:[['Entrega del borrador o datos por EL CONTRATANTE',det.fechaManuscrito],['Versión final lista para envío',det.fechaVersionFinal],['Envío estimado a la revista',det.fechaEnvio]],
+    libro:[['Entrega del manuscrito completo por EL CONTRATANTE',det.fechaManuscrito],['Envío estimado a la editorial',det.fechaEditorial],['Publicación estimada',det.fechaPublicacion]],
     tesis:[['Entrega del anteproyecto',det.fechaAnteproyecto],['Entrega del borrador completo',det.fechaBorrador],['Defensa estimada',det.fechaDefensa]],
     estadistica:[['Entrega de la base de datos por EL CONTRATANTE',det.fechaDatos],['Entrega de resultados',det.fechaResultados]],
     revision:[['Entrega parcial',det.fechaEntregaParcial]],
@@ -3198,6 +3288,9 @@ function _construirContrato(ctx,em){
     body+=T('Los tiempos de evaluación editorial, revisión por pares y publicación dependen exclusivamente de la revista, por lo que las fechas posteriores al envío son referenciales y su variación no es imputable a EL PRESTADOR.'
       +(det.plazoRespuesta?' EL CONTRATANTE se compromete a entregar la información o las revisiones que se le soliciten para responder a los revisores en un plazo máximo de '+det.plazoRespuesta+' días.':''))
   }
+  if(modelo==='libro'){
+    body+=T('Los tiempos de evaluación, edición, diagramación, impresión y publicación dependen de la editorial, por lo que las fechas posteriores al envío de la obra son referenciales y su variación no es imputable a EL PRESTADOR.')
+  }
   if(modelo==='estadistica'&&det.fechaDatos){
     body+=T('El plazo de entrega de resultados se contará a partir de la recepción completa de la base de datos por parte de EL PRESTADOR.')
   }
@@ -3205,7 +3298,7 @@ function _construirContrato(ctx,em){
   // ── Seguimiento del proceso ──
   body+=C('SEGUIMIENTO DEL PROCESO')
   const txtFrec=frec&&frec!=='Según avance'?'un seguimiento '+frec.toLowerCase():'un seguimiento según el avance'
-  body+=T('EL PRESTADOR realizará '+txtFrec+' del '+(modelo==='publicacion'?'proceso de producción y publicación':'trabajo')
+  body+=T('EL PRESTADOR realizará '+txtFrec+' del '+(modelo==='publicacion'?'proceso de producción y publicación':modelo==='libro'?'proceso de preparación y publicación de la obra':'trabajo')
     +(sesiones?' e incluye '+(NUM_TXT[sesiones]&&sesiones<=10?NUM_TXT[sesiones]+' ('+sesiones+')':sesiones)+' sesiones de asesoría virtuales o presenciales':'')
     +'. EL CONTRATANTE podrá consultar en cualquier momento '+(modelo==='publicacion'?'la etapa actual, las fechas y las observaciones del proceso':'el avance del trabajo')
     +' en el portal de seguimiento de '+marca+', y será notificado de cada avance por WhatsApp o correo electrónico.')
@@ -3228,6 +3321,14 @@ function _construirContrato(ctx,em){
     }
   }
 
+  // ── Costos editoriales (solo libros) ──
+  if(modelo==='libro'){
+    body+=C('COSTOS DE EDICIÓN, IMPRESIÓN Y REGISTRO')
+    const ce=parseFloat(det.costoEdicionMonto)||0,ceTxt=ce>0?', estimados en '+_fmtM(ce):''
+    if(det.costoEdicion==='Incluidos en el valor del contrato')body+=T('El valor total del presente contrato incluye los costos de edición, impresión y registro de la obra'+ceTxt+', que EL PRESTADOR gestionará ante la editorial. Si los costos definitivos fueran distintos, la diferencia será acordada por escrito entre las partes.')
+    else if(det.costoEdicion==='La editorial no cobra')body+=T('La editorial objetivo no cobra costos de edición o publicación. Si se eligiera otra editorial que sí los cobre, dichos costos serán cubiertos por EL CONTRATANTE, previa aceptación expresa y por escrito.')
+    else body+=T('El valor del presente contrato corresponde exclusivamente a los honorarios profesionales de EL PRESTADOR y no incluye los costos de edición, diagramación, impresión, registro (ISBN, DOI u otros) ni los que pudiera cobrar la editorial'+ceTxt+'. Dichos costos, de existir, serán cubiertos directamente por EL CONTRATANTE.')
+  }
   // ── Forma de pago ──
   body+=C('FORMA Y PLAZO DE PAGO')
   // Publicación: los pagos dependen de hitos editoriales → fechas estimadas
@@ -3237,7 +3338,7 @@ function _construirContrato(ctx,em){
   const cuotasU=cuotas.filter(function(c){const k=c.id||[c.label,c.fechaVencimiento,c.acordado].join('|');if(vistos[k])return false;vistos[k]=1;return true})
   // Cobro por autor: cada autor responde por su parte del valor
   const _aus=autoresDe(t),_porAutor=modoCobroDe(t)==='porAutor'&&_aus.length>1
-  if(_porAutor)body+=_p('El valor se distribuye entre los autores del manuscrito de la siguiente forma: '
+  if(_porAutor)body+=_p('El valor se distribuye entre los autores '+(modelo==='libro'?'de la obra':'del manuscrito')+' de la siguiente forma: '
     +_aus.map(a=>a.exento?a.nombre+(a.orcid?' (ORCID '+a.orcid+')':'')+': sin costo, por concesión de EL PRESTADOR'+(a.motivoExento?' ('+a.motivoExento+')':''):a.nombre+(a.orcid?' (ORCID '+a.orcid+')':'')+': '+fmtUSD(montoAutor(a,t.total))+' ('+fmt(parseFloat(a.pct)||0)+' %)'+(a.cuotas&&a.cuotas!=='plan'?', '+(+a.cuotas===1?'en un solo pago':'en '+a.cuotas+' cuotas mensuales'):'')).join('; ')+'. Cada autor responde por el pago de su parte; EL CONTRATANTE, como autor encargado y de correspondencia, coordina el cumplimiento del plan de pagos.',{sz:20,color:'222222',align:'both',after:80,keep:true})
   body+=_p('El valor señalado será cancelado '+(_porAutor?'por los autores':'por EL CONTRATANTE')+' a EL PRESTADOR de conformidad con el siguiente plan de pagos'+(fechasEstimadas?' (fechas estimadas)':'')+':',{sz:20,color:'222222',align:'both',after:80,keep:true})
   if(cuotasU.length){
@@ -3279,9 +3380,10 @@ function _construirContrato(ctx,em){
 
   // ── Ética, autoría e integridad académica ──
   body+=C('ÉTICA, AUTORÍA E INTEGRIDAD ACADÉMICA')
-  body+=T('EL CONTRATANTE es el/la autor(a) de la investigación'+(modelo==='publicacion'?' y del manuscrito':'')+' y conserva la totalidad de los derechos de autoría. El servicio de EL PRESTADOR consiste en acompañamiento metodológico y asesoría técnica, y no constituye la redacción de trabajos por encargo ni la suplantación de autoría. EL CONTRATANTE declara que los datos, resultados y fuentes de la investigación son auténticos y garantiza el cumplimiento de las normas de ética en investigación y de las políticas antiplagio'
-    +(modelo==='publicacion'?', de las directrices de la revista y de los principios del Committee on Publication Ethics (COPE)':modelo==='tesis'?' y de la normativa de titulación de su institución':'')+'.'
-    +(modelo==='publicacion'?' EL PRESTADOR no figurará como autor, salvo acuerdo expreso y por escrito que refleje una contribución real conforme a los criterios de autoría de la revista.':''))
+  body+=T('EL CONTRATANTE es el/la autor(a) de la '+(modelo==='libro'?'obra':'investigación')+(modelo==='publicacion'?' y del manuscrito':'')+' y conserva la totalidad de los derechos de autoría. El servicio de EL PRESTADOR consiste en acompañamiento metodológico y asesoría técnica, y no constituye la redacción de trabajos por encargo ni la suplantación de autoría. EL CONTRATANTE declara que los datos, resultados y fuentes de la investigación son auténticos y garantiza el cumplimiento de las normas de ética en investigación y de las políticas antiplagio'
+    +(modelo==='publicacion'?', de las directrices de la revista y de los principios del Committee on Publication Ethics (COPE)':modelo==='libro'?', de las políticas de la editorial y del respeto a los derechos de autor de terceros (textos, imágenes, tablas y figuras)':modelo==='tesis'?' y de la normativa de titulación de su institución':'')+'.'
+    +(modelo==='publicacion'?' EL PRESTADOR no figurará como autor, salvo acuerdo expreso y por escrito que refleje una contribución real conforme a los criterios de autoría de la revista.'
+      :modelo==='libro'?' EL PRESTADOR no figurará como autor ni coautor de la obra, salvo acuerdo expreso y por escrito. Los contratos de edición o de cesión de derechos patrimoniales con la editorial serán suscritos directamente por EL CONTRATANTE.':''))
   if(modelo==='estadistica'){
     body+=T('Los resultados del análisis dependen de la calidad y veracidad de los datos entregados por EL CONTRATANTE, quien es responsable de su recolección y de contar con el consentimiento informado de los participantes cuando corresponda.')
   }
@@ -3290,6 +3392,7 @@ function _construirContrato(ctx,em){
   body+=C('OBLIGACIONES DE EL CONTRATANTE')
   const oblCl=['Cancelar puntualmente los valores acordados en las fechas establecidas en el plan de pagos','Proporcionar de manera oportuna la información, documentación e insumos necesarios para la correcta ejecución del servicio','Comunicar oportunamente a EL PRESTADOR cualquier observación respecto del trabajo entregado']
   if(modelo==='publicacion'){oblCl.push('Revisar y aprobar oportunamente las versiones del manuscrito y responder, dentro de los plazos, a las observaciones de los revisores');if(det.apcIncluido!=='Incluido en el valor del contrato')oblCl.push('Cubrir los costos de publicación (APC) cuando la revista los requiera')}
+  if(modelo==='libro'){oblCl.push('Entregar el manuscrito completo y las autorizaciones de uso de textos, imágenes, tablas o figuras de terceros');oblCl.push('Revisar y aprobar oportunamente las pruebas y versiones de la obra');if(det.costoEdicion!=='Incluidos en el valor del contrato')oblCl.push('Cubrir los costos de edición, impresión y registro cuando correspondan')}
   if(modelo==='tesis')oblCl.push('Asistir a las sesiones de asesoría programadas y cumplir la normativa de titulación de su institución')
   if(modelo==='estadistica')oblCl.push('Entregar la base de datos completa y el instrumento aplicado en la fecha acordada')
   body+=T('EL CONTRATANTE se obliga a: '+_literales(oblCl)+'.')
@@ -3297,6 +3400,7 @@ function _construirContrato(ctx,em){
   body+=C('OBLIGACIONES DE EL PRESTADOR')
   const oblPr=['Ejecutar el servicio contratado con diligencia, profesionalismo y bajo los estándares de calidad correspondientes','Cumplir con los plazos acordados, salvo causas de fuerza mayor o caso fortuito debidamente justificadas','Mantener informado a EL CONTRATANTE sobre el avance del trabajo y registrar cada avance en la plataforma de seguimiento']
   if(modelo==='publicacion')oblPr.push('Orientar la elaboración de la carta de presentación y de la carta de respuesta a los revisores')
+  if(modelo==='libro')oblPr.push('Orientar la preparación de la propuesta editorial y la respuesta a las observaciones de los evaluadores o de la editorial')
   body+=T('EL PRESTADOR se obliga a: '+_literales(oblPr)+'.')
 
   body+=C('CONFIDENCIALIDAD')
@@ -3305,9 +3409,14 @@ function _construirContrato(ctx,em){
   body+=C('TERMINACIÓN')
   body+=T('El presente contrato terminará por: a) cumplimiento total del objeto contractual; b) mutuo acuerdo entre las partes; o, c) incumplimiento grave de las obligaciones aquí establecidas por cualquiera de las partes.')
 
-  if(det.clausulasExtra&&String(det.clausulasExtra).trim()){
+  // La frase que se agregó al crear el trabajo desde la propuesta se recalcula (valor y autores actuales);
+  // en el cobro por autor no se repite, porque la forma de pago ya detalla el valor de cada uno
+  const _extra=String(det.clausulasExtra||'').replace(/^El valor por autor es de [^()]*\(\d+ autores?\)\.\s*/,function(){
+    if(modoCobroDe(t)==='porAutor'&&autoresDe(t).length>1)return''
+    const nA=nAutoresTrabajo(t);return nA>1?'El valor por autor es de '+fmtUSD(total/nA)+' ('+nA+' autores). ':''})
+  if(_extra.trim()){
     body+=C('ACUERDOS ADICIONALES')
-    String(det.clausulasExtra).split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(p){body+=T(p)})
+    String(_extra).split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(p){body+=T(p)})
   }
 
   if(em&&em.codigo){
@@ -4672,6 +4781,7 @@ function avisosContrato(ctx){
     if(!det.apcIncluido)a.push('No se indicó si el APC está incluido (se asumirá que lo paga el cliente).')
     if(det.reenviosMax===''||det.reenviosMax===undefined)a.push('No se definió el número de reenvíos sin costo (se usarán 2).')
   }
+  if(ctx.modelo==='libro'){if(!det.editorial)a.push('Editorial sin definir (el contrato dirá “por definir de mutuo acuerdo”).');if(!(det.alcanceLibro||[]).length)a.push('No se marcaron los servicios incluidos en la asesoría del libro.');if(!det.costoEdicion)a.push('No se indicó si los costos de edición están incluidos (se asumirá que los paga el autor).')}
   if(ctx.modelo==='tesis'&&!(det.alcance||[]).length)a.push('No se marcaron los componentes incluidos en la asesoría.')
   if(ctx.modelo==='estadistica'&&!det.tipoAnalisis)a.push('No se describió el análisis a realizar.')
   return a
@@ -4683,6 +4793,7 @@ function mContrato(d){
   const avisos=avisosContrato(ctx)
   const res=[['Modelo',NOMBRE_MODELO[ctx.modelo]],['Valor','$'+fmt(t.total)],['Plan de pagos',ctx.cuotas.length+' cuota(s)'],['Plazo',plazoTxt(t)]]
   if(ctx.modelo==='publicacion')res.push(['Revista',det.revista||'Por definir'],['Indexación',_lista(det.indexacion)||'—'],['APC',(det.apcIncluido||'No incluido').split(' — ')[0]],['Reenvíos sin costo',String(reenviosMax(t))])
+  if(ctx.modelo==='libro')res.push(['Editorial',det.editorial||'Por definir'],['Obra',det.tipoObra||'—'],['Formato',det.formato||'—'],['Costos editoriales',(det.costoEdicion||'No incluidos').split(' — ')[0]])
   if(ctx.modelo==='tesis')res.push(['Universidad',det.universidad||(cl&&cl.institucion)||'—'],['Nivel',det.nivel||'—'])
   if(ctx.modelo==='estadistica')res.push(['Software',_lista(det.software)||'—'])
   let h='<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px">'
@@ -4772,6 +4883,32 @@ const HITOS_DEFAULT=[
 const NOTA_PROPUESTA='Los autores eligen la posición según su acuerdo interno.'
 const _json=function(s,def){if(Array.isArray(s))return s;try{const x=JSON.parse(s||'');return Array.isArray(x)?x:def}catch(e){return def}}
 const artsDe=p=>_json(p&&p.articulos,[])
+// Nº de autores de un trabajo para el "valor por autor" (los que pagan; si no hay autores registrados, el dato del detalle)
+function nAutoresTrabajo(t){const au=autoresDe(t);if(au.length>1)return Math.max(1,au.filter(a=>!a.exento).length);return parseInt(detallesDe(t).numAutores)||1}
+// Artículos aceptados cuyo valor o número de autores ya no coincide con su trabajo
+function desajustesPropuesta(p){
+  return artsDe(p).map(function(a){
+    if(a.estado!=='aceptado'||!a.trabajoId)return null
+    const t=data.trabajos.find(x=>x.id===a.trabajoId);if(!t)return null
+    const vt=r2(parseFloat(t.total)||0),va=r2(parseFloat(a.total)||0),nt=nAutoresTrabajo(t),na=parseInt(a.autores)||1
+    return vt!==va||nt!==na?{a:a,t:t,vt:vt,va:va,nt:nt,na:na}:null
+  }).filter(Boolean)
+}
+// Copia a la propuesta el valor y los autores actuales de los trabajos creados desde ella
+async function sincronizarPropuesta(pid,silencioso){
+  const p=data.propuestas.find(x=>x.id===pid);if(!p)return
+  const ds=desajustesPropuesta(p);if(!ds.length)return
+  const arts=artsDe(p).map(a=>{const d=ds.find(x=>x.a.id===a.id);return d?Object.assign({},a,{total:d.vt,autores:d.nt}):a})
+  const val=JSON.stringify(arts)
+  data.propuestas=data.propuestas.map(x=>x.id===pid?Object.assign({},x,{articulos:val}):x)
+  if(!silencioso)draw()
+  const r=await apiPost({action:'actualizar',tabla:'Propuestas',id:pid,fila:{articulos:val}})
+  if(!silencioso){if(r&&r.ok)toast('Propuesta actualizada con los valores de sus trabajos ✓');else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')}
+}
+// Tras cambiar un trabajo, su propuesta de origen se actualiza sola
+function sincronizarPropuestaDeTrabajo(tid){
+  const p=(data.propuestas||[]).find(x=>artsDe(x).some(a=>a.trabajoId===tid));if(p)sincronizarPropuesta(p.id,true)
+}
 const hitosDe=p=>{const h=_json(p&&p.hitos,[]);return h.length?h:HITOS_DEFAULT.map(x=>Object.assign({},x))}
 const porAutor=a=>{const n=parseInt(a.autores)||1;return(parseFloat(a.total)||0)/n}
 // "2.000 USD" (formato de la plantilla)
@@ -4821,8 +4958,8 @@ function htmlPropuestas(){
   list.forEach(function(p){
     const cl=data.clientes.find(c=>c.id===p.clienteId)
     const arts=artsDe(p),st=estadoPropuesta(p)
-    const vivos=arts.filter(a=>a.estado!=='descartado')
-    const total=vivos.reduce((s,a)=>s+(parseFloat(a.total)||0),0)
+    const vivos=arts.filter(a=>a.estado!=='descartado'),desaj=desajustesPropuesta(p)
+    const total=vivos.reduce((s,a)=>{const d=desaj.find(x=>x.a.id===a.id);return s+(d?d.vt:(parseFloat(a.total)||0))},0)
     h+='<div class="card"><div class="card-hd" style="flex-wrap:wrap;gap:8px">'
       +'<div style="min-width:0;flex:1"><h3 style="font-size:14px">📑 '+esc(p.titulo||'Propuesta')+'</h3>'
       +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+esc(cl&&cl.nombre||p.clienteNombre||'—')+' · '+fmtDCorto(p.fecha)+' · '+vivos.length+' artículo(s) · '+fmtUSD(total)+'</div></div>'
@@ -4830,7 +4967,10 @@ function htmlPropuestas(){
       +'<button class="btn btn-gold btn-sm" onclick="openModal(\'proforma\',{propuestaId:\''+p.id+'\'})">📄 Proforma / WhatsApp</button>'
       +'<button class="btn btn-g btn-sm" onclick="openModal(\'propuesta\','+jss(p)+')">✏️</button>'
       +'<button class="btn btn-r btn-sm" onclick="delRec(\'Propuestas\',\''+p.id+'\',\'¿Eliminar esta propuesta? Los trabajos ya creados no se eliminan.\')">🗑</button>'
-      +'</div></div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Artículo</th><th>Revista</th><th>Cuartil</th><th>Total</th><th>Por autor</th><th>Tiempo</th><th></th></tr></thead><tbody>'
+      +'</div></div>'+(desaj.length?'<div style="margin:0 14px 8px;font-size:12px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:7px 11px">'
+        +desaj.map(d=>'El trabajo de <strong>"'+esc(String(d.a.titulo).slice(0,60))+'…"</strong> ahora vale <strong>'+fmtUSD(d.vt)+'</strong>'+(d.nt!==d.na?' con '+d.nt+' autor(es)':'')+' (en la propuesta: '+fmtUSD(d.va)+(d.nt!==d.na?', '+d.na+' autor(es)':'')+').').join('<br/>')
+        +' <a href="#" onclick="event.preventDefault();sincronizarPropuesta(\''+p.id+'\')">Actualizar la propuesta</a></div>':'')
+      +'<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Artículo</th><th>Revista</th><th>Cuartil</th><th>Total</th><th>Por autor</th><th>Tiempo</th><th></th></tr></thead><tbody>'
     arts.forEach(function(a,i){
       const off=a.estado==='descartado'
       let acc
@@ -4844,7 +4984,8 @@ function htmlPropuestas(){
           +'<button class="btn btn-g btn-sm" title="Descartar" onclick="marcarArticulo(\''+p.id+'\',\''+a.id+'\',\'descartado\')">✕</button>'
       }
       h+='<tr style="'+(off?'opacity:.5':'')+'"><td>'+(i+1)+'</td><td style="min-width:240px;font-size:12.5px">'+esc(a.titulo)+'</td><td style="font-size:12px">'+esc(a.revista||'—')+'</td>'
-        +'<td>'+esc(a.cuartil||'—')+'</td><td style="white-space:nowrap">'+fmtUSD(a.total)+'</td><td style="white-space:nowrap;color:var(--gold-dk);font-weight:700">'+fmtUSD(porAutor(a))+'</td>'
+        +(function(){const d=desaj.find(x=>x.a.id===a.id),aa=d?Object.assign({},a,{total:d.vt,autores:d.nt}):a
+          return'<td>'+esc(a.cuartil||'—')+'</td><td style="white-space:nowrap">'+fmtUSD(aa.total)+(d&&d.vt!==d.va?'<div style="font-size:10.5px;color:var(--text3);text-decoration:line-through">'+fmtUSD(d.va)+'</div>':'')+'</td><td style="white-space:nowrap;color:var(--gold-dk);font-weight:700">'+fmtUSD(porAutor(aa))+'</td>'})()
         +'<td style="white-space:nowrap">'+tiempoTxt(a)+'</td><td style="white-space:nowrap">'+acc+'</td></tr>'
     })
     h+='</tbody></table></div></div>'
@@ -5000,10 +5141,11 @@ async function aceptarArticulo(pid,aid){
   const idx=String(a.indexacion||'').split(/\s*[,;]\s*/).filter(Boolean)
   const tid=uid(),total=parseFloat(a.total)||0,nA=parseInt(a.autores)||1
   const det={tipoArticulo:a.tipoArticulo||'',area:p.area||'',revista:a.revista||'',cuartil:cuart,indexacion:idx,
-    numAutores:String(nA),frecuencia:'Quincenal',reenviosMax:'2',propuestaId:pid,
+    autores:cl&&cl.nombre||'',numAutores:String(nA),frecuencia:'Quincenal',reenviosMax:'2',propuestaId:pid,
     clausulasExtra:'El valor por autor es de '+fmtUSD(total/nA)+' ('+nA+' autores). '+(p.notas||'')}
   const t={id:tid,clienteId:p.clienteId,clienteNombre:cl&&cl.nombre||'',titulo:a.titulo,tipo:TIPO_PUB,estado:'Nuevo',total:total,progreso:'0',
-    fechaInicio:hoy,fechaFin:fin,notas:'Creado desde la propuesta: '+(p.titulo||''),carpeta:'',detalles:JSON.stringify(det),etapa:'',contratoUrl:'',contratoFecha:'',createdAt:new Date().toISOString()}
+    fechaInicio:hoy,fechaFin:fin,notas:'Creado desde la propuesta: '+(p.titulo||''),carpeta:'',detalles:JSON.stringify(det),etapa:'',contratoUrl:'',contratoFecha:'',createdAt:new Date().toISOString(),
+    autores:JSON.stringify([{id:'a'+uid(),clienteId:p.clienteId,nombre:cl&&cl.nombre||'',rol:'correspondencia',pct:100,tipo:'pct',cuotas:'plan',orcid:cl&&cl.orcid||''}]),modoCobro:'responsable'}
   // Fechas estimadas de cada hito (se ajustan solas al registrar la etapa vinculada)
   const FRAC={diagnostico:.1,ajuste:.25,seleccion:.35,envio:.45,revision:.55,correcciones:.7,aceptado:.9,publicado:1}
   const montos=repartir(total,hitos)
@@ -5018,7 +5160,10 @@ async function aceptarArticulo(pid,aid){
   // Optimista
   data.trabajos=data.trabajos.concat([t]);data.cuotas=data.cuotas.concat(cuotas)
   data.propuestas=data.propuestas.map(x=>x.id===pid?pUpd:x)
-  syncMsg='Creando trabajo...';syncErr=false;abrirContrato(tid)
+  syncMsg='Creando trabajo...';syncErr=false
+  // Con varios autores se abre primero la pantalla de autores (nombre, cédula, ORCID y cuánto paga cada uno); luego el contrato
+  if(nA>1){abrirAutores(tid,{luegoContrato:true,vacias:nA-1});toast('Registra a los '+(nA-1)+' coautor(es) con su ORCID')}
+  else abrirContrato(tid)
   const rs=[await apiPost({action:'insertar',tabla:'Trabajos',fila:t})]
   for(const c of cuotas)rs.push(await apiPost({action:'insertar',tabla:'Cuotas',fila:c}))
   rs.push(await apiPost({action:'actualizar',tabla:'Propuestas',id:pid,fila:{articulos:pUpd.articulos,estado:pUpd.estado}}))
@@ -6142,6 +6287,8 @@ function abrirAutores(tid,op){
     if(cl&&rows.some(r=>r.clienteId===cl.id))return
     rows.push({id:uid(),clienteId:cl?cl.id:'',nombre:cl?cl.nombre:n,rol:'coautor',pct:0,monto:0,tipo:'pct',cuotas:'plan',orcid:cl&&cl.orcid||'',nuevo:cl?{}:{nombre:n}})
   })
+  // Filas vacías para los coautores que faltan (p. ej. al aceptar un artículo de 3 autores)
+  for(let k=0;op&&k<(op.vacias||0);k++)rows.push({id:uid(),clienteId:'',nombre:'',rol:'coautor',pct:0,monto:0,tipo:'pct',cuotas:'plan',orcid:'',nuevo:{}})
   openModal('autores',Object.assign({trabajoId:tid,modo:modoCobroDe(t),_rows:rows},op||{}))
 }
 // Guarda los cambios del formulario del trabajo y abre la pantalla de autores
@@ -6180,6 +6327,7 @@ function mAutores(d){
       +'<button type="button" class="btn btn-r btn-sm" title="Quitar autor" onclick="_autQuitar('+i+')"'+(rows.length<2?' disabled':'')+'>✕</button>'
       +'</div>'
       +(ok?'':'<div style="font-size:11px;color:var(--red);margin-top:4px">El ORCID no es válido: son 16 dígitos (el último puede ser X), por ejemplo 0000-0002-1825-0097.</div>')
+      +(!r.orcid?'<div style="font-size:11px;color:#b45309;margin-top:4px">⚠ Falta el ORCID de este autor. Pídeselo o búscalo en <a href="https://orcid.org/orcid-search/search?searchQuery='+encodeURIComponent(r.nombre||(r.nuevo&&r.nuevo.nombre)||'')+'" target="_blank" rel="noopener">orcid.org</a>.</div>':'')
       +'<label class="chk" style="margin-top:8px"><input type="radio" name="au_rol" value="'+i+'"'+(r.rol==='correspondencia'?' checked':'')+'/> Encargado / autor de correspondencia</label>'
       +(porAutor?'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">'
         +'<label class="chk" style="grid-column:1/-1;margin:0"><input type="checkbox" id="au_ex_'+i+'"'+(r.exento?' checked':'')+' onchange="_autLeer();_autExento('+i+',this.checked)"/> <strong>No paga</strong> — concesión: participa como autor sin costo</label>'
@@ -6344,6 +6492,8 @@ function planCuotasAutores(t,autores,modo,titularId){
 async function submitAutores(){
   _autLeer()
   const d=modal.rec,t=data.trabajos.find(x=>x.id===d.trabajoId);if(!t)return
+  // Las filas de autor nuevo que se dejaron en blanco no se guardan
+  d._rows=d._rows.filter(r=>r.clienteId||(r.nuevo&&r.nuevo.nombre)||r.nombre)
   const rows=d._rows,porAutor=d.modo==='porAutor',total=parseFloat(t.total)||0
   if(!rows.length){alert('Agrega al menos un autor');return}
   if(rows.filter(r=>r.rol==='correspondencia').length!==1){alert('Marca un autor como encargado / de correspondencia');return}
@@ -6351,6 +6501,8 @@ async function submitAutores(){
   const malo=rows.find(r=>r.orcid&&!orcidValido(r.orcid));if(malo){alert('El ORCID de '+(malo.nombre||'un autor')+' no es válido ('+malo.orcid+'). Revísalo o déjalo vacío.');return}
   const ids=rows.map(r=>r.clienteId).filter(Boolean)
   if(new Set(ids).size!==ids.length){alert('Un mismo cliente aparece dos veces como autor');return}
+  const sinOrcid=rows.filter(r=>!r.orcid)
+  if(sinOrcid.length&&!confirm(sinOrcid.length+' autor(es) no tienen ORCID: '+sinOrcid.map(r=>r.nombre||(r.nuevo&&r.nuevo.nombre)||'—').join(', ')+'.\n\nEl ORCID se usa en el contrato y en la publicación. ¿Guardar de todas formas y completarlo después?'))return
   if(porAutor){
     if(!(total>0)){alert('El trabajo no tiene valor total. Escríbelo en el trabajo antes de repartir el cobro entre autores.');return}
     const suma=r2(rows.reduce((s,r)=>s+montoAutor(r,total),0))
@@ -6389,6 +6541,7 @@ async function submitAutores(){
   for(const c of plan.crear)rs.push(await apiPost({action:'insertar',tabla:'Cuotas',fila:c}))
   for(const id of plan.eliminar)rs.push(await apiPost({action:'eliminar',tabla:'Cuotas',id:id}))
   if(d.luegoContrato)setTimeout(()=>abrirContrato(t.id),0)
+  sincronizarPropuestaDeTrabajo(t.id)
   finSync(rs,'Autores guardados ✓'+(plan.crear.length?' · '+plan.crear.length+' cuota(s) reorganizada(s)':'')+(plan.bloqueadas?' · '+plan.bloqueadas+' cuota(s) con pagos no se modificaron':''))
 }
 
