@@ -1121,7 +1121,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.11.1'
+const VERSION='v7.11.2'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -3767,7 +3767,7 @@ function htmlPortalProgreso(){
   }
   h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">📋 Mis trabajos</div>'
   trabajosCl.forEach(function(t){
-    const propias=t.clienteId!==user.clienteId||modoCobroDe(t)==='porAutor'
+    const propias=t.clienteId!==user.clienteId
     const bal=propias?balCliente(t,user.clienteId):wBal(t)
     const cuotasTrab=propias?bal.cuotas:data.cuotas.filter(function(c){return c.trabajoId===t.id})
     const prog=parseInt(t.progreso)||0
@@ -3888,6 +3888,8 @@ function htmlPortalCuentas(){
         +'</div>'
     })
   })
+  // Autor encargado / de correspondencia: valor total del trabajo y cuotas de cada autor
+  trabajosCl.filter(t=>t.clienteId===user.clienteId&&autoresDe(t).length>1).forEach(function(t){h+=htmlPortalResumenEncargado(t)})
   // Facturas electrónicas autorizadas del cliente
   const fs=recientes(data.facturas||[]).filter(f=>f.estado==='AUTORIZADO')
   if(fs.length)h+='<div style="font-size:16px;font-weight:700;margin:18px 0 10px">🧾 Mis facturas</div><div class="card"><table><thead><tr><th>Número</th><th>Fecha</th><th style="text-align:right">Total</th><th></th></tr></thead><tbody>'
@@ -3896,6 +3898,28 @@ function htmlPortalCuentas(){
   return h
 }
 
+function htmlPortalResumenEncargado(t){
+  const filas=resumenPorAutor(t),bal=wBal(t),pag=r2(filas.reduce((s,x)=>s+x.pagado,0)),acu=r2(filas.reduce((s,x)=>s+x.acordado,0))
+  const total=parseFloat(t.total)||acu,saldo=r2(Math.max(acu-pag,0))
+  const otras=data.cuotas.filter(c=>c.trabajoId===t.id&&pagadorIdDe(c,t)!==user.clienteId).sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
+  const stC={pagado:'#15803d',parcial:'#0F4C81',vencido:'#dc2626',pendiente:'#b45309'}
+  return'<div class="card" style="margin-top:18px"><div class="card-hd" style="flex-wrap:wrap;gap:6px"><h3>👥 '+esc(t.titulo)+'</h3><span style="font-size:11px;color:var(--text3)">Resumen del trabajo completo · eres el autor encargado / de correspondencia</span></div>'
+    +'<div style="padding:12px 16px">'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">'
+    +[['Valor total del trabajo',fmtUSD(total),'var(--navy)'],['Pagado por todos',fmtUSD(pag),'var(--green)'],['Saldo del trabajo',fmtUSD(saldo),saldo>0?'#b45309':'var(--green)'],['Avance de pagos',(acu>0?Math.round(pag/acu*100):0)+' %','var(--brand)']]
+      .map(x=>'<div style="background:#F8F7F3;border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3);font-weight:700">'+x[0]+'</div><div style="font-size:16px;font-weight:800;color:'+x[2]+'">'+x[1]+'</div></div>').join('')+'</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px"><thead><tr><th>Autor</th><th style="text-align:right">Le corresponde</th><th style="text-align:right">Pagado</th><th style="text-align:right">Saldo</th></tr></thead><tbody>'
+    +filas.map(x=>'<tr><td><strong>'+esc(x.a.nombre||'—')+'</strong>'+(x.a.clienteId===user.clienteId?' <span class="b bb" style="font-size:10px">Tú</span>':'')+(x.a.exento?' <span class="b bv" style="font-size:10px">Concesión</span>':'')+'</td>'
+      +'<td style="text-align:right">'+(x.a.exento?'—':fmtUSD(x.acordado))+'</td><td style="text-align:right;color:var(--green)">'+fmtUSD(x.pagado)+'</td><td style="text-align:right;font-weight:700;color:'+(x.saldo>0?'#b45309':'var(--green)')+'">'+fmtUSD(x.saldo)+'</td></tr>').join('')
+    +'<tr><td><strong>Total</strong></td><td style="text-align:right"><strong>'+fmtUSD(acu)+'</strong></td><td style="text-align:right;color:var(--green)"><strong>'+fmtUSD(pag)+'</strong></td><td style="text-align:right"><strong>'+fmtUSD(saldo)+'</strong></td></tr></tbody></table></div>'
+    +(otras.length?'<div style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px">Cuotas de los coautores</div>'
+      +otras.map(function(c){const st=cStat(c),sd=saldoCuota(c),pg=realPaid(c)
+        return'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12.5px">'
+          +'<div><strong>'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">'+esc(nombrePagador(c,t))+' · vence '+fmtDCorto(c.fechaVencimiento||'')+'</div></div>'
+          +'<div style="text-align:right"><strong>'+fmtUSD(c.acordado)+'</strong>'+(pg>0?'<div style="font-size:11px;color:#15803d">Pagado '+fmtUSD(pg)+'</div>':'')+(sd>0&&st!=='pagado'?'<div style="font-size:11px;color:'+stC[st]+'">Saldo '+fmtUSD(sd)+'</div>':'')+'</div>'
+          +'<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+stC[st]+'20;color:'+stC[st]+'">'+st.toUpperCase()+'</span></div>'}).join(''):'')
+    +'</div></div>'
+}
 function htmlPortalColaborador(){
   const asigsCol=(data.asignaciones||[]).filter(function(a){return a.colaboradorId===user.colaboradorId})
   let h=htmlPortalHeader()
@@ -5323,8 +5347,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<799
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.9.9 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<812
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.11.2 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
