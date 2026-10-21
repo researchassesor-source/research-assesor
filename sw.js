@@ -6,7 +6,7 @@
 // • Las llamadas al Apps Script (datos) NUNCA se guardan aquí.
 // Al publicar cambios importantes, sube el número de VERSION.
 // ================================================================
-const VERSION = 'ra-v7.11.2';
+const VERSION = 'ra-v7.12.0';
 const APP_SHELL = [
   './',
   './index.html',

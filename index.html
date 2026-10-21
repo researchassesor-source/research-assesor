@@ -232,6 +232,53 @@ aside{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bo
   .hito-row{grid-template-columns:1fr 70px auto}.hito-row select{grid-column:1/-1;order:5}
 }
 
+/* ── Portal del cliente ── */
+.pt{max-width:760px;margin:0 auto;font-size:14px}
+.pt-hero{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#0F4C81,#0B2545);color:#fff;border-radius:18px;padding:20px 22px;margin-bottom:14px}
+.pt-avatar{width:50px;height:50px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}
+.pt-hola{font-size:21px;font-weight:800;line-height:1.2}.pt-hero-sub{font-size:13.5px;opacity:.9;margin-top:3px;line-height:1.45}
+.pt-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.pt-empty{text-align:center;padding:28px 18px;font-size:15px;line-height:1.7}
+.pt-h2{font-size:15px;font-weight:800;color:var(--navy);margin:22px 4px 10px}
+.pt-kicker{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text3)}
+.pt-big{font-size:30px;font-weight:800;color:var(--navy);line-height:1.15;margin:2px 0}
+.pt-sub{font-size:13.5px;color:var(--text2);line-height:1.5}
+.pt-muted{color:var(--text3)}
+.pt-alert{display:flex;gap:14px;align-items:flex-start;border-left:5px solid var(--gold)}
+.pt-alert-red{border-left-color:#dc2626;background:#FFF7F7}.pt-alert-red .pt-big{color:#b91c1c}
+.pt-alert-ic{font-size:26px;line-height:1}
+.pt-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pt-btn{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;border:1px solid transparent;font-family:inherit;min-height:44px}
+.pt-btn-ok{background:#15803d;color:#fff}.pt-btn-sec{background:#fff;color:var(--navy);border-color:var(--border)}
+.pt-contacto{display:flex;align-items:center;gap:12px;background:#F0FDF4;border:1px solid #bbf7d0;color:#14532d;border-radius:16px;padding:14px 18px;text-decoration:none;margin:18px 0 8px;font-size:13.5px;line-height:1.4}
+.pt-work-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
+.pt-work-t{font-size:16.5px;font-weight:800;color:var(--navy);line-height:1.3}.pt-work-tipo{font-size:12.5px;color:var(--text3);margin-top:3px}
+.pt-chip{flex-shrink:0;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:800;white-space:nowrap}
+.pt-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.pt-row-l{font-size:13px;font-weight:700;color:var(--text2)}.pt-row-v{font-size:14px;font-weight:800;color:var(--navy)}
+.pt-bar{height:12px;background:#F1EFEA;border-radius:999px;overflow:hidden}.pt-bar>div{height:100%;border-radius:999px;transition:width .4s}
+.pt-etapa{display:flex;justify-content:space-between;gap:10px;align-items:flex-end;background:#F8F7F3;border-radius:12px;padding:12px 14px;margin-top:14px}
+.pt-etapa-v{font-size:15px;font-weight:800;color:var(--navy);margin-top:2px}.pt-etapa-s{font-size:13px;color:var(--text2);margin-top:2px}
+.pt-stepper{margin-top:10px;overflow-x:auto}
+.pt-novedad{margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9}
+.pt-nov-t{font-size:14px;font-weight:700;color:var(--navy);margin-top:4px}.pt-nov-n{font-size:13.5px;color:var(--text2);line-height:1.55;margin-top:4px;white-space:pre-line}
+.pt-det{margin-top:10px}.pt-det summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--brand);padding:6px 0}
+.pt-link-r{text-align:right;margin-top:6px;font-size:13px}.pt-link-r a{color:var(--brand);font-weight:700;text-decoration:none}
+.pt-fechas{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text2);margin-top:14px}
+.pt-docs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pt-doc{display:inline-flex;align-items:center;gap:5px;background:#F1F5FA;color:var(--brand);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;text-decoration:none;min-height:38px}
+.pt-saldo{text-align:center;padding:22px 18px}.pt-saldo .pt-bar{max-width:420px;margin:14px auto 0}
+.pt-cuota{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-bottom:1px solid #f1f5f9}.pt-cuota:last-child{border-bottom:0}
+.pt-cuota-ic{font-size:20px;line-height:1.2}.pt-cuota-t{font-size:14px;font-weight:700;color:var(--navy)}.pt-cuota-s{font-size:12.5px;font-weight:700;margin-top:3px}
+.pt-cuota-abs{font-size:12px;color:#15803d;margin-top:6px;line-height:1.6}.pt-cuota-m{font-size:16px;font-weight:800;color:var(--navy)}
+.pt-tabs{display:none}
+.pt-tab td,.pt-tab th{white-space:nowrap}.pt-tab td:first-child{white-space:normal}
+@media(max-width:700px){
+  .pt-tabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--border);padding:6px 6px max(6px,env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(15,23,42,.06)}
+  .pt-tabs>*{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--text3);padding:6px 0;text-decoration:none;cursor:pointer}
+  .pt-tabs>* span{font-size:20px}.pt-tabs .on{color:var(--brand)}
+  .pt{padding-bottom:70px}.pt-big{font-size:27px}.pt-hero{padding:16px 16px}.pt-hola{font-size:19px}
+  .pt-actions .pt-btn{flex:1;justify-content:center}
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
 .spin{display:inline-block;animation:spin .8s linear infinite}
@@ -1114,14 +1161,14 @@ const NAV_MAIN=[
   {id:'configuracion',l:'Configuración',  ic:'⚙'},
 ]
 const NAV_CLIENTE=[
-  {id:'mi_progreso',l:'Mis trabajos',ic:'📋'},
+  {id:'mi_progreso',l:'Inicio',ic:'🏠'},
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
 ]
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.11.2'
+const TITLES={mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const VERSION='v7.12.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1159,6 +1206,8 @@ function htmlApp(){
     +'<button class="btn btn-g btn-sm" onclick="loadData()" style="font-size:11px;padding:5px 12px;margin-left:auto">⟳</button>'
     +'</div>'
     +'<div class="page"><div id="page-content">'+pageHtml+'</div></div>'
+    +(user&&user.role==='cliente'?'<nav class="pt-tabs">'+NAV_CLIENTE.map(n=>'<button class="'+(page===n.id?'on':'')+'" onclick="goTo(\''+n.id+'\')"><span>'+n.ic+'</span>'+n.l+'</button>').join('')
+      +(prestador().telefono?'<a target="_blank" rel="noopener" href="'+esc(waUrl(prestador().telefono,'Hola, soy '+(user.name||'')+'. Tengo una consulta.'))+'"><span>💬</span>Ayuda</a>':'')+'</nav>':'')
     +'</main></div>'
 }
 
@@ -3749,166 +3798,150 @@ function editarCuota(cuotaId, trabajoId){
 
 // ══ PORTAL DE CLIENTE ════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════
+// PORTAL DEL CLIENTE — diseño sencillo: lo importante primero, lenguaje claro
+// ════════════════════════════════════════════════════════════════
+const PT_ESTADO={Nuevo:['Por iniciar','#6366f1','🕓'],'En progreso':['En marcha','#0F4C81','🚀'],Revisión:['En revisión','#b45309','🔍'],Completado:['Terminado','#15803d','✅'],Cancelado:['Cancelado','#64748b','⏸']}
+function _ptNombre(){return String(user.name||'').split(' ')[0]}
+function _ptTrabajos(){return recientes(data.trabajos).filter(t=>esDelCliente(t,user.clienteId))}
+function _ptMisCuotas(){const ids=new Set(_ptTrabajos().map(t=>t.id));return data.cuotas.filter(c=>ids.has(c.trabajoId)&&pagadorIdDe(c)===user.clienteId)}
+// "vence en 4 días", "venció hace 7 días", "vence hoy"
+function _ptCuando(f){
+  const d=diasHasta(toISO(f||''));if(d===null)return'sin fecha'
+  if(d===0)return'vence hoy';if(d===1)return'vence mañana';if(d>1)return'vence en '+d+' días ('+fmtDCorto(f)+')'
+  return d===-1?'venció ayer':'venció hace '+(-d)+' días'
+}
+function _ptWaPrestador(msg){const p=prestador();return p.telefono?waUrl(p.telefono,msg):''}
+function _ptBtnYaPague(c,t){
+  const u=_ptWaPrestador('Hola, soy '+(user.name||'')+'. Te envío el comprobante del pago de *'+(c.label||'mi cuota')+'* ('+(t?t.titulo:'')+') por $'+fmt(saldoCuota(c)||c.acordado)+'.')
+  return u?'<a class="pt-btn pt-btn-ok" target="_blank" rel="noopener" href="'+esc(u)+'">📎 Ya pagué: enviar comprobante</a>':''
+}
+function _ptBtnComoPagar(){return textoFormasPago()?'<button class="pt-btn pt-btn-sec" onclick="goTo(\'mis_cuentas\');setTimeout(function(){var e=document.getElementById(\'pt_comopagar\');if(e)e.scrollIntoView({behavior:\'smooth\'})},60)">💳 Cómo pagar</button>':''}
+// Pago que requiere atención: el atrasado más antiguo o, si no hay, el próximo
+function _ptPagoClave(){
+  const cs=_ptMisCuotas().filter(c=>saldoCuota(c)>0).sort((a,b)=>String(toISO(a.fechaVencimiento||'9')).localeCompare(String(toISO(b.fechaVencimiento||'9'))))
+  const atr=cs.filter(c=>{const d=diasHasta(toISO(c.fechaVencimiento||''));return d!==null&&d<0})
+  return{c:atr[0]||cs[0]||null,atrasados:atr,pendientes:cs}
+}
+function htmlPtPagoClave(){
+  const k=_ptPagoClave();if(!k.c)return''
+  const c=k.c,t=data.trabajos.find(x=>x.id===c.trabajoId),atr=k.atrasados.length>0
+  return'<div class="pt-card pt-alert '+(atr?'pt-alert-red':'')+'">'
+    +'<div class="pt-alert-ic">'+(atr?'⚠️':'📅')+'</div><div style="flex:1;min-width:0">'
+    +'<div class="pt-kicker">'+(atr?(k.atrasados.length>1?'Tienes '+k.atrasados.length+' pagos atrasados':'Tienes un pago atrasado'):'Tu próximo pago')+'</div>'
+    +'<div class="pt-big">'+fmtUSD(saldoCuota(c))+'</div>'
+    +'<div class="pt-sub">'+esc(c.label||'Cuota')+' · '+esc(t?t.titulo:'')+'<br/><strong>'+_ptCuando(c.fechaVencimiento)+'</strong></div>'
+    +'<div class="pt-actions">'+_ptBtnComoPagar()+_ptBtnYaPague(c,t)+'</div></div></div>'
+}
+function htmlPtContacto(){
+  const u=_ptWaPrestador('Hola, soy '+(user.name||'')+'. Tengo una consulta sobre mi trabajo.')
+  return u?'<a class="pt-contacto" target="_blank" rel="noopener" href="'+esc(u)+'"><span style="font-size:22px">💬</span><span><strong>¿Tienes dudas?</strong><br/>Escríbenos por WhatsApp</span><span style="margin-left:auto;font-size:18px">›</span></a>':''
+}
 function htmlPortalHeader(){
-  return'<div style="background:linear-gradient(135deg,#0F4C81,#0B2545);border-radius:14px;padding:20px 24px;margin-bottom:20px;color:#fff">'
-    +'<div style="display:flex;align-items:center;gap:14px">'
-    +'<div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">'+esc((user.name||'?')[0].toUpperCase())+'</div>'
-    +'<div>'
-    +'<div style="font-size:18px;font-weight:700">Bienvenido/a, '+esc(user.name||'')+'</div>'
-    +'<div style="font-size:13px;opacity:.85">Portal de seguimiento — Research Assessor</div>'
-    +'</div></div></div>'
+  const ts=_ptTrabajos(),k=_ptPagoClave(),act=ts.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').length
+  const resumen=!ts.length?'Aquí verás el avance de tus trabajos y tus pagos.'
+    :(act?'Tienes '+act+' trabajo'+(act>1?'s':'')+' en marcha':'Tus trabajos están terminados')+(k.atrasados.length?' y un pago pendiente por regularizar.':k.pendientes.length?'. Tus pagos están al día.':'. ¡No tienes pagos pendientes!')
+  return'<div class="pt-hero"><div class="pt-avatar">'+esc((user.name||'?')[0].toUpperCase())+'</div>'
+    +'<div><div class="pt-hola">Hola, '+esc(_ptNombre())+' 👋</div><div class="pt-hero-sub">'+esc(resumen)+'</div></div></div>'
 }
-
+function _ptBarra(pct,color){return'<div class="pt-bar"><div style="width:'+Math.max(0,Math.min(100,pct))+'%;background:'+(color||'#0F4C81')+'"></div></div>'}
+function htmlPtTrabajo(t){
+  const E=PT_ESTADO[t.estado]||[t.estado||'—','#475569','•'],prog=parseInt(t.progreso)||0
+  const coautor=t.clienteId!==user.clienteId,bal=coautor?balCliente(t,user.clienteId):wBal(t)
+  const segs=segsDe(t.id,true),ult=segs[segs.length-1]
+  const pub=esPublicacion(t),cur=pub?etapaActual(t):'',ci=ETAPAS_PUB.findIndex(e=>e.id===cur),et=ci>-1?ETAPAS_PUB[ci]:null,sig=ci>-1?ETAPAS_PUB[ci+1]:ETAPAS_PUB[0]
+  const reg=contratoVigente(t.id),det=detallesDe(t)
+  let h='<div class="pt-card pt-work">'
+    +'<div class="pt-work-hd"><div style="min-width:0"><div class="pt-work-t">'+esc(t.titulo)+'</div><div class="pt-work-tipo">'+esc(t.tipo||'')+(autoresDe(t).length>1?' · '+(coautor?'eres coautor':'eres el autor encargado'):'')+'</div></div>'
+    +'<span class="pt-chip" style="color:'+E[1]+';background:'+E[1]+'18">'+E[2]+' '+esc(E[0])+'</span></div>'
+  // Avance
+  h+='<div class="pt-row"><div class="pt-row-l">Avance del trabajo</div><div class="pt-row-v">'+prog+' %</div></div>'+_ptBarra(prog,'#B8894A')
+  if(pub){
+    h+='<div class="pt-etapa"><div><div class="pt-kicker">Etapa actual</div><div class="pt-etapa-v">'+(et?et.ic+' '+esc(et.l):'🕓 Por iniciar')+'</div></div>'
+      +(sig&&cur!=='publicado'?'<div style="text-align:right"><div class="pt-kicker">Siguiente</div><div class="pt-etapa-s">'+esc(sig.l)+'</div></div>':'')+'</div>'
+      +'<div class="pt-stepper">'+htmlStepper(t)+'</div>'
+  }
+  // Última novedad
+  h+='<div class="pt-novedad"><div class="pt-kicker">Última novedad</div>'
+    +(ult?'<div class="pt-nov-t">'+((etapaInfo(ult.etapa)||{ic:'📝',l:'Avance'}).ic)+' '+esc((etapaInfo(ult.etapa)||{l:'Avance'}).l)+' <span class="pt-muted">· '+fmtDCorto(ult.fecha)+'</span></div>'+(ult.nota?'<div class="pt-nov-n">'+esc(ult.nota)+'</div>':'')
+      :'<div class="pt-muted">Aún no hay novedades. Te avisaremos por WhatsApp en cada avance.</div>')
+    +(segs.length>1?'<details class="pt-det"><summary>Ver todo el historial ('+segs.length+')</summary>'+htmlTimeline(t,true)+'</details>':'')+'</div>'
+  // Pagos (resumen)
+  if(bal.total>0)h+='<div class="pt-row" style="margin-top:14px"><div class="pt-row-l">'+(!coautor&&autoresDe(t).length>1?'Pagos del trabajo (todos los autores)':'Tus pagos')+'</div><div class="pt-row-v">'+fmtUSD(bal.paid)+' <span class="pt-muted">de '+fmtUSD(bal.total)+'</span></div></div>'+_ptBarra(bal.pct,'#15803d')
+    +'<div class="pt-link-r"><a href="#" onclick="event.preventDefault();goTo(\'mis_cuentas\')">Ver mis pagos ›</a></div>'
+  // Fechas y documentos
+  const docs=[]
+  if(t.contratoUrl)docs.push('<a class="pt-doc" target="_blank" rel="noopener" href="'+esc(t.contratoUrl)+'">📄 Mi contrato</a>')
+  if(reg)docs.push('<a class="pt-doc" target="_blank" rel="noopener" href="'+esc(urlVerificacion(reg.id))+'">🔐 Verificar contrato</a>')
+  if(t.carpeta)docs.push('<a class="pt-doc" target="_blank" rel="noopener" href="'+esc(t.carpeta)+'">📁 Carpeta de archivos</a>')
+  if(t.fechaInicio||t.fechaFin)h+='<div class="pt-fechas">'+(t.fechaInicio?'<span>📅 Inicio <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')+(t.fechaFin?'<span>🏁 Entrega estimada <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')+'</div>'
+  if(docs.length)h+='<div class="pt-docs">'+docs.join('')+'</div>'
+  if(pub||modeloTrabajo(t.tipo)==='libro')h+='<details class="pt-det"><summary>Ver detalles '+(pub?'de la publicación':'del libro')+'</summary>'+(pub?htmlPubMeta(t):_fichaGrid([['Editorial',det.editorial||'Por definir'],['Tipo de obra',det.tipoObra],['Formato',det.formato],['Publicación estimada',det.fechaPublicacion?fmtDCorto(det.fechaPublicacion):'']]))+'</details>'
+  return h+'</div>'
+}
 function htmlPortalProgreso(){
-  const trabajosCl=recientes(data.trabajos).filter(function(t){return esDelCliente(t,user.clienteId)})
-  let h=htmlPortalHeader()
-  if(!trabajosCl.length){
-    return h+'<div class="card"><p class="empty">No tienes trabajos registrados aún.</p></div>'
-  }
-  h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">📋 Mis trabajos</div>'
-  trabajosCl.forEach(function(t){
-    const propias=t.clienteId!==user.clienteId
-    const bal=propias?balCliente(t,user.clienteId):wBal(t)
-    const cuotasTrab=propias?bal.cuotas:data.cuotas.filter(function(c){return c.trabajoId===t.id})
-    const prog=parseInt(t.progreso)||0
-    const SC={Completado:'#15803d','En progreso':'#0F4C81',Revisión:'#b45309',Cancelado:'#64748b',Nuevo:'#6366f1'}
-    const stColor=SC[t.estado]||'#475569'
-    h+='<div class="card" style="margin-bottom:14px;overflow:hidden">'
-      // Header
-      +'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">'
-      +'<div>'
-      +'<div style="font-size:16px;font-weight:700;margin-bottom:4px">'+esc(t.titulo)+'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+esc(t.tipo||'')+'</div>'
-      +'</div>'
-      +'<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+stColor+'20;color:'+stColor+'">'+esc(t.estado||'—')+'</span>'
-      +'</div></div>'
-      // Progress bars
-      +'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9">'
-      +'<div style="margin-bottom:12px">'
-      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
-      +'<span style="font-weight:600;color:#B8894A">📊 Avance del trabajo</span>'
-      +'<span style="font-weight:700;color:#B8894A">'+prog+'%</span>'
-      +'</div>'
-      +'<div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
-      +'<div style="height:100%;width:'+prog+'%;background:#B8894A;border-radius:99px;transition:width .4s"></div>'
-      +'</div>'
-      +'</div>'
-      +'<div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
-      +'<span style="font-weight:600;color:#0F4C81">💰 Pagos realizados</span>'
-      +'<span style="font-weight:700;color:#0F4C81">'+bal.pct+'%</span>'
-      +'</div>'
-      +'<div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
-      +'<div style="height:100%;width:'+bal.pct+'%;background:#0F4C81;border-radius:99px;transition:width .4s"></div>'
-      +'</div>'
-      +'</div>'
-      +'</div>'
-      // Seguimiento de publicación (solo avances visibles para el cliente)
-      +(esPublicacion(t)?'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9">'
-        +'<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:8px">📰 Proceso de publicación</div>'
-        +htmlStepper(t)
-        +'<div style="margin:10px 0 12px">'+htmlPubMeta(t)+'</div>'
-        +'<div style="font-size:11px;font-weight:800;color:var(--gold-dk);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">Historial</div>'
-        +htmlTimeline(t,true)
-        +'</div>':'')
-      // Contrato
-      +(t.contratoUrl?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9">'
-        +'<a href="'+esc(t.contratoUrl)+'" target="_blank" style="font-size:12px;color:var(--brand);font-weight:600;display:inline-flex;align-items:center;gap:5px;text-decoration:none">📄 Ver mi contrato</a>'
-        +(contratoVigente(t.id)?' <a href="'+esc(urlVerificacion(contratoVigente(t.id).id))+'" target="_blank" style="font-size:12px;color:var(--gold-dk);font-weight:600;margin-left:12px;text-decoration:none">🔐 Verificar autenticidad ('+esc(contratoVigente(t.id).id)+')</a>':'')+'</div>':'')
-      // Dates
-      +(t.fechaInicio||t.fechaFin?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--text3)">'
-        +(t.fechaInicio?'<span>📅 Inicio: <strong>'+fmtDCorto(t.fechaInicio)+'</strong></span>':'')
-        +(t.fechaFin?'<span>🏁 Entrega: <strong>'+fmtDCorto(t.fechaFin)+'</strong></span>':'')
-        +'</div>':'')
-      // Folder link
-      +(t.carpeta?'<div style="padding:10px 20px;border-bottom:1px solid #f1f5f9">'
-        +'<a href="'+esc(t.carpeta)+'" target="_blank" style="font-size:12px;color:#0369a1;display:inline-flex;align-items:center;gap:5px;text-decoration:none">'
-        +'📁 <span>Ver carpeta de archivos del trabajo</span></a></div>':'')
-      // Notes
-      +(t.notas?'<div style="padding:12px 20px;font-size:12px;color:var(--text3)">📝 '+esc(t.notas)+'</div>':'')
-      +'</div>'
-  })
-  return h
+  const ts=_ptTrabajos()
+  let h='<div class="pt">'+htmlPortalHeader()
+  if(!ts.length)return h+'<div class="pt-card pt-empty">📋 Todavía no tienes trabajos registrados.<br/><span class="pt-muted">Cuando empecemos, aquí verás su avance paso a paso.</span></div>'+htmlPtContacto()+'</div>'
+  h+=htmlPtPagoClave()
+  h+='<div class="pt-h2">Mis trabajos</div>'+ts.map(htmlPtTrabajo).join('')
+  return h+htmlPtContacto()+'</div>'
 }
-
+function htmlPtCuota(c,t){
+  const sd=saldoCuota(c),pg=realPaid(c),d=diasHasta(toISO(c.fechaVencimiento||'')),abs=data.abonos.filter(a=>a.cuotaId===c.id)
+  const st=sd<=0?['✅','Pagada','#15803d']:d!==null&&d<0?['⚠️','Atrasada','#dc2626']:pg>0?['🔵','Pagada en parte','#0F4C81']:['⏳','Pendiente','#b45309']
+  const ultPago=abs.length?abs.map(a=>toISO(a.fecha||'')).sort().pop():''
+  return'<div class="pt-cuota"><div class="pt-cuota-ic">'+st[0]+'</div><div style="flex:1;min-width:0">'
+    +'<div class="pt-cuota-t">'+esc(c.label||'Cuota')+'</div>'
+    +'<div class="pt-cuota-s" style="color:'+st[2]+'">'+(sd<=0?(ultPago?'Pagada el '+fmtDCorto(ultPago):'Pagada'):st[1]+' · '+_ptCuando(c.fechaVencimiento))+'</div>'
+    +(abs.length?'<div class="pt-cuota-abs">'+abs.map(a=>'🧾 '+fmtUSD(a.monto)+' el '+fmtDCorto(toISO(a.fecha||''))+(a.comprobante?' · ref. '+esc(a.comprobante):'')).join('<br/>')+'</div>':'')
+    +(sd>0&&d!==null&&d<=7?'<div class="pt-actions" style="margin-top:8px">'+_ptBtnYaPague(c,t)+'</div>':'')
+    +'</div><div style="text-align:right;white-space:nowrap"><div class="pt-cuota-m">'+fmtUSD(c.acordado)+'</div>'+(sd>0&&pg>0?'<div class="pt-muted" style="font-size:12px">faltan '+fmtUSD(sd)+'</div>':'')+'</div></div>'
+}
 function htmlPortalCuentas(){
-  const trabajosCl=recientes(data.trabajos).filter(function(t){return esDelCliente(t,user.clienteId)})
-  const idsTrab=trabajosCl.map(function(t){return t.id})
-  const cuotasCl=data.cuotas.filter(function(c){return idsTrab.includes(c.trabajoId)&&pagadorIdDe(c)===user.clienteId})
-  let h=htmlPortalHeader()
-  // Summary KPIs
-  const totalAcord=cuotasCl.reduce(function(s,c){return s+parseFloat(c.acordado||0)},0)
-  const totalPag=cuotasCl.reduce(function(s,c){return s+realPaid(c)},0)
-  const totalSaldo=totalAcord-totalPag
-  const vencidas=cuotasCl.filter(function(c){return cStat(c)==='vencido'})
-  h+='<div class="kpis" style="margin-bottom:20px">'
-    +'<div class="kpi"><div class="kpi-label">Total acordado</div><div class="kpi-value">$'+fmt(totalAcord)+'</div><div class="kpi-icon">📋</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Pagado</div><div class="kpi-value" style="color:var(--green)">$'+fmt(totalPag)+'</div><div class="kpi-icon">✅</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Saldo pendiente</div><div class="kpi-value" style="color:var(--amber)">$'+fmt(totalSaldo)+'</div><div class="kpi-icon">⏳</div></div>'
-    +(vencidas.length?'<div class="kpi"><div class="kpi-label">Vencidas</div><div class="kpi-value" style="color:var(--red)">'+vencidas.length+'</div><div class="kpi-icon">⚠️</div></div>':'')
-    +'</div>'
-  if(totalSaldo>0)h+=htmlComoPagar()
-  h+='<div style="font-size:16px;font-weight:700;margin-bottom:14px">💳 Mis cuotas</div>'
-  if(!cuotasCl.length){
-    return h+'<div class="card"><p class="empty">No tienes cuotas registradas.</p></div>'
-  }
-  // Group by trabajo
-  trabajosCl.forEach(function(t){
-    const cs=cuotasCl.filter(function(c){return c.trabajoId===t.id})
-      .sort(function(a,b){return new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento)})
-    if(!cs.length)return
-    h+='<div style="font-size:13px;font-weight:700;color:var(--text2);margin:16px 0 8px">'+esc(t.titulo)+'</div>'
-    cs.forEach(function(c){
-      const st=cStat(c)
-      const saldo=parseFloat(c.acordado||0)-parseFloat(c.pagado||0)
-      const bgc={pagado:'#dcfce7',parcial:'#E3ECF6',vencido:'#fee2e2',pendiente:'#fef3c7'}[st]||'#f9fafb'
-      const bdc={pagado:'#bbf7d0',parcial:'#C9D9EB',vencido:'#fecaca',pendiente:'#fde68a'}[st]||'#e2e8f0'
-      const stColor={pagado:'#15803d',parcial:'#0F4C81',vencido:'#dc2626',pendiente:'#b45309'}[st]||'#64748b'
-      h+='<div style="background:'+bgc+';border:1px solid '+bdc+';border-radius:10px;padding:14px 18px;margin-bottom:8px">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
-        +'<div>'
-        +'<div style="font-size:14px;font-weight:700">'+esc(c.label||'Cuota')+'</div>'
-        +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Vence: '+fmtDCorto(c.fechaVencimiento||'')+'</div>'
-        +'</div>'
-        +'<div style="text-align:right">'
-        +'<div style="font-size:16px;font-weight:700">$'+fmt(c.acordado)+'</div>'
-        +(parseFloat(c.pagado||0)>0?'<div style="font-size:11px;color:#15803d">✅ Pagado: $'+fmt(c.pagado)+'</div>':'')
-        +(saldo>0&&st!=='pagado'?'<div style="font-size:11px;color:'+stColor+'">Saldo: $'+fmt(saldo)+'</div>':'')
-        +'</div>'
-        +'<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+stColor+'20;color:'+stColor+'">'+st.toUpperCase()+'</span>'
-        +'</div>'
-        // Abonos
-        +(data.abonos.filter(function(a){return a.cuotaId===c.id}).length>0
-          ?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+bdc+';display:flex;gap:10px;flex-wrap:wrap">'
-          +data.abonos.filter(function(a){return a.cuotaId===c.id}).map(function(a){
-            return'<span style="font-size:11px;color:#15803d;background:#f0fdf4;padding:3px 9px;border-radius:6px;border:1px solid #bbf7d0">🧾 $'+fmt(a.monto)+' · '+esc(a.fecha)+(a.comprobante?' · '+esc(a.comprobante):'')+'</span>'
-          }).join('')+'</div>':''
-        )
-        +'</div>'
-    })
+  const ts=_ptTrabajos(),cs=_ptMisCuotas()
+  const tot=r2(cs.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0)),pag=r2(cs.reduce((s,c)=>s+realPaid(c),0)),falta=r2(Math.max(tot-pag,0))
+  let h='<div class="pt">'
+  h+='<div class="pt-card pt-saldo">'+(falta>0
+    ?'<div class="pt-kicker">Te falta pagar</div><div class="pt-big">'+fmtUSD(falta)+'</div><div class="pt-sub">Ya pagaste '+fmtUSD(pag)+' de '+fmtUSD(tot)+'</div>'
+    :'<div class="pt-big" style="font-size:26px">¡Estás al día! 🎉</div><div class="pt-sub">'+(tot>0?'Pagaste '+fmtUSD(pag)+' en total. ¡Gracias!':'No tienes pagos registrados.')+'</div>')
+    +(tot>0?_ptBarra(tot?pag/tot*100:0,'#15803d'):'')+'</div>'
+  if(falta>0)h+=htmlPtPagoClave()
+  // Cómo pagar (con botón para copiar los datos)
+  const fp=textoFormasPago()
+  if(fp&&falta>0)h+='<div id="pt_comopagar">'+htmlComoPagar().replace('</h3></div>','</h3><button class="pt-btn pt-btn-sec" style="padding:6px 12px" onclick="_ptCopiar(this)">📋 Copiar datos</button></div>')+'</div>'
+  // Cuotas por trabajo
+  if(!cs.length)h+='<div class="pt-card pt-empty">💳 No tienes cuotas registradas.</div>'
+  ts.forEach(function(t){
+    const mias=cs.filter(c=>c.trabajoId===t.id).sort((a,b)=>String(toISO(a.fechaVencimiento||'9')).localeCompare(String(toISO(b.fechaVencimiento||'9'))))
+    if(!mias.length)return
+    h+='<div class="pt-h2">'+esc(t.titulo)+'</div><div class="pt-card" style="padding:4px 0">'+mias.map(c=>htmlPtCuota(c,t)).join('')+'</div>'
   })
-  // Autor encargado / de correspondencia: valor total del trabajo y cuotas de cada autor
-  trabajosCl.filter(t=>t.clienteId===user.clienteId&&autoresDe(t).length>1).forEach(function(t){h+=htmlPortalResumenEncargado(t)})
-  // Facturas electrónicas autorizadas del cliente
+  // Autor encargado: resumen con los coautores
+  ts.filter(t=>t.clienteId===user.clienteId&&autoresDe(t).length>1).forEach(function(t){h+=htmlPortalResumenEncargado(t)})
+  // Facturas
   const fs=recientes(data.facturas||[]).filter(f=>f.estado==='AUTORIZADO')
-  if(fs.length)h+='<div style="font-size:16px;font-weight:700;margin:18px 0 10px">🧾 Mis facturas</div><div class="card"><table><thead><tr><th>Número</th><th>Fecha</th><th style="text-align:right">Total</th><th></th></tr></thead><tbody>'
-    +fs.map(f=>'<tr><td><strong>'+esc(f.numero)+'</strong></td><td>'+esc(f.fechaEmision)+'</td><td style="text-align:right">$'+fmt(f.total)+'</td><td><span style="display:flex;gap:4px">'
-      +(f.rideUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.rideUrl)+'">📄 PDF</a>':'')+(f.xmlUrl?'<a class="btn btn-g btn-sm" style="text-decoration:none" target="_blank" href="'+esc(f.xmlUrl)+'">XML</a>':'')+'</span></td></tr>').join('')+'</tbody></table></div>'
-  return h
+  if(fs.length)h+='<div class="pt-h2">Mis facturas</div><div class="pt-card" style="padding:4px 0">'+fs.map(f=>'<div class="pt-cuota"><div class="pt-cuota-ic">🧾</div><div style="flex:1"><div class="pt-cuota-t">Factura '+esc(f.numero)+'</div><div class="pt-muted" style="font-size:12px">'+esc(f.fechaEmision)+' · '+fmtUSD(f.total)+'</div></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+(f.rideUrl?'<a class="pt-doc" target="_blank" rel="noopener" href="'+esc(f.rideUrl)+'">PDF</a>':'')+(f.xmlUrl?'<a class="pt-doc" target="_blank" rel="noopener" href="'+esc(f.xmlUrl)+'">XML</a>':'')+'</div></div>').join('')+'</div>'
+  return h+htmlPtContacto()+'</div>'
 }
-
+function _ptCopiar(btn){
+  const txt=textoFormasPago().replace(/\*/g,'')
+  const ok=function(){const o=btn.textContent;btn.textContent='✓ Copiado';setTimeout(function(){btn.textContent=o},2000)}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok).catch(function(){prompt('Copia los datos de pago:',txt)})
+  else prompt('Copia los datos de pago:',txt)
+}
 function htmlPortalResumenEncargado(t){
   const filas=resumenPorAutor(t),bal=wBal(t),pag=r2(filas.reduce((s,x)=>s+x.pagado,0)),acu=r2(filas.reduce((s,x)=>s+x.acordado,0))
   const total=parseFloat(t.total)||acu,saldo=r2(Math.max(acu-pag,0))
   const otras=data.cuotas.filter(c=>c.trabajoId===t.id&&pagadorIdDe(c,t)!==user.clienteId).sort((a,b)=>new Date(a.fechaVencimiento)-new Date(b.fechaVencimiento))
   const stC={pagado:'#15803d',parcial:'#0F4C81',vencido:'#dc2626',pendiente:'#b45309'}
-  return'<div class="card" style="margin-top:18px"><div class="card-hd" style="flex-wrap:wrap;gap:6px"><h3>👥 '+esc(t.titulo)+'</h3><span style="font-size:11px;color:var(--text3)">Resumen del trabajo completo · eres el autor encargado / de correspondencia</span></div>'
+  return'<div class="pt-h2">👥 Pagos de todos los autores · '+esc(t.titulo)+'</div><div class="pt-card" style="padding:0;overflow:hidden"><div style="padding:10px 16px 0;font-size:12px;color:var(--text3)">Como autor encargado ves el resumen del trabajo completo.</div>'
     +'<div style="padding:12px 16px">'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">'
     +[['Valor total del trabajo',fmtUSD(total),'var(--navy)'],['Pagado por todos',fmtUSD(pag),'var(--green)'],['Saldo del trabajo',fmtUSD(saldo),saldo>0?'#b45309':'var(--green)'],['Avance de pagos',(acu>0?Math.round(pag/acu*100):0)+' %','var(--brand)']]
       .map(x=>'<div style="background:#F8F7F3;border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3);font-weight:700">'+x[0]+'</div><div style="font-size:16px;font-weight:800;color:'+x[2]+'">'+x[1]+'</div></div>').join('')+'</div>'
-    +'<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px"><thead><tr><th>Autor</th><th style="text-align:right">Le corresponde</th><th style="text-align:right">Pagado</th><th style="text-align:right">Saldo</th></tr></thead><tbody>'
+    +'<div style="overflow-x:auto"><table class="pt-tab" style="width:100%;font-size:12.5px"><thead><tr><th>Autor</th><th style="text-align:right">Le corresponde</th><th style="text-align:right">Pagado</th><th style="text-align:right">Saldo</th></tr></thead><tbody>'
     +filas.map(x=>'<tr><td><strong>'+esc(x.a.nombre||'—')+'</strong>'+(x.a.clienteId===user.clienteId?' <span class="b bb" style="font-size:10px">Tú</span>':'')+(x.a.exento?' <span class="b bv" style="font-size:10px">Concesión</span>':'')+'</td>'
       +'<td style="text-align:right">'+(x.a.exento?'—':fmtUSD(x.acordado))+'</td><td style="text-align:right;color:var(--green)">'+fmtUSD(x.pagado)+'</td><td style="text-align:right;font-weight:700;color:'+(x.saldo>0?'#b45309':'var(--green)')+'">'+fmtUSD(x.saldo)+'</td></tr>').join('')
     +'<tr><td><strong>Total</strong></td><td style="text-align:right"><strong>'+fmtUSD(acu)+'</strong></td><td style="text-align:right;color:var(--green)"><strong>'+fmtUSD(pag)+'</strong></td><td style="text-align:right"><strong>'+fmtUSD(saldo)+'</strong></td></tr></tbody></table></div>'
@@ -3917,7 +3950,7 @@ function htmlPortalResumenEncargado(t){
         return'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12.5px">'
           +'<div><strong>'+esc(c.label||'Cuota')+'</strong><div style="font-size:11px;color:var(--text3)">'+esc(nombrePagador(c,t))+' · vence '+fmtDCorto(c.fechaVencimiento||'')+'</div></div>'
           +'<div style="text-align:right"><strong>'+fmtUSD(c.acordado)+'</strong>'+(pg>0?'<div style="font-size:11px;color:#15803d">Pagado '+fmtUSD(pg)+'</div>':'')+(sd>0&&st!=='pagado'?'<div style="font-size:11px;color:'+stC[st]+'">Saldo '+fmtUSD(sd)+'</div>':'')+'</div>'
-          +'<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+stC[st]+'20;color:'+stC[st]+'">'+st.toUpperCase()+'</span></div>'}).join(''):'')
+          +'<span style="padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;background:'+stC[st]+'20;color:'+stC[st]+'">'+({pagado:'✅ Pagada',parcial:'🔵 En parte',vencido:'⚠️ Atrasada',pendiente:'⏳ Pendiente'}[st]||st)+'</span></div>'}).join(''):'')
     +'</div></div>'
 }
 function htmlPortalColaborador(){
@@ -7607,7 +7640,7 @@ async function guardarFormasPago(){
 }
 // Tarjeta "Cómo pagar" en el portal del cliente
 function htmlComoPagar(){
-  const t=textoFormasPago();if(!t)return''
+  const t=textoFormasPago().replace(/^💳 \*Formas de pago:\*\n\n/,'');if(!t)return''
   const html=esc(t).replace(/\*([^*\n]+)\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br/>')
   return'<div class="card" style="margin-bottom:16px"><div class="card-hd"><h3>💳 Cómo pagar</h3></div><div style="padding:14px 18px;font-size:13px;line-height:1.6">'+html+'</div></div>'
 }
