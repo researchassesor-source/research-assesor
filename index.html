@@ -271,6 +271,12 @@ aside{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bo
 .pt-cuota-ic{font-size:20px;line-height:1.2}.pt-cuota-t{font-size:14px;font-weight:700;color:var(--navy)}.pt-cuota-s{font-size:12.5px;font-weight:700;margin-top:3px}
 .pt-cuota-abs{font-size:12px;color:#15803d;margin-top:6px;line-height:1.6}.pt-cuota-m{font-size:16px;font-weight:800;color:var(--navy)}
 .pt-tabs{display:none}
+.wf-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}.wf-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);min-width:52px}
+.wf-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer}
+.wf-chip b{font-size:11px;background:#F1EFEA;border-radius:999px;padding:1px 7px;color:var(--text2)}.wf-chip.on{background:var(--navy);border-color:var(--navy);color:#fff}.wf-chip.on b{background:rgba(255,255,255,.25);color:inherit}
+.wf-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:4px 0 14px}.wf-sum>div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:9px 12px}
+.wf-sum span{display:block;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}.wf-sum strong{font-size:17px;color:var(--navy)}
+.wcard-hd{gap:12px}
 .ct-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.ct-tabs button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer}
 .ct-tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .ct-t{width:100%;font-size:12.5px;border-collapse:collapse}.ct-t td,.ct-t th{padding:7px 10px;border-bottom:1px solid #f1f5f9}.ct-t tfoot td{background:#F8F7F3}
@@ -403,6 +409,20 @@ function modeloTrabajo(tipo){
   return'general'
 }
 const esPublicacion=t=>!!t&&modeloTrabajo(t.tipo)==='publicacion'
+// Ícono, color y nombre de cada familia de trabajos (para listas y filtros)
+const TIPO_VIS={
+  publicacion:{ic:'📰',l:'Artículos científicos',c:'#0F4C81',bg:'#E3ECF6'},
+  libro:{ic:'📖',l:'Libros',c:'#8E6630',bg:'#F5EBDC'},
+  tesis:{ic:'🎓',l:'Tesis y proyectos',c:'#6d28d9',bg:'#EDE9FE'},
+  estadistica:{ic:'📊',l:'Análisis estadístico',c:'#0e7490',bg:'#E0F2FE'},
+  revision:{ic:'📚',l:'Revisión e instrumentos',c:'#15803d',bg:'#DCFCE7'},
+  general:{ic:'💼',l:'Otros servicios',c:'#475569',bg:'#F1F5F9'}
+}
+function visTrabajo(t){const m=modeloTrabajo(t&&t.tipo),v=TIPO_VIS[m]||TIPO_VIS.general;return t&&t.tipo==='Diseño de instrumentos'?Object.assign({},v,{ic:'📝'}):v}
+function htmlIcoTrabajo(t,px){const v=visTrabajo(t),z=px||38;return'<span title="'+esc(t&&t.tipo||'')+'" style="flex-shrink:0;width:'+z+'px;height:'+z+'px;border-radius:'+Math.round(z*0.3)+'px;background:'+v.bg+';display:inline-flex;align-items:center;justify-content:center;font-size:'+Math.round(z*0.52)+'px;line-height:1">'+v.ic+'</span>'}
+// Pendiente: trabajo no terminado ni cancelado · con atraso: tiene cuotas vencidas
+const trabajoPendiente=t=>t.estado!=='Completado'&&t.estado!=='Cancelado'
+const trabajoConAtraso=t=>data.cuotas.some(c=>c.trabajoId===t.id&&cStat(c)==='vencido')
 function detallesDe(t){
   if(!t||!t.detalles)return{}
   if(typeof t.detalles==='object')return t.detalles
@@ -675,7 +695,7 @@ var WA_TPLS_DEFAULT=[
    msg:'Hola {{nombre}} 👋\n\nTe comparto el contrato de prestación de servicios para *{{trabajo}}* ({{tipo}}).\n\n📄 *Contrato:* {{link}}\n💰 *Valor total:* ${{monto}}\n📅 *Plazo:* {{fecha}}\n\nPor favor revísalo con calma. Si estás de acuerdo, fírmalo y envíame una foto o el PDF firmado por este medio. Si tienes alguna duda sobre las cláusulas, con gusto la conversamos. 🤝\n\n— {{prestador}} | Research Assessor'},
 
   {id:'proforma', nombre:'Envío de propuesta (proforma)', categoria:'contratos',
-   msg:'Hola {{nombre}} 👋\n\nTe comparto la *{{trabajo}}*, con {{cantidad}} artículo(s) propuesto(s): revista, cuartil, valor total, valor por autor y tiempo estimado de cada uno.\n\n📄 *Propuesta:* {{link}}\n📅 *Validez:* {{fecha}}\n\nSi quieres ajustar algún artículo o tienes preguntas sobre la forma de pago, con gusto lo conversamos. 🤝\n\n— {{prestador}} | Research Assessor'},
+   msg:'Hola {{nombre}} 👋\n\nTe comparto la *{{trabajo}}*, con {{cantidad}} trabajo(s) propuesto(s) (artículos, libros u otros servicios): valor total, valor por autor y tiempo estimado de cada uno.\n\n📄 *Propuesta:* {{link}}\n📅 *Validez:* {{fecha}}\n\nSi quieres ajustar algún artículo o tienes preguntas sobre la forma de pago, con gusto lo conversamos. 🤝\n\n— {{prestador}} | Research Assessor'},
 
   {id:'contrato_firmado', nombre:'Contrato firmado por mí (para firma del cliente)', categoria:'contratos',
    msg:'Hola {{nombre}} 👋\n\nTe comparto el contrato de *{{trabajo}}*, ya firmado electrónicamente por mí.\n\n📄 *Contrato (PDF):* {{link}}\n🔐 *Código de verificación:* {{codigo}}\n✅ *Verifica su autenticidad:* {{verificar}}\n\nPor favor fírmalo con tu firma electrónica (o imprímelo, fírmalo a mano y escanéalo) *sin modificar el documento*, y envíamelo por este medio para registrarlo. 🤝\n\n— {{prestador}} | Research Assessor'},
@@ -841,6 +861,7 @@ function prestador(){
   return Object.assign({},PRESTADOR_DEFAULT,p)
 }
 let loading=false,syncing=false,syncMsg='',syncErr=false
+let wTipo='Todos'
 let search='',wExp=null,wSt='Todos',cSt='Todos',mvw='upcoming'
 let calM=new Date().getMonth(),calY=new Date().getFullYear()
 
@@ -1175,8 +1196,8 @@ const NAV_CLIENTE=[
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={contabilidad:'Contabilidad',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.13.0'
+const TITLES={contabilidad:'Contabilidad',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas y proformas',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const VERSION='v7.14.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1524,7 +1545,7 @@ function htmlDash(){
   h+='<div class="card"><div class="card-hd"><h3>Trabajos activos</h3><button class="btn btn-g btn-sm" onclick="goTo(\'trabajos\')">Ver todos →</button></div>'
     +'<table><thead><tr><th>Trabajo</th><th>Estado</th><th>Cobro</th></tr></thead><tbody>'
   const actTrab=trabajos.filter(t=>t.estado!=='Completado'&&t.estado!=='Cancelado').slice(0,4)
-  if(actTrab.length){actTrab.forEach(t=>{const bal=wBal(t);h+='<tr><td><strong style="font-size:12px">'+esc(t.titulo.slice(0,30))+(t.titulo.length>30?'…':'')+'</strong><div style="font-size:10.5px;color:var(--text3)">'+esc(autoresTxt(t).slice(0,70))+'</div></td>'+'<td>'+bdg(t.estado||'Nuevo',{Completado:'green','En progreso':'blue',Revisión:'amber',Cancelado:'gray'}[t.estado]||'amber')+'</td>'+'<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:60px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><span style="font-size:11px;color:var(--text3)">'+bal.pct+'%</span></div></td></tr>'})}
+  if(actTrab.length){actTrab.forEach(t=>{const bal=wBal(t);h+='<tr><td><div style="display:flex;gap:8px;align-items:center">'+htmlIcoTrabajo(t,28)+'<div style="min-width:0"><strong style="font-size:12px">'+esc(t.titulo.slice(0,30))+(t.titulo.length>30?'…':'')+'</strong><div style="font-size:10.5px;color:var(--text3)">'+esc(autoresTxt(t).slice(0,70))+'</div></div></div></td>'+'<td>'+bdg(t.estado||'Nuevo',{Completado:'green','En progreso':'blue',Revisión:'amber',Cancelado:'gray'}[t.estado]||'amber')+'</td>'+'<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:60px"><div class="pbar-f" style="width:'+bal.pct+'%;background:'+(bal.pct===100?'var(--green)':'var(--brand)')+'"></div></div><span style="font-size:11px;color:var(--text3)">'+bal.pct+'%</span></div></td></tr>'})}
   else h+='<tr><td colspan="3" class="empty">Sin trabajos activos</td></tr>'
   h+='</tbody></table></div>'
   h+='</div>'
@@ -1632,18 +1653,32 @@ function htmlClientes(){
 // ─── TRABAJOS ─────────────────────────────────────────────────────────────────
 function htmlTrabajos(){
   const q=search.toLowerCase()
-  const list=recientes(data.trabajos).filter(t=>{
-    const cl=data.clientes.find(c=>c.id===t.clienteId)
-    return(!q||(t.titulo+' '+autoresTxt(t)+' '+t.tipo).toLowerCase().includes(q))
-      &&(wSt==='Todos'||t.estado===wSt)
-  })
+  const okEstado=t=>wSt==='Todos'||(wSt==='Pendientes'?trabajoPendiente(t):wSt==='Atrasados'?trabajoConAtraso(t):t.estado===wSt)
+  const okTipo=t=>wTipo==='Todos'||modeloTrabajo(t.tipo)===wTipo
+  const okQ=t=>!q||(t.titulo+' '+autoresTxt(t)+' '+t.tipo).toLowerCase().includes(q)
+  const list=recientes(data.trabajos).filter(t=>okQ(t)&&okEstado(t)&&okTipo(t))
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
     +'<div><strong style="font-size:16px">Trabajos</strong><span style="font-size:12px;color:var(--text3);margin-left:8px">'+data.trabajos.length+' registrados · '+data.trabajos.filter(t=>t.estado==='En progreso').length+' activos</span></div>'
     +'<button class="btn btn-p" onclick="openModal(\'trabajo\',null)">+ Nuevo trabajo</button></div>'
-  h+='<div class="tb"><input id="srch" placeholder="Buscar..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:240px"/>'
-    +['Todos',...ESTADOS].map(s=>'<button class="btn btn-sm '+(wSt===s?'btn-p':'btn-g')+'" onclick="wSt=\''+s+'\';draw()">'+s+'</button>').join('')
-    +'</div>'
-  if(!list.length)return h+'<div class="card"><p class="empty">Sin trabajos</p></div>'
+  // Tipo de trabajo (con cuántos hay de cada uno, según el estado elegido)
+  const base=recientes(data.trabajos).filter(t=>okQ(t)&&okEstado(t))
+  const tiposUsados=Object.keys(TIPO_VIS).filter(k=>data.trabajos.some(t=>modeloTrabajo(t.tipo)===k))
+  h+='<div class="wf-row"><span class="wf-lbl">Tipo</span>'
+    +[['Todos','🗂','Todos']].concat(tiposUsados.map(k=>[k,TIPO_VIS[k].ic,TIPO_VIS[k].l])).map(function(x){const n=x[0]==='Todos'?base.length:base.filter(t=>modeloTrabajo(t.tipo)===x[0]).length,v=TIPO_VIS[x[0]]
+      return'<button class="wf-chip'+(wTipo===x[0]?' on':'')+'"'+(wTipo===x[0]&&v?' style="background:'+v.bg+';border-color:'+v.c+';color:'+v.c+'"':'')+' onclick="wTipo=\''+x[0]+'\';draw()"><span>'+x[1]+'</span>'+esc(x[2])+' <b>'+n+'</b></button>'}).join('')+'</div>'
+  // Estado
+  const baseE=recientes(data.trabajos).filter(t=>okQ(t)&&okTipo(t)),cnt=f=>baseE.filter(f).length
+  h+='<div class="wf-row"><span class="wf-lbl">Estado</span>'
+    +[['Todos','Todos',()=>true],['Pendientes','⏳ Pendientes',trabajoPendiente],['Atrasados','⚠ Con pagos atrasados',trabajoConAtraso]].concat(ESTADOS.map(e=>[e,e,t=>t.estado===e]))
+      .map(x=>'<button class="wf-chip'+(wSt===x[0]?' on':'')+'" onclick="wSt=\''+x[0]+'\';draw()">'+esc(x[1])+' <b>'+cnt(x[2])+'</b></button>').join('')+'</div>'
+  h+='<div class="tb"><input id="srch" placeholder="Buscar por título, autor o tipo..." oninput="search=this.value;drawPage()" value="'+esc(search)+'" style="max-width:320px"/></div>'
+  if(!list.length)return h+'<div class="card"><p class="empty">No hay trabajos con estos filtros.'+(wTipo!=='Todos'||wSt!=='Todos'?' <a href="#" onclick="event.preventDefault();wTipo=\'Todos\';wSt=\'Todos\';draw()">Quitar filtros</a>':'')+'</p></div>'
+  // Resumen de lo filtrado: avance promedio, por cobrar y atrasado
+  const porCobrar=r2(list.reduce((a,t)=>a+wBal(t).bal,0)),atr=r2(data.cuotas.filter(c=>cStat(c)==='vencido'&&list.some(t=>t.id===c.trabajoId)).reduce((a,c)=>a+saldoCuota(c),0))
+  const avg=Math.round(list.reduce((a,t)=>a+(parseInt(t.progreso)||0),0)/list.length)
+  h+='<div class="wf-sum"><div><span>Trabajos</span><strong>'+list.length+'</strong></div><div><span>En marcha</span><strong>'+list.filter(trabajoPendiente).length+'</strong></div>'
+    +'<div><span>Avance promedio</span><strong>'+avg+' %</strong></div><div><span>Por cobrar</span><strong style="color:#b45309">'+fmtUSD(porCobrar)+'</strong></div>'
+    +'<div><span>Pagos atrasados</span><strong style="color:'+(atr>0?'var(--red)':'var(--green)')+'">'+fmtUSD(atr)+'</strong></div></div>'
   list.forEach(t=>{
     const cl=data.clientes.find(c=>c.id===t.clienteId)
     const bal=wBal(t)
@@ -1653,13 +1688,14 @@ function htmlTrabajos(){
     const SC={Completado:'green','En progreso':'blue',Revisión:'amber',Cancelado:'gray'}
     h+='<div class="wcard" style="border-color:'+(hasVenc?'#fecaca':'var(--border)')+'">'
       +'<div class="wcard-hd" onclick="wExp=wExp===\''+t.id+'\'?null:\''+t.id+'\';draw()">'
+      +htmlIcoTrabajo(t,40)
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
       +'<strong style="font-size:14px">'+esc(t.titulo)+'</strong>'
       +bdg(t.estado||'Nuevo',SC[t.estado]||'amber')
       +(hasVenc?'<span class="b br">⚠ vencido</span>':'')
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text3)">'+(autoresDe(t).length>1?'👥 ':'')+esc(autoresTxt(t))+' · '+esc(t.tipo||'—')+'</div></div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+(autoresDe(t).length>1?'👥 ':'')+esc(autoresTxt(t))+' · <span style="color:'+visTrabajo(t).c+';font-weight:600">'+esc(t.tipo||'—')+'</span></div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
       +'<div style="text-align:right;font-size:12px"><div style="font-weight:700">$'+fmt(bal.total)+'</div><div style="color:var(--green)">$'+fmt(bal.paid)+' cobrado</div></div>'
       +'<div style="min-width:76px">'
@@ -3864,7 +3900,7 @@ function htmlPtTrabajo(t){
   const pub=esPublicacion(t),cur=pub?etapaActual(t):'',ci=ETAPAS_PUB.findIndex(e=>e.id===cur),et=ci>-1?ETAPAS_PUB[ci]:null,sig=ci>-1?ETAPAS_PUB[ci+1]:ETAPAS_PUB[0]
   const reg=contratoVigente(t.id),det=detallesDe(t)
   let h='<div class="pt-card pt-work">'
-    +'<div class="pt-work-hd"><div style="min-width:0"><div class="pt-work-t">'+esc(t.titulo)+'</div><div class="pt-work-tipo">'+esc(t.tipo||'')+(autoresDe(t).length>1?' · '+(coautor?'eres coautor':'eres el autor encargado'):'')+'</div></div>'
+    +'<div class="pt-work-hd">'+htmlIcoTrabajo(t,44)+'<div style="min-width:0;flex:1"><div class="pt-work-t">'+esc(t.titulo)+'</div><div class="pt-work-tipo">'+esc(t.tipo||'')+(autoresDe(t).length>1?' · '+(coautor?'eres coautor':'eres el autor encargado'):'')+'</div></div>'
     +'<span class="pt-chip" style="color:'+E[1]+';background:'+E[1]+'18">'+E[2]+' '+esc(E[0])+'</span></div>'
   // Avance
   h+='<div class="pt-row"><div class="pt-row-l">Avance del trabajo</div><div class="pt-row-v">'+prog+' %</div></div>'+_ptBarra(prog,'#B8894A')
@@ -5020,8 +5056,8 @@ function nuevaPropuesta(clienteId){
 function htmlPropuestas(){
   const list=recientes(data.propuestas)
   let h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
-    +'<div><strong style="font-size:16px">Propuestas de publicaciones</strong>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Proformas con varios artículos. Al aceptar un artículo se crea su trabajo, sus cuotas y su contrato.</div></div>'
+    +'<div><strong style="font-size:16px">Propuestas y proformas</strong>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Proformas con artículos, libros, tesis u otros servicios. Al aceptar un trabajo se crean su ficha, sus cuotas y su contrato.</div></div>'
     +'<button class="btn btn-p" onclick="nuevaPropuesta(\'\')">+ Nueva propuesta</button></div>'
   if(!list.length)return h+'<div class="card"><p class="empty">Aún no hay propuestas.<br/>Crea una con <strong>+ Nueva propuesta</strong> o desde el alta del cliente con <strong>Registrar y crear propuesta</strong>.</p></div>'
   list.forEach(function(p){
@@ -5031,7 +5067,7 @@ function htmlPropuestas(){
     const total=vivos.reduce((s,a)=>{const d=desaj.find(x=>x.a.id===a.id);return s+(d?d.vt:(parseFloat(a.total)||0))},0)
     h+='<div class="card"><div class="card-hd" style="flex-wrap:wrap;gap:8px">'
       +'<div style="min-width:0;flex:1"><h3 style="font-size:14px">📑 '+esc(p.titulo||'Propuesta')+'</h3>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+esc(cl&&cl.nombre||p.clienteNombre||'—')+' · '+fmtDCorto(p.fecha)+' · '+vivos.length+' artículo(s) · '+fmtUSD(total)+'</div></div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+esc(cl&&cl.nombre||p.clienteNombre||'—')+' · '+fmtDCorto(p.fecha)+' · '+vivos.length+' trabajo(s) · '+fmtUSD(total)+'</div></div>'
       +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+bdg(st,COLOR_PROP[st])
       +'<button class="btn btn-gold btn-sm" onclick="openModal(\'proforma\',{propuestaId:\''+p.id+'\'})">📄 Proforma / WhatsApp</button>'
       +'<button class="btn btn-g btn-sm" onclick="openModal(\'propuesta\','+jss(p)+')">✏️</button>'
@@ -5039,22 +5075,22 @@ function htmlPropuestas(){
       +'</div></div>'+(desaj.length?'<div style="margin:0 14px 8px;font-size:12px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:7px 11px">'
         +desaj.map(d=>'El trabajo de <strong>"'+esc(String(d.a.titulo).slice(0,60))+'…"</strong> ahora vale <strong>'+fmtUSD(d.vt)+'</strong>'+(d.nt!==d.na?' con '+d.nt+' autor(es)':'')+' (en la propuesta: '+fmtUSD(d.va)+(d.nt!==d.na?', '+d.na+' autor(es)':'')+').').join('<br/>')
         +' <a href="#" onclick="event.preventDefault();sincronizarPropuesta(\''+p.id+'\')">Actualizar la propuesta</a></div>':'')
-      +'<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Artículo</th><th>Revista</th><th>Cuartil</th><th>Total</th><th>Por autor</th><th>Tiempo</th><th></th></tr></thead><tbody>'
+      +'<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Trabajo</th><th>Detalle</th><th>Cuartil / formato</th><th>Total</th><th>Por autor</th><th>Tiempo</th><th></th></tr></thead><tbody>'
     arts.forEach(function(a,i){
       const off=a.estado==='descartado'
       let acc
       if(a.estado==='aceptado'){
         const t=data.trabajos.find(x=>x.id===a.trabajoId)
-        acc='<span class="b bg">✓ Aceptado</span>'+(t?' <button class="btn btn-g btn-sm" onclick="abrirPub(\''+t.id+'\')">Ver trabajo</button>':'')
+        acc='<span class="b bg">✓ Aceptado</span>'+(t?' <button class="btn btn-g btn-sm" onclick="'+(esPublicacion(t)?'abrirPub(\''+t.id+'\')':'page=\'trabajos\';wExp=\''+t.id+'\';draw()')+'">Ver trabajo</button>':'')
       }else if(off){
         acc='<span class="b bx">Descartado</span> <button class="btn btn-g btn-sm" title="Volver a proponer" onclick="marcarArticulo(\''+p.id+'\',\''+a.id+'\',\'propuesto\')">↺</button>'
       }else{
         acc='<button class="btn btn-green btn-sm" onclick="aceptarArticulo(\''+p.id+'\',\''+a.id+'\')">✓ Aceptar</button> '
           +'<button class="btn btn-g btn-sm" title="Descartar" onclick="marcarArticulo(\''+p.id+'\',\''+a.id+'\',\'descartado\')">✕</button>'
       }
-      h+='<tr style="'+(off?'opacity:.5':'')+'"><td>'+(i+1)+'</td><td style="min-width:240px;font-size:12.5px">'+esc(a.titulo)+'</td><td style="font-size:12px">'+esc(a.revista||'—')+'</td>'
+      h+='<tr style="'+(off?'opacity:.5':'')+'"><td>'+(i+1)+'</td><td style="min-width:240px;font-size:12.5px"><div style="display:flex;gap:8px;align-items:flex-start">'+htmlIcoTrabajo({tipo:a.tipo||TIPO_PUB},26)+'<div>'+esc(a.titulo)+'<div style="font-size:11px;color:'+visTrabajo({tipo:a.tipo||TIPO_PUB}).c+'">'+esc(a.tipo||TIPO_PUB)+'</div></div></div></td><td style="font-size:12px">'+esc(detalleItemProp(a))+'</td>'
         +(function(){const d=desaj.find(x=>x.a.id===a.id),aa=d?Object.assign({},a,{total:d.vt,autores:d.nt}):a
-          return'<td>'+esc(a.cuartil||'—')+'</td><td style="white-space:nowrap">'+fmtUSD(aa.total)+(d&&d.vt!==d.va?'<div style="font-size:10.5px;color:var(--text3);text-decoration:line-through">'+fmtUSD(d.va)+'</div>':'')+'</td><td style="white-space:nowrap;color:var(--gold-dk);font-weight:700">'+fmtUSD(porAutor(aa))+'</td>'})()
+          return'<td>'+esc(a.cuartil||a.formato||'—')+'</td><td style="white-space:nowrap">'+fmtUSD(aa.total)+(d&&d.vt!==d.va?'<div style="font-size:10.5px;color:var(--text3);text-decoration:line-through">'+fmtUSD(d.va)+'</div>':'')+'</td><td style="white-space:nowrap;color:var(--gold-dk);font-weight:700">'+fmtUSD(porAutor(aa))+'</td>'})()
         +'<td style="white-space:nowrap">'+tiempoTxt(a)+'</td><td style="white-space:nowrap">'+acc+'</td></tr>'
     })
     h+='</tbody></table></div></div>'
@@ -5064,6 +5100,11 @@ function htmlPropuestas(){
 
 // ── Formulario ──
 // El estado vive en modal.rec._arts / modal.rec._hitos; los campos tienen id para sobrevivir a redibujados.
+// Detalle corto de un elemento de la propuesta según su tipo
+function detalleItemProp(a){const m=modeloTrabajo(a.tipo||TIPO_PUB)
+  if(m==='publicacion')return[a.revista,a.indexacion].filter(Boolean).join(' · ')||'—'
+  if(m==='libro')return[a.tipoObra,a.editorial?'Editorial: '+a.editorial:'',parseInt(a.paginas)>0?a.paginas+' págs.':''].filter(Boolean).join(' · ')||'—'
+  return a.detalle||'—'}
 function _propEstado(d){
   if(!d._arts)d._arts=artsDe(d).map(a=>Object.assign({},a))
   if(!d._arts.length)d._arts=[{id:uid(),estado:'propuesto',autores:1}]
@@ -5075,7 +5116,7 @@ function mPropuesta(d){
   const e=!!d.id
   const cl=data.clientes.find(c=>c.id===d.clienteId)
   const etOpts=function(sel){return'<option value="">Sin vincular</option>'+ETAPAS_PUB.map(x=>'<option value="'+x.id+'"'+(sel===x.id?' selected':'')+'>'+esc(x.l)+'</option>').join('')}
-  let h='<h3>'+(e?'Editar':'Nueva')+' propuesta de publicaciones</h3><div class="fg">'
+  let h='<h3>'+(e?'Editar':'Nueva')+' propuesta (proforma)</h3><div class="fg">'
     +'<div class="full"><label>Cliente *</label><select id="pp_cl" onchange="_propClienteCambia()"><option value="">Seleccionar...</option>'
     +recientes(data.clientes).map(c=>'<option value="'+esc(c.id)+'"'+(d.clienteId===c.id?' selected':'')+'>'+esc(c.nombre)+(c.institucion?' — '+esc(c.institucion):'')+'</option>').join('')+'</select></div>'
     +'<div class="full"><label>Área / programa</label><input id="pp_a" value="'+esc(d.area||(cl&&cl.area)||'')+'" placeholder="Ej: Nutrición y Promoción y Cuidados para la Salud" oninput="_propTituloAuto()"/></div>'
@@ -5084,27 +5125,33 @@ function mPropuesta(d){
     +'<div><label>Validez (días)</label><input id="pp_v" type="number" min="1" value="'+esc(d.validez||'15')+'"/></div>'
     +'</div>'
   // Artículos
-  h+='<div class="sec-t">Artículos propuestos</div><datalist id="dl_cuart">'+CUARTILES.map(c=>'<option value="'+c+'">').join('')+'</datalist>'
+  h+='<div class="sec-t">Trabajos propuestos (artículos, libros, tesis u otros servicios)</div><datalist id="dl_cuart">'+CUARTILES.map(c=>'<option value="'+c+'">').join('')+'</datalist>'
   d._arts.forEach(function(a,i){
-    const lock=a.estado==='aceptado'
-    const P='pa_'+i+'_'
-    h+='<div style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:'+(lock?'var(--green-bg)':'#FAFAF7')+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong style="font-size:12px;color:var(--navy)">Artículo '+(i+1)+(lock?' · ✓ aceptado (ya es un trabajo)':'')+'</strong>'
+    const lock=a.estado==='aceptado',P='pa_'+i+'_',tipo=a.tipo||TIPO_PUB,m=modeloTrabajo(tipo),vis=visTrabajo({tipo:tipo})
+    h+='<div style="border:1px solid var(--border);border-left:4px solid '+vis.c+';border-radius:12px;padding:10px 12px;margin-bottom:8px;background:'+(lock?'var(--green-bg)':'#FAFAF7')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px">'+htmlIcoTrabajo({tipo:tipo},28)
+      +'<strong style="font-size:12.5px;color:var(--navy)">Trabajo '+(i+1)+(lock?' · ✓ aceptado (ya es un trabajo)':'')+'</strong></div>'
       +(!lock?'<button type="button" class="btn btn-r btn-sm" style="padding:2px 8px" onclick="_propQuitar(\'_arts\','+i+')">✕</button>':'')+'</div>'
       +'<div class="fg fg6">'
-      +'<div style="grid-column:1/-1"><label>Título del artículo *</label><textarea id="'+P+'titulo" rows="2">'+esc(a.titulo||'')+'</textarea></div>'
-      +'<div style="grid-column:span 3"><label>Revista</label><input id="'+P+'revista" value="'+esc(a.revista||'')+'"/></div>'
+      +'<div style="grid-column:1/-1"><label>Tipo de trabajo</label><select id="'+P+'tipo"'+(lock?' disabled':'')+' onchange="_propLeer();_propRedibujar()">'+TIPOS.map(x=>'<option'+(x===tipo?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
+      +'<div style="grid-column:1/-1"><label>'+(m==='publicacion'?'Título del artículo':m==='libro'?'Título del libro':'Título o nombre del trabajo')+' *</label><textarea id="'+P+'titulo" rows="2">'+esc(a.titulo||'')+'</textarea></div>'
+    if(m==='publicacion')h+='<div style="grid-column:span 3"><label>Revista</label><input id="'+P+'revista" value="'+esc(a.revista||'')+'"/></div>'
       +'<div style="grid-column:span 2"><label>Indexación</label><input id="'+P+'indexacion" value="'+esc(a.indexacion||'')+'" placeholder="Scopus, WoS..."/></div>'
       +'<div><label>Cuartil</label><input id="'+P+'cuartil" list="dl_cuart" value="'+esc(a.cuartil||'')+'"/></div>'
-      +'<div style="grid-column:span 2"><label>Tipo</label><input id="'+P+'tipoArticulo" value="'+esc(a.tipoArticulo||'')+'" placeholder="Revisión sistemática..."/></div>'
-      +'<div><label>Total ($)</label><input id="'+P+'total" type="number" min="0" step="any" value="'+esc(a.total||'')+'" oninput="_propPorAutor('+i+')"/></div>'
+      +'<div style="grid-column:span 2"><label>Tipo de artículo</label><input id="'+P+'tipoArticulo" value="'+esc(a.tipoArticulo||'')+'" placeholder="Revisión sistemática..."/></div>'
+    else if(m==='libro')h+='<div style="grid-column:span 3"><label>Editorial objetivo</label><input id="'+P+'editorial" value="'+esc(a.editorial||'')+'" placeholder="Por definir"/></div>'
+      +'<div style="grid-column:span 3"><label>Tipo de obra</label><select id="'+P+'tipoObra">'+['Libro de autor','Libro colectivo / compilación','Capítulo de libro','Libro de texto / manual','Memorias de congreso','Libro de divulgación'].map(x=>'<option'+(a.tipoObra===x?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+      +'<div style="grid-column:span 2"><label>Formato</label><select id="'+P+'formato">'+['Impreso y digital','Digital (e-book)','Impreso'].map(x=>'<option'+(a.formato===x?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+      +'<div><label>Páginas aprox.</label><input id="'+P+'paginas" type="number" min="0" value="'+esc(a.paginas||'')+'"/></div>'
+    else h+='<div style="grid-column:1/-1"><label>Alcance / detalle del servicio</label><input id="'+P+'detalle" value="'+esc(a.detalle||'')+'" placeholder="'+(m==='tesis'?'Ej.: Maestría en Educación · marco teórico, metodología y análisis':m==='estadistica'?'Ej.: AFE/AFC y regresión en SPSS':'Ej.: Revisión sistemática PRISMA')+'"/></div>'
+    h+='<div><label>Total ($)</label><input id="'+P+'total" type="number" min="0" step="any" value="'+esc(a.total||'')+'" oninput="_propPorAutor('+i+')"/></div>'
       +'<div><label>Nº autores</label><input id="'+P+'autores" type="number" min="1" value="'+esc(a.autores||1)+'" oninput="_propPorAutor('+i+')"/></div>'
       +'<div><label>Meses mín.</label><input id="'+P+'tMin" type="number" min="0" value="'+esc(a.tMin||'')+'"/></div>'
       +'<div><label>Meses máx.</label><input id="'+P+'tMax" type="number" min="0" value="'+esc(a.tMax||'')+'"/></div>'
       +'</div><div style="font-size:12px;color:var(--gold-dk);font-weight:700;margin-top:6px" id="'+P+'pa">Por autor: '+fmtUSD(porAutor(a))+'</div>'
       +'</div>'
   })
-  h+='<button type="button" class="btn btn-g btn-sm" onclick="_propAgregar(\'_arts\')">+ Agregar artículo</button>'
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap">'+[[TIPO_PUB,'📰 + Artículo'],[TIPO_LIBRO,'📖 + Libro'],['Asesoría de tesis/proyectos','🎓 + Tesis / proyecto'],['Análisis estadístico','📊 + Estadística'],['Otro','💼 + Otro servicio']].map(x=>'<button type="button" class="btn btn-g btn-sm" onclick="_propAgregar(\'_arts\',\''+x[0].replace(/'/g,'')+'\')">'+x[1]+'</button>').join('')+'</div>'
   // Hitos de pago
   h+='<div class="sec-t">Forma de pago sugerida (por autor)</div>'
     +'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Al aceptar un artículo, cada hito se convierte en una cuota. Si vinculas un hito a una etapa, la cuota vence el día en que registres esa etapa en el seguimiento.</div>'
@@ -5127,7 +5174,7 @@ function mPropuesta(d){
 }
 function _propLeer(){
   const d=modal&&modal.rec;if(!d)return null
-  const A=['titulo','revista','indexacion','cuartil','tipoArticulo','total','autores','tMin','tMax']
+  const A=['tipo','titulo','revista','indexacion','cuartil','tipoArticulo','editorial','tipoObra','formato','paginas','detalle','total','autores','tMin','tMax']
   d._arts=d._arts.map(function(a,i){
     const o=Object.assign({},a)
     A.forEach(function(k){const el=document.getElementById('pa_'+i+'_'+k);if(el)o[k]=el.value})
@@ -5146,7 +5193,7 @@ function _propLeer(){
 }
 // Agregar/quitar filas: se lee el formulario y se redibuja con un modal nuevo (sin restaurar valores viejos)
 function _propRedibujar(){const d=modal.rec;modal={type:'propuesta',rec:d};draw()}
-function _propAgregar(k){_propLeer();modal.rec[k].push(k==='_arts'?{id:uid(),estado:'propuesto',autores:(modal.rec._arts[0]||{}).autores||1}:{l:'',pct:0,etapa:''});_propRedibujar()}
+function _propAgregar(k,tipo){_propLeer();modal.rec[k].push(k==='_arts'?{id:uid(),estado:'propuesto',tipo:tipo||TIPO_PUB,autores:modeloTrabajo(tipo||TIPO_PUB)==='publicacion'?((modal.rec._arts.find(x=>modeloTrabajo(x.tipo||TIPO_PUB)==='publicacion')||{}).autores||1):1}:{l:'',pct:0,etapa:''});_propRedibujar()}
 function _propQuitar(k,i){_propLeer();modal.rec[k].splice(i,1);_propRedibujar()}
 function _propPorAutor(i){
   const t=parseFloat(v('pa_'+i+'_total'))||0,n=parseInt(v('pa_'+i+'_autores'))||1
@@ -5169,14 +5216,16 @@ async function submitPropuesta(verDoc){
   const d=_propLeer();if(!d)return
   if(!d.clienteId){alert('Selecciona un cliente');return}
   const arts=d._arts.filter(a=>String(a.titulo||'').trim())
-  if(!arts.length){alert('Agrega al menos un artículo con título');return}
+  if(!arts.length){alert('Agrega al menos un trabajo con título');return}
   const suma=d._hitos.reduce((s,x)=>s+(parseFloat(x.pct)||0),0)
   if(Math.abs(suma-100)>0.01&&!confirm('Los porcentajes de pago suman '+fmt(suma)+' % (no 100 %). ¿Guardar de todas formas?'))return
   const cl=data.clientes.find(c=>c.id===d.clienteId)
   const isNew=!d.id
   const rec={id:d.id||uid(),clienteId:d.clienteId,clienteNombre:cl&&cl.nombre||'',titulo:d.titulo||'Propuesta de publicaciones',
     area:d.area||'',fecha:d.fecha||fechaHoyLocal(),validez:d.validez||'15',notas:d.notas||'',
-    articulos:JSON.stringify(arts.map(function(a){return{id:a.id||uid(),titulo:a.titulo.trim(),revista:a.revista||'',indexacion:a.indexacion||'',cuartil:a.cuartil||'',tipoArticulo:a.tipoArticulo||'',
+    articulos:JSON.stringify(arts.map(function(a){const m=modeloTrabajo(a.tipo||TIPO_PUB);return{id:a.id||uid(),tipo:a.tipo||TIPO_PUB,titulo:a.titulo.trim(),
+      revista:m==='publicacion'?a.revista||'':'',indexacion:m==='publicacion'?a.indexacion||'':'',cuartil:m==='publicacion'?a.cuartil||'':'',tipoArticulo:m==='publicacion'?a.tipoArticulo||'':'',
+      editorial:m==='libro'?a.editorial||'':'',tipoObra:m==='libro'?a.tipoObra||'':'',formato:m==='libro'?a.formato||'':'',paginas:m==='libro'?a.paginas||'':'',detalle:m!=='publicacion'&&m!=='libro'?a.detalle||'':'',
       total:parseFloat(a.total)||0,autores:parseInt(a.autores)||1,tMin:parseInt(a.tMin)||'',tMax:parseInt(a.tMax)||'',estado:a.estado||'propuesto',trabajoId:a.trabajoId||''}})),
     hitos:JSON.stringify(d._hitos.filter(x=>String(x.l||'').trim())),
     docUrl:d.docUrl||'',docFecha:d.docFecha||'',createdAt:d.createdAt||new Date().toISOString()}
@@ -5200,7 +5249,8 @@ async function aceptarArticulo(pid,aid){
   const p=data.propuestas.find(x=>x.id===pid);if(!p)return
   const arts=artsDe(p),a=arts.find(x=>x.id===aid);if(!a)return
   const hitos=hitosDe(p)
-  if(!confirm('Se creará el trabajo de publicación "'+a.titulo.slice(0,70)+'…" con '+hitos.length+' cuota(s) y su contrato.\n\n¿Continuar?'))return
+  const tipoT=a.tipo||TIPO_PUB,modT=modeloTrabajo(tipoT)
+  if(!confirm('Se creará el trabajo "'+a.titulo.slice(0,70)+'…" ('+tipoT+') con '+hitos.length+' cuota(s) y su contrato.\n\n¿Continuar?'))return
   const cl=data.clientes.find(c=>c.id===p.clienteId)
   const hoy=fechaHoyLocal()
   const mesesFin=parseInt(a.tMax)||parseInt(a.tMin)||12
@@ -5209,10 +5259,12 @@ async function aceptarArticulo(pid,aid){
   const cuart=CUARTILES.indexOf(a.cuartil)>-1?a.cuartil:''
   const idx=String(a.indexacion||'').split(/\s*[,;]\s*/).filter(Boolean)
   const tid=uid(),total=parseFloat(a.total)||0,nA=parseInt(a.autores)||1
-  const det={tipoArticulo:a.tipoArticulo||'',area:p.area||'',revista:a.revista||'',cuartil:cuart,indexacion:idx,
-    autores:cl&&cl.nombre||'',numAutores:String(nA),frecuencia:'Quincenal',reenviosMax:'2',propuestaId:pid,
-    clausulasExtra:'El valor por autor es de '+fmtUSD(total/nA)+' ('+nA+' autores). '+(p.notas||'')}
-  const t={id:tid,clienteId:p.clienteId,clienteNombre:cl&&cl.nombre||'',titulo:a.titulo,tipo:TIPO_PUB,estado:'Nuevo',total:total,progreso:'0',
+  const comunes={area:p.area||'',autores:cl&&cl.nombre||'',numAutores:String(nA),frecuencia:'Quincenal',propuestaId:pid,
+    clausulasExtra:(nA>1?'El valor por autor es de '+fmtUSD(total/nA)+' ('+nA+' autores). ':'')+(p.notas||'')}
+  const det=modT==='publicacion'?Object.assign({tipoArticulo:a.tipoArticulo||'',revista:a.revista||'',cuartil:cuart,indexacion:idx,reenviosMax:'2'},comunes)
+    :modT==='libro'?Object.assign({tipoObra:a.tipoObra||'',editorial:a.editorial||'',formato:a.formato||'',paginas:a.paginas||''},comunes)
+    :Object.assign({alcanceTxt:a.detalle||''},comunes)
+  const t={id:tid,clienteId:p.clienteId,clienteNombre:cl&&cl.nombre||'',titulo:a.titulo,tipo:tipoT,estado:'Nuevo',total:total,progreso:'0',
     fechaInicio:hoy,fechaFin:fin,notas:'Creado desde la propuesta: '+(p.titulo||''),carpeta:'',detalles:JSON.stringify(det),etapa:'',contratoUrl:'',contratoFecha:'',createdAt:new Date().toISOString(),
     autores:JSON.stringify([{id:'a'+uid(),clienteId:p.clienteId,nombre:cl&&cl.nombre||'',rol:'correspondencia',pct:100,tipo:'pct',cuotas:'plan',orcid:cl&&cl.orcid||''}]),modoCobro:'responsable'}
   // Fechas estimadas de cada hito (se ajustan solas al registrar la etapa vinculada)
@@ -5222,7 +5274,7 @@ async function aceptarArticulo(pid,aid){
     const f=i===0?0:(FRAC[hh.etapa]!==undefined?FRAC[hh.etapa]:i/(hitos.length-1))
     const dt=fechaLocal(hoy);dt.setMonth(dt.getMonth()+Math.round(mMin*f))
     return{id:uid(),trabajoId:tid,clienteId:p.clienteId,clienteNombre:cl&&cl.nombre||'',trabajoTitulo:a.titulo,
-      label:(parseFloat(hh.pct)||0)+' % — '+hh.l,fechaVencimiento:isoLocal(dt),acordado:montos[i],pagado:0,estado:'pendiente',hitoEtapa:hh.etapa||''}
+      label:(parseFloat(hh.pct)||0)+' % — '+hh.l,fechaVencimiento:isoLocal(dt),acordado:montos[i],pagado:0,estado:'pendiente',hitoEtapa:modT==='publicacion'?hh.etapa||'':''}
   })
   const arts2=arts.map(x=>x.id===aid?Object.assign({},x,{estado:'aceptado',trabajoId:tid}):x)
   const pUpd=Object.assign({},p,{articulos:JSON.stringify(arts2)});pUpd.estado=estadoPropuesta(pUpd)
@@ -5251,15 +5303,29 @@ function _construirProforma(p){
   body+=_p(String(p.titulo||'Propuesta de publicaciones').toUpperCase(),{sz:28,bold:true,color:'000000',align:'center',before:120,after:60})
   body+=_p((cl?'Dirigida a: '+cl.nombre+(cl.institucion?' — '+cl.institucion:'')+'   ·   ':'')+'Fecha: '+fmtDCorto(p.fecha||fechaHoyLocal())
     +(p.validez?'   ·   Validez: '+p.validez+' días':''),{sz:18,color:'555555',align:'center',after:200})
-  const W=[400,3600,1700,1000,1100,1100,1100]
-  body+=_tblStart(W,negro)
-  body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+['#','Artículo','Revista','Cuartil','Total','Por autor','Tiempo total'].map((x,i)=>celda(x,W[i],{bold:true})).join('')+'</w:tr>'
-  arts.forEach(function(a,i){
-    body+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'
-      +celda(String(i+1),W[0])+celda(a.titulo,W[1])+celda(a.revista||'—',W[2])+celda(a.cuartil||'—',W[3])
-      +celda(fmtUSD(a.total),W[4])+celda(fmtUSD(porAutor(a)),W[5])+celda(tiempoTxt(a),W[6])+'</w:tr>'
-  })
-  body+='</w:tbl>'
+  const soloArt=arts.every(a=>modeloTrabajo(a.tipo||TIPO_PUB)==='publicacion')
+  if(soloArt){
+    const W=[400,3600,1700,1000,1100,1100,1100]
+    body+=_tblStart(W,negro)
+    body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+['#','Artículo','Revista','Cuartil','Total','Por autor','Tiempo total'].map((x,i)=>celda(x,W[i],{bold:true})).join('')+'</w:tr>'
+    arts.forEach(function(a,i){
+      body+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'
+        +celda(String(i+1),W[0])+celda(a.titulo,W[1])+celda(a.revista||'—',W[2])+celda(a.cuartil||'—',W[3])
+        +celda(fmtUSD(a.total),W[4])+celda(fmtUSD(porAutor(a)),W[5])+celda(tiempoTxt(a),W[6])+'</w:tr>'
+    })
+    body+='</w:tbl>'
+  }else{
+    const W=[400,3300,1500,1900,1000,1000,900]
+    body+=_tblStart(W,negro)
+    body+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+['#','Trabajo','Tipo','Detalle','Total','Por autor','Tiempo'].map((x,i)=>celda(x,W[i],{bold:true})).join('')+'</w:tr>'
+    arts.forEach(function(a,i){const m=modeloTrabajo(a.tipo||TIPO_PUB)
+      body+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'
+        +celda(String(i+1),W[0])+celda(a.titulo,W[1])+celda(({publicacion:'Artículo científico',libro:'Libro',tesis:'Tesis / proyecto',estadistica:'Análisis estadístico',revision:'Revisión / instrumentos'})[m]||'Servicio',W[2])
+        +celda(detalleItemProp(a)+(m==='publicacion'&&a.cuartil?' · '+a.cuartil:'')+(m==='libro'&&a.formato?' · '+a.formato:''),W[3])
+        +celda(fmtUSD(a.total),W[4])+celda(fmtUSD(porAutor(a)),W[5])+celda(tiempoTxt(a),W[6])+'</w:tr>'
+    })
+    body+='</w:tbl>'
+  }
   body+=_p('Forma de pago sugerida (por autor):',{sz:S,bold:true,color:'000000',before:160,after:80})
   hitos.forEach(function(h){
     body+='<w:p><w:pPr><w:spacing w:before="0" w:after="100"/><w:ind w:left="720" w:hanging="360"/></w:pPr>'
@@ -5270,7 +5336,7 @@ function _construirProforma(p){
   const ej=arts[0]
   if(ej&&hitos.length){
     const partes=repartir(porAutor(ej),hitos).map(x=>fmtUSD(x).replace(' USD',''))
-    body+=_p('Por ejemplo, '+(ej.cuartil?'en un '+ej.cuartil:'para el artículo 1')+' serían '+partes.join(' + ')+' USD por autor.'
+    body+=_p('Por ejemplo, '+(ej.cuartil?'en un '+ej.cuartil:'para el '+(modeloTrabajo(ej.tipo||TIPO_PUB)==='publicacion'?'artículo':'trabajo')+' 1')+' serían '+partes.join(' + ')+' USD por autor.'
       +(p.notas?' '+p.notas:''),{sz:S,color:'000000',before:80,after:80})
   }else if(p.notas){
     body+=_p(p.notas,{sz:S,color:'000000',before:80,after:80})
@@ -5299,7 +5365,7 @@ function mProforma(d){
     +'<div style="min-width:0;flex:1"><h3 style="margin-bottom:4px">📄 Proforma</h3><div style="font-size:12px;color:var(--text3)">'+esc(p.titulo)+' · '+esc(cl&&cl.nombre||'—')+'</div></div>'
     +'<button class="btn btn-g btn-sm" onclick="closeModal()">✕</button></div>'
   h+='<div class="pub-meta" style="margin-bottom:12px">'
-    +[['Artículos',arts.length],['Valor total',fmtUSD(total)],['Forma de pago',hitos.map(x=>fmt(x.pct)+'%').join(' / ')],['Validez',(p.validez||'—')+' días']]
+    +[['Trabajos',arts.length],['Valor total',fmtUSD(total)],['Forma de pago',hitos.map(x=>fmt(x.pct)+'%').join(' / ')],['Validez',(p.validez||'—')+' días']]
       .map(r=>'<div><span>'+esc(r[0])+'</span><strong>'+esc(r[1])+'</strong></div>').join('')+'</div>'
   if(!cl||!cl.telefono)h+='<div style="background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e">El cliente no tiene teléfono registrado: no se podrá enviar por WhatsApp.</div>'
   if(p.docUrl){
@@ -6512,8 +6578,10 @@ function _sumarMeses(f,n){if(!f)return'';const d=new Date(f+'T12:00:00');const d
 function planCuotasAutores(t,autores,modo,titularId){
   const cuotas=data.cuotas.filter(c=>c.trabajoId===t.id)
   const libre=c=>realPaid(c)<=0&&!data.abonos.some(a=>a.cuotaId===c.id)&&!facturasDeCuota(c.id).length
+  // Grupos que tienen alguna cuota con pagos o facturas (solo se usa para nombrar el "Saldo adicional").
+  // Cada cuota se evalúa sola: que un autor ya haya pagado su parte de un hito no bloquea las de los demás.
   const bloqueados=new Set(cuotas.filter(c=>!libre(c)).map(c=>c.grupo||c.id))
-  const libres=cuotas.filter(c=>libre(c)&&!bloqueados.has(c.grupo||c.id))
+  const libres=cuotas.filter(libre)
   const esPropia=c=>String(c.grupo||'').indexOf('au_')===0
   const totalLibre=r2(libres.reduce((s,c)=>s+(parseFloat(c.acordado)||0),0))
   const base=c=>c.grupo?String(c.label||'Cuota').replace(/ — [^—]*$/,''):(c.label||'Cuota')
@@ -6531,7 +6599,7 @@ function planCuotasAutores(t,autores,modo,titularId){
     const montosHito=total=>repartirPesos(total,hitos.map(h=>h.peso||1))
     if(modo==='porAutor'){
       // Lo que cada autor ya tiene en cuotas pagadas o facturadas se descuenta de su parte
-      const yaTiene=a=>r2(cuotas.filter(c=>!libre(c)||bloqueados.has(c.grupo||c.id)).filter(c=>pagadorIdDe(c,t)===a.clienteId).reduce((s,c)=>s+(parseFloat(c.acordado)||0),0))
+      const yaTiene=a=>r2(cuotas.filter(c=>!libre(c)).filter(c=>pagadorIdDe(c,t)===a.clienteId).reduce((s,c)=>s+(parseFloat(c.acordado)||0),0))
       const pend=autores.map(a=>Math.max(0,r2((montoAutor(a,t.total)||0)-yaTiene(a))))
       const partes=repartirPesos(totalLibre,pend.some(x=>x>0)?pend:autores.map(a=>a.exento?0:(montoAutor(a,t.total)||1)))
       const enPlan=autores.map((a,i)=>({a:a,m:partes[i]})).filter(x=>!x.a.cuotas||x.a.cuotas==='plan')
