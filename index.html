@@ -271,6 +271,23 @@ aside{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bo
 .pt-cuota-ic{font-size:20px;line-height:1.2}.pt-cuota-t{font-size:14px;font-weight:700;color:var(--navy)}.pt-cuota-s{font-size:12.5px;font-weight:700;margin-top:3px}
 .pt-cuota-abs{font-size:12px;color:#15803d;margin-top:6px;line-height:1.6}.pt-cuota-m{font-size:16px;font-weight:800;color:var(--navy)}
 .pt-tabs{display:none}
+.stepper .step{background:none;border:0;padding:4px 0;font:inherit;cursor:pointer;border-radius:10px}.stepper .step:hover .step-dot{transform:scale(1.08)}
+.step-dot{transition:transform .15s}.step.sel .step-dot{box-shadow:0 0 0 4px rgba(15,76,129,.25)}.step.sel .step-l{color:var(--brand);font-weight:800;text-decoration:underline}
+.step-n{position:absolute;top:-6px;right:-8px;background:var(--brand);color:#fff;border-radius:999px;font-size:9.5px;font-weight:800;min-width:16px;height:16px;line-height:16px;padding:0 4px;border:2px solid #fff}
+.stp-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:2px}
+.stp-panel{border:1.5px solid;border-radius:12px;padding:12px 14px;margin-top:8px}
+.stp-av{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 11px;margin-top:6px}.stp-av-h{font-size:12px;font-weight:700;color:var(--navy)}.stp-av-h span{font-weight:600;color:var(--text3)}
+.stp-av-n{font-size:12.5px;color:var(--text2);line-height:1.55;margin-top:3px;white-space:pre-line}
+.rs-list{display:grid;gap:10px}
+.rs-row{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.rs-row:hover{border-color:#C9D9EB;box-shadow:0 4px 14px rgba(15,23,42,.06)}
+.rs-main{flex:1;min-width:0}.rs-t{font-size:14px;font-weight:800;color:var(--navy);line-height:1.35}.rs-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.rs-dst{font-size:12.5px;color:var(--text2);margin-top:5px}.rs-dst span{color:var(--text3)}
+.rs-aut{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.rs-chip{font-size:11.5px;background:#F1F5FA;border-radius:999px;padding:2px 9px;color:var(--text2)}
+.rs-nov{font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.45}
+.rs-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:150px}
+.rs-bar{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text3)}.rs-bar .pbar{width:70px}.rs-bar b{color:var(--navy);min-width:30px;text-align:right}
+@media(max-width:700px){.rs-row{flex-wrap:wrap}.rs-side{flex-direction:row;flex-wrap:wrap;align-items:center;min-width:0;width:100%}}
 .wf-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}.wf-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);min-width:52px}
 .wf-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer}
 .wf-chip b{font-size:11px;background:#F1EFEA;border-radius:999px;padding:1px 7px;color:var(--text2)}.wf-chip.on{background:var(--navy);border-color:var(--navy);color:#fff}.wf-chip.on b{background:rgba(255,255,255,.25);color:inherit}
@@ -1174,6 +1191,7 @@ async function submitClave(){
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
 const NAV_MAIN=[
   {id:'dashboard',    l:'Dashboard',      ic:'▦'},
+  {id:'resumen',      l:'Resumen de trabajos',ic:'🗂',nuevo:1},
   {id:'clientes',     l:'Clientes',       ic:'◉'},
   {id:'trabajos',     l:'Trabajos',       ic:'◈'},
   {id:'propuestas',   l:'Propuestas',     ic:'📑',nuevo:1},
@@ -1191,13 +1209,14 @@ const NAV_MAIN=[
 ]
 const NAV_CLIENTE=[
   {id:'mi_progreso',l:'Inicio',ic:'🏠'},
+  {id:'mi_resumen',l:'Resumen',ic:'🗂'},
   {id:'mis_cuentas',l:'Mis pagos',ic:'💳'},
 ]
 const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
-const TITLES={contabilidad:'Contabilidad',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas y proformas',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.14.0'
+const TITLES={resumen:'Resumen de trabajos',mi_resumen:'Resumen de mis trabajos',contabilidad:'Contabilidad',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas y proformas',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
+const VERSION='v7.15.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -1245,6 +1264,7 @@ function htmlPage(){
   if(user&&user.role==='cliente'){
     if(page==='mi_progreso') return htmlPortalProgreso()
     if(page==='mis_cuentas') return htmlPortalCuentas()
+    if(page==='mi_resumen') return htmlPortalResumen()
     page='mi_progreso'; return htmlPortalProgreso()
   }
   // Colaborador portal - restricted view
@@ -1261,6 +1281,7 @@ function htmlPage(){
   if(page==='facturas') return htmlFacturas()
   if(page==='ingresos') return htmlIngresos()
   if(page==='contabilidad') return htmlContabilidad()
+  if(page==='resumen') return htmlResumenTrabajos(false)
   if(page==='deudores') return htmlDeudores()
   if(page==='reuniones')return htmlReuniones()
   if(page==='usuarios') return htmlUsuarios()
@@ -3899,7 +3920,7 @@ function htmlPtTrabajo(t){
   const segs=segsDe(t.id,true),ult=segs[segs.length-1]
   const pub=esPublicacion(t),cur=pub?etapaActual(t):'',ci=ETAPAS_PUB.findIndex(e=>e.id===cur),et=ci>-1?ETAPAS_PUB[ci]:null,sig=ci>-1?ETAPAS_PUB[ci+1]:ETAPAS_PUB[0]
   const reg=contratoVigente(t.id),det=detallesDe(t)
-  let h='<div class="pt-card pt-work">'
+  let h='<div class="pt-card pt-work" id="ptw_'+t.id+'">'
     +'<div class="pt-work-hd">'+htmlIcoTrabajo(t,44)+'<div style="min-width:0;flex:1"><div class="pt-work-t">'+esc(t.titulo)+'</div><div class="pt-work-tipo">'+esc(t.tipo||'')+(autoresDe(t).length>1?' · '+(coautor?'eres coautor':'eres el autor encargado'):'')+'</div></div>'
     +'<span class="pt-chip" style="color:'+E[1]+';background:'+E[1]+'18">'+E[2]+' '+esc(E[0])+'</span></div>'
   // Avance
@@ -4594,12 +4615,13 @@ function diasSinMov(t){
 }
 
 function htmlStepper(t){
-  const cur=etapaActual(t)
+  const cur=etapaActual(t),cli=!!(user&&user.role==='cliente'),sel=_stepSel[t.id]
   const ci=ETAPAS_PUB.findIndex(e=>e.id===cur)
   return'<div class="stepper">'+ETAPAS_PUB.map(function(e,i){
-    const st=ci<0?'':i<ci?'done':i===ci?(cur==='publicado'?'done':'cur'):''
-    return'<div class="step '+st+'"><div class="step-dot">'+(st==='done'?'✓':e.ic)+'</div><div class="step-l">'+esc(e.c)+'</div></div>'
+    const st=ci<0?'':i<ci?'done':i===ci?(cur==='publicado'?'done':'cur'):'',n=segsDeEtapa(t,e.id,cli).length
+    return'<button type="button" class="step '+st+(sel===e.id?' sel':'')+'" title="Ver los avances de '+esc(e.l)+'" onclick="event.stopPropagation();_verEtapa(\''+t.id+'\',\''+e.id+'\')"><div class="step-dot">'+(st==='done'?'✓':e.ic)+(n?'<span class="step-n">'+n+'</span>':'')+'</div><div class="step-l">'+esc(e.c)+'</div></button>'
   }).join('')+'</div>'
+    +(sel?htmlEtapaPanel(t,sel,cli):'<div class="stp-hint">Toca una etapa para ver sus avances</div>')
 }
 
 function htmlTimeline(t,soloCliente){
@@ -8215,6 +8237,110 @@ async function contaPdf(){
     doc.setTitle('Estados financieros '+CONT.desde+' a '+CONT.hasta);descargarBytes(await doc.save(),'Estados_financieros_'+CONT.hasta+'.pdf','application/pdf');toast('Estados financieros en PDF ✓')
   }catch(e){alert('No se pudo generar el PDF: '+e.message)}
   if(btn){btn.disabled=false;btn.textContent=txt}
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// ETAPAS CLICABLES: al tocar una etapa se muestran sus avances
+// ════════════════════════════════════════════════════════════════
+const _stepSel={}
+const DESC_PUBLICADO='Publicación: el artículo aparece publicado en la revista, con su DOI y en las bases de indexación.'
+function _verEtapa(tid,eid){_stepSel[tid]=_stepSel[tid]===eid?null:eid;draw()}
+function segsDeEtapa(t,eid,cli){return segsDe(t.id,cli).filter(s=>s.etapa===eid||(eid==='seleccion'&&s.etapa==='rechazado'))}
+function htmlEtapaPanel(t,eid,cli){
+  const e=ETAPAS_PUB.find(x=>x.id===eid);if(!e)return''
+  const cur=etapaActual(t),ci=ETAPAS_PUB.findIndex(x=>x.id===cur),ei=ETAPAS_PUB.findIndex(x=>x.id===eid)
+  const st=ci<0?'pend':ei<ci||cur==='publicado'?'done':ei===ci?'cur':'pend'
+  const ss=segsDeEtapa(t,eid,cli).slice().reverse()
+  const est={done:['✅ Etapa completada','#15803d','#F0FDF4'],cur:['📍 Etapa actual','#8E6630','#FFFBF2'],pend:['🕓 Etapa pendiente','#64748b','#F8FAFC']}[st]
+  return'<div class="stp-panel" style="background:'+est[2]+';border-color:'+est[1]+'40">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-size:11px;font-weight:800;color:'+est[1]+';letter-spacing:.4px;text-transform:uppercase">'+est[0]+'</div>'
+    +'<div style="font-size:15px;font-weight:800;color:var(--navy);margin-top:2px">'+e.ic+' '+esc(e.l)+'</div></div>'
+    +'<button class="btn btn-g btn-sm" style="padding:2px 9px" onclick="_verEtapa(\''+t.id+'\',\''+eid+'\')">✕</button></div>'
+    +'<div style="font-size:12.5px;color:var(--text2);line-height:1.55;margin:6px 0 8px">'+esc(DESC_ETAPAS[eid]||DESC_PUBLICADO)+'</div>'
+    +(ss.length?ss.map(function(s){const r=s.etapa==='rechazado'
+        return'<div class="stp-av"><div class="stp-av-h">'+(r?'↩️ Rechazo y reenvío':'📝 Avance')+' · <span>'+fmtD(s.fecha)+'</span>'+(s.revista?' · 📰 '+esc(s.revista):'')+(!cli&&s.responsable?' · '+esc(s.responsable):'')+(!cli&&String(s.visibleCliente)==='0'?' <span class="b bx">solo interno</span>':'')+'</div>'
+          +(s.nota?'<div class="stp-av-n">'+esc(s.nota)+'</div>':'')+'</div>'}).join('')
+      :'<div style="font-size:12.5px;color:var(--text3)">'+(st==='pend'?'Todavía no se llega a esta etapa.':st==='cur'?'Es la etapa actual; aún no hay avances registrados.':'No se registraron notas en esta etapa.')+'</div>')
+    +'</div>'
+}
+
+// ════════════════════════════════════════════════════════════════
+// RESUMEN DE TRABAJOS (app y portal): trabajos, revistas y autores con búsqueda y filtros
+// ════════════════════════════════════════════════════════════════
+const RES={q:'',tipo:'Todos',estado:'Todos',etapa:'',revista:''}
+function _resDestino(t){const d=detallesDe(t),m=modeloTrabajo(t.tipo)
+  if(m==='publicacion')return{n:d.revista||'',sub:[d.cuartil&&d.cuartil!=='No aplica'?d.cuartil:'',(Array.isArray(d.indexacion)?d.indexacion:[]).slice(0,3).join(', ')].filter(Boolean).join(' · '),url:d.urlRevista||''}
+  if(m==='libro')return{n:d.editorial||'',sub:[d.tipoObra,d.formato].filter(Boolean).join(' · ')}
+  if(m==='tesis')return{n:d.universidad||'',sub:[d.programa,d.nivel].filter(Boolean).join(' · ')}
+  return{n:'',sub:d.alcanceTxt||''}}
+function _resEtapa(t){if(!esPublicacion(t))return null;const e=ETAPAS_PUB.find(x=>x.id===etapaActual(t));return e||{id:'',l:'Por iniciar',ic:'🕓'}}
+function _resTexto(t){const dst=_resDestino(t),e=_resEtapa(t)
+  return[t.titulo,t.tipo,autoresTxt(t),autoresDe(t).map(a=>a.orcid||'').join(' '),dst.n,dst.sub,e?e.l:'',t.estado,(PT_ESTADO[t.estado]||[''])[0]].join(' ').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+function _resLista(cli){
+  const base=cli?_ptTrabajos():recientes(data.trabajos)
+  const q=RES.q.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim()
+  return{base:base,list:base.filter(t=>(!q||q.split(/\s+/).every(w=>_resTexto(t).includes(w)))&&(RES.tipo==='Todos'||modeloTrabajo(t.tipo)===RES.tipo)
+    &&(RES.estado==='Todos'||(RES.estado==='Pendientes'?trabajoPendiente(t):t.estado===RES.estado))&&(!RES.etapa||(_resEtapa(t)&&_resEtapa(t).id===RES.etapa))&&(!RES.revista||_resDestino(t).n===RES.revista))}
+}
+function _resSet(k,v){RES[k]=RES[k]===v&&k!=='q'?(k==='tipo'||k==='estado'?'Todos':''):v;if(k==='q'){drawPage();return}draw()}
+function _resLimpiar(){Object.assign(RES,{q:'',tipo:'Todos',estado:'Todos',etapa:'',revista:''});draw()}
+function _resIr(tid,cli){
+  if(cli){page='mi_progreso';draw();setTimeout(function(){const e=document.getElementById('ptw_'+tid);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},60);return}
+  const t=data.trabajos.find(x=>x.id===tid);if(t&&esPublicacion(t))abrirPub(tid);else{page='trabajos';wExp=tid;draw()}
+}
+function htmlResumenTrabajos(cli){
+  const L=_resLista(cli),list=L.list,base=L.base
+  const autores={},revistas={}
+  list.forEach(t=>{autoresDe(t).forEach(a=>{const k=a.clienteId||a.nombre;if(k)autores[k]=a});const d=_resDestino(t);if(esPublicacion(t)&&d.n)revistas[d.n]=(revistas[d.n]||0)+1})
+  const pubs=list.filter(esPublicacion),cnt=id=>pubs.filter(t=>etapaActual(t)===id).length
+  const enRev=pubs.filter(t=>['envio','revision','correcciones'].indexOf(etapaActual(t))>-1).length,acept=cnt('aceptado'),publ=cnt('publicado')
+  let h='<div class="card" style="padding:12px 14px;margin-bottom:14px">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="srch_res" value="'+esc(RES.q)+'" oninput="_resSet(\'q\',this.value)" placeholder="🔎 Buscar por título, revista, autor, ORCID, etapa…" style="flex:1;min-width:220px"/>'
+    +((RES.q||RES.tipo!=='Todos'||RES.estado!=='Todos'||RES.etapa||RES.revista)?'<button class="btn btn-g btn-sm" onclick="_resLimpiar()">✕ Quitar filtros</button>':'')
+    +(!cli?'<button class="btn btn-green btn-sm" onclick="resumenExcel()">📗 Excel</button>':'')+'</div>'
+  // Tipo y estado
+  const tipos=Object.keys(TIPO_VIS).filter(k=>base.some(t=>modeloTrabajo(t.tipo)===k))
+  if(tipos.length>1)h+='<div class="wf-row" style="margin-top:10px"><span class="wf-lbl">Tipo</span>'+tipos.map(k=>'<button class="wf-chip'+(RES.tipo===k?' on':'')+'" onclick="_resSet(\'tipo\',\''+k+'\')">'+TIPO_VIS[k].ic+' '+esc(TIPO_VIS[k].l)+' <b>'+base.filter(t=>modeloTrabajo(t.tipo)===k).length+'</b></button>').join('')+'</div>'
+  h+='<div class="wf-row" style="margin-top:6px"><span class="wf-lbl">Estado</span>'+[['Pendientes','⏳ En marcha'],['Completado','✅ Terminados']].map(x=>'<button class="wf-chip'+(RES.estado===x[0]?' on':'')+'" onclick="_resSet(\'estado\',\''+x[0]+'\')">'+x[1]+' <b>'+base.filter(t=>x[0]==='Pendientes'?trabajoPendiente(t):t.estado===x[0]).length+'</b></button>').join('')+'</div>'
+  // Embudo de etapas (publicaciones)
+  if(base.some(esPublicacion))h+='<div class="wf-row" style="margin-top:6px"><span class="wf-lbl">Etapa</span>'+ETAPAS_PUB.map(e=>{const n=base.filter(t=>esPublicacion(t)&&etapaActual(t)===e.id).length;return n||RES.etapa===e.id?'<button class="wf-chip'+(RES.etapa===e.id?' on':'')+'" onclick="_resSet(\'etapa\',\''+e.id+'\')">'+e.ic+' '+esc(e.c)+' <b>'+n+'</b></button>':''}).join('')+'</div>'
+  const revs=Object.keys(revistas).sort((a,b)=>revistas[b]-revistas[a])
+  if(revs.length&&!cli)h+='<div class="wf-row" style="margin-top:6px"><span class="wf-lbl">Revista</span>'+revs.slice(0,8).map(r=>'<button class="wf-chip'+(RES.revista===r?' on':'')+'" onclick="_resSet(\'revista\','+jss(r).replace(/"/g,'&quot;')+')">📰 '+esc(r)+' <b>'+revistas[r]+'</b></button>').join('')+'</div>'
+  h+='</div>'
+  // Indicadores
+  h+='<div class="wf-sum">'+[['Trabajos',list.length],['En marcha',list.filter(trabajoPendiente).length],['Autores',Object.keys(autores).length],['Revistas',revs.length],['En revisión editorial',enRev],['Aceptados / publicados',acept+' / '+publ]]
+    .map(x=>'<div><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>').join('')+'</div>'
+  if(!list.length)return h+'<div class="card"><p class="empty">No hay trabajos que coincidan con la búsqueda.</p></div>'
+  // Lista
+  h+='<div class="rs-list">'+list.map(function(t){
+    const v=visTrabajo(t),e=_resEtapa(t),d=_resDestino(t),E=PT_ESTADO[t.estado]||[t.estado||'—','#475569','•'],prog=parseInt(t.progreso)||0
+    const bal=cli&&t.clienteId!==user.clienteId?balCliente(t,user.clienteId):wBal(t),segs=segsDe(t.id,cli),ult=segs[segs.length-1]
+    const au=autoresDe(t)
+    return'<div class="rs-row" onclick="_resIr(\''+t.id+'\','+(cli?1:0)+')">'
+      +htmlIcoTrabajo(t,40)
+      +'<div class="rs-main"><div class="rs-t">'+esc(t.titulo)+'</div>'
+      +'<div class="rs-meta"><span style="color:'+v.c+';font-weight:700">'+esc(t.tipo||'')+'</span>'+(!cli?' · '+esc(t.clienteNombre||autoresTxt(t).split(' + ')[0]):'')+'</div>'
+      +(d.n||d.sub?'<div class="rs-dst">'+(esPublicacion(t)?'📰 ':modeloTrabajo(t.tipo)==='libro'?'🏛 ':modeloTrabajo(t.tipo)==='tesis'?'🎓 ':'📋 ')+(d.n?'<strong>'+esc(d.n)+'</strong>':'')+(d.sub?' <span>· '+esc(d.sub)+'</span>':'')+'</div>':'')
+      +'<div class="rs-aut">'+au.map(a=>'<span class="rs-chip">'+(a.rol==='correspondencia'&&au.length>1?'✉️ ':'')+esc(a.nombre||'—')+(a.orcid?' <a href="https://orcid.org/'+esc(a.orcid)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#A6CE39;font-weight:800;text-decoration:none">iD</a>':'')+'</span>').join('')+'</div>'
+      +(ult?'<div class="rs-nov">Última novedad · '+fmtDCorto(ult.fecha)+': '+esc(((etapaInfo(ult.etapa)||{l:'Avance'}).l))+(ult.nota?' — '+esc(String(ult.nota).slice(0,110)):'')+'</div>':'')+'</div>'
+      +'<div class="rs-side"><span class="pt-chip" style="color:'+(e?'#8E6630':E[1])+';background:'+(e?'#F5EBDC':E[1]+'18')+'">'+(e?e.ic+' '+esc(e.c||e.l):E[2]+' '+esc(E[0]))+'</span>'
+      +'<div class="rs-bar"><span>Avance</span><div class="pbar"><div class="pbar-f" style="width:'+prog+'%;background:#B8894A"></div></div><b>'+prog+'%</b></div>'
+      +'<div class="rs-bar"><span>'+(cli?'Pagos':'Cobro')+'</span><div class="pbar"><div class="pbar-f" style="width:'+bal.pct+'%;background:var(--green)"></div></div><b>'+bal.pct+'%</b></div>'
+      +(t.fechaFin?'<div style="font-size:11px;color:var(--text3)">🏁 '+fmtDCorto(t.fechaFin)+'</div>':'')+'</div></div>'
+  }).join('')+'</div>'
+  return h
+}
+function htmlPortalResumen(){return'<div class="pt">'+htmlPortalHeader()+'<div class="pt-h2">Resumen de mis trabajos</div>'+htmlResumenTrabajos(true)+htmlPtContacto()+'</div>'}
+async function resumenExcel(){
+  try{
+    await cargarLib(LIB_XLSX,'XLSX')
+    const rows=[['Trabajo','Tipo','Cliente','Estado','Etapa','Revista / editorial','Cuartil · indexación / detalle','Autores','ORCID','Avance %','Valor','Cobrado','Saldo','Inicio','Entrega','Última novedad']]
+    _resLista(false).list.forEach(function(t){const d=_resDestino(t),e=_resEtapa(t),b=wBal(t),au=autoresDe(t),ss=segsDe(t.id),u=ss[ss.length-1]
+      rows.push([t.titulo,t.tipo,t.clienteNombre||'',t.estado||'',e?e.l:'',d.n,d.sub,au.map(a=>a.nombre).join('; '),au.map(a=>a.orcid||'—').join('; '),parseInt(t.progreso)||0,b.total,b.paid,b.bal,toISO(t.fechaInicio||''),toISO(t.fechaFin||''),u?toISO(u.fecha||'')+' · '+((etapaInfo(u.etapa)||{l:''}).l)+(u.nota?' — '+u.nota:''):''])})
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[48,30,24,12,22,32,30,40,40,9,11,11,11,11,11,60].map(w=>({wch:w}))
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Resumen de trabajos');XLSX.writeFile(wb,'Resumen_trabajos_'+hoyISO()+'.xlsx');toast('Resumen en Excel ✓')
+  }catch(e){alert('No se pudo generar el Excel: '+e.message)}
 }
 
 // ── Diagnóstico de instalación de la app ──
