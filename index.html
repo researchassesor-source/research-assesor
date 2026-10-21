@@ -1091,7 +1091,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas de publicaciones (proformas)',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mis trabajos',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.9.9'
+const VERSION='v7.10.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -2422,7 +2422,10 @@ async function submitTrabajo(id,isEdit,sinVolver){
 function mCuota(d){
   const isEdit=!!d.id
   const titulo=isEdit?'Editar cuota':'Nueva cuota'
+  const t=data.trabajos.find(x=>x.id===d.trabajoId),au=t?autoresDe(t).filter(a=>a.clienteId):[]
+  const pag=isEdit&&t?pagadorIdDe(d,t):(t&&t.clienteId||'')
   return'<h3>'+titulo+'</h3><div class="fg">'
+    +(au.length>1?'<div class="full"><label>¿Quién paga esta cuota?</label><select id="q5">'+au.map(a=>'<option value="'+esc(a.clienteId)+'"'+(a.clienteId===pag?' selected':'')+'>'+esc(a.nombre||'—')+(a.rol==='correspondencia'?' (encargado)':'')+'</option>').join('')+'</select></div>':'')
     +'<div class="full"><label>Descripción / Nombre de cuota</label>'
     +'<input id="q0" value="'+esc(d.label||(d.nro?'Cuota '+d.nro:''))+'" placeholder="Ej: Anticipo, Cuota 1, Pago final..."/></div>'
     +'<div><label>Monto acordado ($) *</label>'
@@ -2445,13 +2448,26 @@ function submitCuota(trabajoId,cuotaId){
   const existing=isEdit?data.cuotas.find(x=>x.id===cuotaId):null
   const pagado=parseFloat(v('q3'))||0
   const estado=v('q4')||'pendiente'
+  // A quién le corresponde: el autor elegido (o, si no se muestra la opción, el pagador que ya tenía)
+  const selP=document.getElementById('q5')
+  const pagId=selP?selP.value:(existing&&t?pagadorIdDe(existing,t):(t&&t.clienteId||''))
+  const pagCl=data.clientes.find(x=>x.id===pagId),pagNom=pagCl&&pagCl.nombre||(t&&autoresDe(t).find(a=>a.clienteId===pagId)||{}).nombre||cl&&cl.nombre||''
+  const esTitular=!t||pagId===t.clienteId
+  // Si la descripción termina con el nombre de un autor, se actualiza al pagador elegido
+  let label=v('q0')
+  const nombresAut=t?autoresDe(t).map(a=>a.nombre).filter(Boolean):[]
+  const suf=/ — ([^—]+)$/.exec(label)
+  if(suf&&nombresAut.indexOf(suf[1].trim())>-1&&suf[1].trim()!==pagNom&&!(esTitular&&modoCobroDe(t)!=='porAutor'))label=label.slice(0,suf.index)+' — '+pagNom
+  const grupo=existing&&existing.grupo?existing.grupo:(!esTitular?'au_'+((t&&autoresDe(t).find(a=>a.clienteId===pagId)||{}).id||uid()):'')
   const rec={
     id:isEdit?cuotaId:uid(),
     trabajoId,
-    clienteId:t&&t.clienteId||'',
-    clienteNombre:cl&&cl.nombre||t&&t.clienteNombre||'',
+    clienteId:pagId||'',
+    clienteNombre:pagNom,
     trabajoTitulo:t&&t.titulo||'',
-    label:v('q0'),
+    grupo:grupo,
+    hitoEtapa:existing&&existing.hitoEtapa||'',
+    label:label,
     fechaVencimiento:v('q2'),
     acordado:monto,
     pagado:pagado,
@@ -3222,7 +3238,7 @@ function _construirContrato(ctx,em){
   // Cobro por autor: cada autor responde por su parte del valor
   const _aus=autoresDe(t),_porAutor=modoCobroDe(t)==='porAutor'&&_aus.length>1
   if(_porAutor)body+=_p('El valor se distribuye entre los autores del manuscrito de la siguiente forma: '
-    +_aus.map(a=>a.nombre+(a.orcid?' (ORCID '+a.orcid+')':'')+': '+fmtUSD(montoAutor(a,t.total))+' ('+fmt(parseFloat(a.pct)||0)+' %)'+(a.cuotas&&a.cuotas!=='plan'?', '+(+a.cuotas===1?'en un solo pago':'en '+a.cuotas+' cuotas mensuales'):'')).join('; ')+'. Cada autor responde por el pago de su parte; EL CONTRATANTE, como autor encargado y de correspondencia, coordina el cumplimiento del plan de pagos.',{sz:20,color:'222222',align:'both',after:80,keep:true})
+    +_aus.map(a=>a.exento?a.nombre+(a.orcid?' (ORCID '+a.orcid+')':'')+': sin costo, por concesión de EL PRESTADOR'+(a.motivoExento?' ('+a.motivoExento+')':''):a.nombre+(a.orcid?' (ORCID '+a.orcid+')':'')+': '+fmtUSD(montoAutor(a,t.total))+' ('+fmt(parseFloat(a.pct)||0)+' %)'+(a.cuotas&&a.cuotas!=='plan'?', '+(+a.cuotas===1?'en un solo pago':'en '+a.cuotas+' cuotas mensuales'):'')).join('; ')+'. Cada autor responde por el pago de su parte; EL CONTRATANTE, como autor encargado y de correspondencia, coordina el cumplimiento del plan de pagos.',{sz:20,color:'222222',align:'both',after:80,keep:true})
   body+=_p('El valor señalado será cancelado '+(_porAutor?'por los autores':'por EL CONTRATANTE')+' a EL PRESTADOR de conformidad con el siguiente plan de pagos'+(fechasEstimadas?' (fechas estimadas)':'')+':',{sz:20,color:'222222',align:'both',after:80,keep:true})
   if(cuotasU.length){
     // La tabla se mantiene completa en una misma página (keepNext en todas las filas menos la última)
@@ -6029,9 +6045,9 @@ function orcidValido(s){
 }
 const orcidLink=o=>o?'<a href="https://orcid.org/'+esc(o)+'" target="_blank" rel="noopener" title="ORCID" style="color:#A6CE39;font-weight:700;text-decoration:none">iD</a>':''
 // Valor que le corresponde a cada autor sobre el total del trabajo (por valor fijo o por porcentaje)
-function montoAutor(a,total){return a.tipo==='valor'?r2(parseFloat(a.monto)||0):r2((parseFloat(total)||0)*(parseFloat(a.pct)||0)/100)}
+function montoAutor(a,total){if(a&&a.exento)return 0;return a.tipo==='valor'?r2(parseFloat(a.monto)||0):r2((parseFloat(total)||0)*(parseFloat(a.pct)||0)/100)}
 // Cuotas de un autor: 'plan' = las mismas cuotas del plan del trabajo; un número = sus propias cuotas mensuales
-const cuotasAutorTxt=a=>!a.cuotas||a.cuotas==='plan'?'según el plan':(+a.cuotas===1?'1 cuota':a.cuotas+' cuotas')
+const cuotasAutorTxt=a=>a.exento?'no paga (concesión)':!a.cuotas||a.cuotas==='plan'?'según el plan':(+a.cuotas===1?'1 cuota':a.cuotas+' cuotas')
 function htmlAutoresResumen(t){
   const au=autoresDe(t),modo=modoCobroDe(t)
   return'<div style="border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff">'
@@ -6039,6 +6055,7 @@ function htmlAutoresResumen(t){
     +'<strong style="font-size:12px;color:var(--navy)">👥 Autores ('+au.length+') · '+(modo==='porAutor'?'Cobro por autor':'Cobro al autor encargado')+'</strong>'
     +'<button class="btn btn-g btn-sm" onclick="abrirAutores(\''+t.id+'\')">✏️ Autores y forma de cobro</button></div>'
     +(autoresPendientes(t).length?'<div style="font-size:11.5px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:6px">Coautores escritos en los detalles que aún no están registrados: <strong>'+autoresPendientes(t).map(esc).join(', ')+'</strong> · <a href="#" onclick="event.preventDefault();abrirAutores(\''+t.id+'\')">Registrarlos como autores y clientes</a></div>':'')
+    +(cuotasConPagadorDistinto(t).length?'<div style="font-size:11.5px;color:#92400e;background:var(--amber-bg);border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:6px">'+cuotasConPagadorDistinto(t).length+' cuota(s) tienen el nombre de un autor pero están asignadas a otro (por ejemplo "'+esc(cuotasConPagadorDistinto(t)[0].c.label)+'" figura a nombre de '+esc(cuotasConPagadorDistinto(t)[0].actual)+'). <a href="#" onclick="event.preventDefault();repararPagadores(\''+t.id+'\')">Corregir</a></div>':'')
     +htmlTablaAutores(t)+'</div>'
 }
 // Nombres escritos en el campo de texto "Autores / coautores" de los detalles del trabajo
@@ -6088,10 +6105,29 @@ function htmlTablaAutores(t){
         +(!cl?'<div style="font-size:10.5px;color:#b45309">⚠ no está en Clientes</div>':'')+'</td>'
         +'<td>'+esc(cl&&cl.cedula||'—')+'</td><td style="font-size:11.5px">'+[cl&&cl.email,cl&&cl.telefono].filter(Boolean).map(esc).join('<br/>')+'</td>'
         +'<td>'+(a.orcid?'<a href="https://orcid.org/'+esc(a.orcid)+'" target="_blank" rel="noopener" style="font-family:monospace;font-size:11px">'+esc(a.orcid)+'</a>':'—')+'</td>'
-        +(modo==='porAutor'?'<td style="text-align:right;white-space:nowrap">'+fmtUSD(x.acordado>0?x.acordado:montoAutor(a,t.total))+'<div style="font-size:10.5px;color:var(--text3)">'+fmt(parseFloat(a.pct)||0)+' %</div></td><td style="font-size:11.5px">'+(!a.cuotas||a.cuotas==='plan'?'Según el plan'+(x.cuotas?' ('+x.cuotas+' cuota'+(x.cuotas>1?'s':'')+')':''):esc(cuotasAutorTxt(a)))+'</td>':'')
+        +(modo==='porAutor'?'<td style="text-align:right;white-space:nowrap">'+(a.exento?'<span class="b bv" title="'+esc(a.motivoExento||'')+'">Concesión</span>':fmtUSD(x.acordado>0?x.acordado:montoAutor(a,t.total))+'<div style="font-size:10.5px;color:var(--text3)">'+fmt(parseFloat(a.pct)||0)+' %</div>')+'</td><td style="font-size:11.5px">'+(!a.cuotas||a.cuotas==='plan'?'Según el plan'+(x.cuotas?' ('+x.cuotas+' cuota'+(x.cuotas>1?'s':'')+')':''):esc(cuotasAutorTxt(a)))+'</td>':'')
         +'<td style="text-align:right;color:var(--green);font-weight:700">'+fmtUSD(x.pagado)+'</td><td style="text-align:right;font-weight:700;color:'+(x.saldo>0?'#b45309':'var(--green)')+'">'+fmtUSD(x.saldo)+'</td>'
         +'<td style="text-align:center">'+(fir.has(a.clienteId)?'✓':'')+'</td></tr>'}).join('')
     +'</tbody></table></div>'
+}
+// Cuotas cuyo nombre indica un autor distinto del que figura como pagador (p. ej. tras editarlas en versiones anteriores)
+function cuotasConPagadorDistinto(t){
+  const au=autoresDe(t);if(au.length<2)return[]
+  return data.cuotas.filter(c=>c.trabajoId===t.id).map(function(c){
+    const m=/ — ([^—]+)$/.exec(c.label||'');if(!m)return null
+    const a=au.find(x=>x.nombre&&x.nombre.trim()===m[1].trim());if(!a||!a.clienteId)return null
+    const pid=pagadorIdDe(c,t);return pid!==a.clienteId?{c:c,autor:a,actual:(data.clientes.find(x=>x.id===pid)||{}).nombre||'—'}:null
+  }).filter(Boolean)
+}
+async function repararPagadores(tid){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  const ls=cuotasConPagadorDistinto(t);if(!ls.length)return
+  if(!confirm('Se corregirá a quién le corresponde cada cuota según su nombre:\n\n'+ls.map(x=>'• '+x.c.label+': '+x.actual+' → '+x.autor.nombre).join('\n')+'\n\n¿Continuar?'))return
+  const rs=[]
+  for(const x of ls){const upd={clienteId:x.autor.clienteId,clienteNombre:x.autor.nombre,grupo:x.c.grupo||('au_'+x.autor.id)}
+    data.cuotas=data.cuotas.map(c=>c.id===x.c.id?Object.assign({},c,upd):c)
+    rs.push(await apiPost({action:'actualizar',tabla:'Cuotas',id:x.c.id,fila:upd}))}
+  finSync(rs,ls.length+' cuota(s) corregida(s) ✓')
 }
 function abrirAutores(tid,op){
   const t=data.trabajos.find(x=>x.id===tid);if(!t)return
@@ -6146,10 +6182,12 @@ function mAutores(d){
       +(ok?'':'<div style="font-size:11px;color:var(--red);margin-top:4px">El ORCID no es válido: son 16 dígitos (el último puede ser X), por ejemplo 0000-0002-1825-0097.</div>')
       +'<label class="chk" style="margin-top:8px"><input type="radio" name="au_rol" value="'+i+'"'+(r.rol==='correspondencia'?' checked':'')+'/> Encargado / autor de correspondencia</label>'
       +(porAutor?'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">'
-        +'<div><label>% del total</label><input id="au_pct_'+i+'" type="number" min="0" max="100" step="0.01" value="'+esc(r2(pct))+'" oninput="_autCalc('+i+',\'pct\')"/></div>'
+        +'<label class="chk" style="grid-column:1/-1;margin:0"><input type="checkbox" id="au_ex_'+i+'"'+(r.exento?' checked':'')+' onchange="_autLeer();_autExento('+i+',this.checked)"/> <strong>No paga</strong> — concesión: participa como autor sin costo</label>'
+        +(r.exento?'<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:6px"><div><label>Motivo de la concesión (opcional)</label><input id="au_exm_'+i+'" value="'+esc(r.motivoExento||'')+'" placeholder="Ej.: autor invitado, convenio, beca"/></div></div>'
+        :'<div><label>% del total</label><input id="au_pct_'+i+'" type="number" min="0" max="100" step="0.01" value="'+esc(r2(pct))+'" oninput="_autCalc('+i+',\'pct\')"/></div>'
         +'<div><label>Valor ($)</label><input id="au_val_'+i+'" type="number" min="0" step="0.01" value="'+esc(m.toFixed(2))+'" oninput="_autCalc('+i+',\'valor\')"/></div>'
         +'<div><label>Forma de pago de este autor</label><select id="au_cq_'+i+'" onchange="_autLeer();_autDraw()">'+optCuotas(r.cuotas)+'</select></div>'
-        +(r.cuotas&&r.cuotas!=='plan'?'<div><label>Primer pago</label><input id="au_f1_'+i+'" type="date" value="'+esc(r.primerPago||'')+'"/></div>':'<div></div>')
+        +(r.cuotas&&r.cuotas!=='plan'?'<div><label>Primer pago</label><input id="au_f1_'+i+'" type="date" value="'+esc(r.primerPago||'')+'"/></div>':'<div></div>'))
         +'<div id="au_det_'+i+'" style="grid-column:1/-1;font-size:11px;color:var(--text3)">'+_autDetalle(r,m)+'</div>'
         +'</div>':'')
       +(faltaCliente(r)?'<div class="fg" style="margin-top:8px">'
@@ -6176,6 +6214,7 @@ function mAutores(d){
   return h
 }
 function _autDetalle(r,m){
+  if(r.exento)return'No paga: su parte la cubren los demás autores. Sigue figurando como autor (y puede firmar el contrato).'
   if(!r.cuotas||r.cuotas==='plan')return'Paga '+fmtUSD(m)+' repartido en las cuotas del plan del trabajo.'
   const n=+r.cuotas,ps=repartirPesos(m,Array(n).fill(1))
   return'Paga '+fmtUSD(m)+(n>1?' en '+n+' cuotas mensuales de '+(ps[0]===ps[n-1]?fmtUSD(ps[0]):fmtUSD(ps[0])+' (la última '+fmtUSD(ps[n-1])+')'):' en un solo pago')+'.'
@@ -6205,6 +6244,8 @@ function _autLeer(){
     const P=document.getElementById('au_pct_'+i),V=document.getElementById('au_val_'+i)
     if(r.tipo==='valor'&&V){r.monto=r2(parseFloat(V.value)||0);r.pct=total?Math.round(r.monto/total*1e6)/1e4:0}
     else if(P){r.tipo='pct';r.pct=parseFloat(P.value)||0;r.monto=montoAutor(r,total)}
+    const ex=document.getElementById('au_ex_'+i);if(ex)r.exento=ex.checked
+    const exm=document.getElementById('au_exm_'+i);if(exm)r.motivoExento=exm.value.trim()
     const q=document.getElementById('au_cq_'+i);if(q)r.cuotas=q.value
     const f=document.getElementById('au_f1_'+i);if(f)r.primerPago=f.value
     r.rol=rol&&+rol.value===i?'correspondencia':'coautor'
@@ -6216,13 +6257,23 @@ function _autLeer(){
 function _autAgregar(){_autLeer();modal.rec._rows.push({id:uid(),clienteId:'',nombre:'',rol:'coautor',pct:0,monto:0,tipo:'pct',cuotas:'plan',orcid:'',nuevo:{}});_autDraw()}
 function _autQuitar(i){_autLeer();const r=modal.rec._rows.splice(i,1)[0];if(r&&r.rol==='correspondencia'&&modal.rec._rows[0])modal.rec._rows[0].rol='correspondencia';_autDraw()}
 function _autIguales(){
-  _autLeer();const rs=modal.rec._rows,n=rs.length,base=Math.floor(10000/n)/100
-  rs.forEach((r,i)=>{r.tipo='pct';r.pct=i===0?Math.round((100-base*(n-1))*100)/100:base});_autDraw()
+  _autLeer();const rs=modal.rec._rows.filter(r=>!r.exento),n=rs.length;if(!n){_autDraw();return}
+  const t=data.trabajos.find(x=>x.id===modal.rec.trabajoId),total=parseFloat(t&&t.total)||0
+  // Con valor total: montos exactos (p. ej. 600 → 200 / 200 / 200); sin él, porcentajes
+  if(total>0)repartirPesos(total,rs.map(()=>1)).forEach((m,i)=>{const r=rs[i];r.tipo='valor';r.monto=m;r.pct=Math.round(m/total*1e6)/1e4})
+  else{const base=Math.floor(10000/n)/100;rs.forEach((r,i)=>{r.tipo='pct';r.pct=i===0?Math.round((100-base*(n-1))*100)/100:base})}
+  _autDraw()
+}
+// Marcar o quitar la concesión: lo que dejaba de pagar se reparte por igual entre los demás
+function _autExento(i,on){
+  const r=modal.rec._rows[i];r.exento=on
+  if(on){r.pct=0;r.monto=0;r.tipo='pct';if(!modal.rec._rows.some(x=>!x.exento)){alert('Al menos un autor debe pagar.');r.exento=false}}
+  _autIguales()
 }
 // Reparte lo que falta para llegar al total entre los autores que todavía tienen 0
 function _autResto(){
   _autLeer();const t=data.trabajos.find(x=>x.id===modal.rec.trabajoId),total=parseFloat(t&&t.total)||0,rs=modal.rec._rows
-  const vacios=rs.filter(r=>!(montoAutor(r,total)>0)),falta=r2(total-rs.reduce((s,r)=>s+montoAutor(r,total),0))
+  const vacios=rs.filter(r=>!r.exento&&!(montoAutor(r,total)>0)),falta=r2(total-rs.reduce((s,r)=>s+montoAutor(r,total),0))
   if(!vacios.length||!(falta>0)){alert(vacios.length?'No falta nada por repartir.':'Todos los autores ya tienen un valor. Deja en 0 a quienes quieras repartirles lo que falta.');return}
   repartirPesos(falta,vacios.map(()=>1)).forEach((m,i)=>{const r=vacios[i];r.tipo='valor';r.monto=m;r.pct=total?Math.round(m/total*1e6)/1e4:0})
   _autDraw()
@@ -6265,7 +6316,7 @@ function planCuotasAutores(t,autores,modo,titularId){
       // Lo que cada autor ya tiene en cuotas pagadas o facturadas se descuenta de su parte
       const yaTiene=a=>r2(cuotas.filter(c=>!libre(c)||bloqueados.has(c.grupo||c.id)).filter(c=>pagadorIdDe(c,t)===a.clienteId).reduce((s,c)=>s+(parseFloat(c.acordado)||0),0))
       const pend=autores.map(a=>Math.max(0,r2((montoAutor(a,t.total)||0)-yaTiene(a))))
-      const partes=repartirPesos(totalLibre,pend.some(x=>x>0)?pend:autores.map(a=>montoAutor(a,t.total)||1))
+      const partes=repartirPesos(totalLibre,pend.some(x=>x>0)?pend:autores.map(a=>a.exento?0:(montoAutor(a,t.total)||1)))
       const enPlan=autores.map((a,i)=>({a:a,m:partes[i]})).filter(x=>!x.a.cuotas||x.a.cuotas==='plan')
       const pool=r2(enPlan.reduce((s,x)=>s+x.m,0))
       if(enPlan.length&&pool>0)montosHito(pool).forEach(function(mh,j){
@@ -6275,8 +6326,10 @@ function planCuotasAutores(t,autores,modo,titularId){
       autores.forEach(function(a,i){
         if(!a.cuotas||a.cuotas==='plan'||!(partes[i]>0))return
         const n=Math.max(1,parseInt(a.cuotas)||1),f1=a.primerPago||hitos[0].fecha||new Date().toISOString().slice(0,10)
+        // Si el autor ya tiene cuotas propias con pagos, lo que le falta va como "Saldo adicional" en un grupo aparte
+        const conPagos=bloqueados.has('au_'+a.id),gid=conPagos?'au_'+a.id+'_'+uid():'au_'+a.id
         repartirPesos(partes[i],Array(n).fill(1)).forEach((m,k)=>nuevas.push(Object.assign({id:uid(),clienteId:a.clienteId,clienteNombre:a.nombre,
-          label:(n>1?'Cuota '+(k+1)+'/'+n:'Pago único')+' — '+a.nombre,acordado:m,grupo:'au_'+a.id},comun({fecha:_sumarMeses(f1,k),hitoEtapa:''}))))
+          label:(conPagos?'Saldo adicional'+(n>1?' '+(k+1)+'/'+n:''):(n>1?'Cuota '+(k+1)+'/'+n:'Pago único'))+' — '+a.nombre,acordado:m,grupo:gid},comun({fecha:_sumarMeses(f1,k),hitoEtapa:''}))))
       })
     }else{
       montosHito(totalLibre).forEach((m,j)=>{const h=hitos[j];nuevas.push(Object.assign({id:uid(),clienteId:titularId,clienteNombre:cl?cl.nombre:'',label:h.label,acordado:m,grupo:''},comun(h)))})
@@ -6302,7 +6355,8 @@ async function submitAutores(){
     if(!(total>0)){alert('El trabajo no tiene valor total. Escríbelo en el trabajo antes de repartir el cobro entre autores.');return}
     const suma=r2(rows.reduce((s,r)=>s+montoAutor(r,total),0))
     if(Math.abs(suma-total)>0.01){alert('Los valores de los autores suman '+fmtUSD(suma)+' y el total del trabajo es '+fmtUSD(total)+'. Ajusta los porcentajes o valores (puedes usar "Repartir lo que falta").');return}
-    if(rows.some(r=>!(montoAutor(r,total)>0))){alert('Cada autor debe tener un porcentaje o valor mayor a 0');return}
+    if(!rows.some(r=>!r.exento)){alert('Al menos un autor debe pagar.');return}
+    if(rows.some(r=>!r.exento&&!(montoAutor(r,total)>0))){alert('Cada autor que paga debe tener un porcentaje o valor mayor a 0. Si alguien no paga, marca "No paga".');return}
   }
   const resp=rows.find(r=>r.rol==='correspondencia')
   if(resp.clienteId&&resp.clienteId!==t.clienteId&&contratoVigente(t.id)&&!confirm('El autor encargado pasará a ser el titular del trabajo, pero el contrato vigente está a nombre del titular anterior. Tendrás que emitir una nueva versión del contrato.\n\n¿Continuar?'))return
@@ -6318,7 +6372,7 @@ async function submitAutores(){
     data.clientes=data.clientes.concat([cli]);r.clienteId=cli.id;r.nombre=cli.nombre
   }
   const autores=rows.map(r=>{const m=porAutor?montoAutor(r,total):(r.rol==='correspondencia'?total:0)
-    return{id:r.id||uid(),clienteId:r.clienteId,nombre:r.nombre,rol:r.rol,orcid:r.orcid||'',firma:!!r.firma,tipo:porAutor?(r.tipo==='valor'?'valor':'pct'):'pct',
+    return{id:r.id||uid(),clienteId:r.clienteId,nombre:r.nombre,rol:r.rol,orcid:r.orcid||'',firma:!!r.firma,exento:porAutor&&!!r.exento,motivoExento:porAutor&&r.exento?(r.motivoExento||''):'',tipo:porAutor?(r.tipo==='valor'?'valor':'pct'):'pct',
       pct:porAutor?(r.tipo==='valor'?(total?Math.round(m/total*1e6)/1e4:0):(parseFloat(r.pct)||0)):(r.rol==='correspondencia'?100:0),monto:m,
       cuotas:porAutor&&r.cuotas&&r.cuotas!=='plan'?String(r.cuotas):'plan',primerPago:porAutor&&r.cuotas&&r.cuotas!=='plan'?(r.primerPago||''):''}})
   // El ORCID también queda en la ficha del cliente (se reutiliza en otros trabajos)
