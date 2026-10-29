@@ -271,6 +271,16 @@ aside{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bo
 .pt-cuota-ic{font-size:20px;line-height:1.2}.pt-cuota-t{font-size:14px;font-weight:700;color:var(--navy)}.pt-cuota-s{font-size:12.5px;font-weight:700;margin-top:3px}
 .pt-cuota-abs{font-size:12px;color:#15803d;margin-top:6px;line-height:1.6}.pt-cuota-m{font-size:16px;font-weight:800;color:var(--navy)}
 .pt-tabs{display:none}
+.rv-hist{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:10px;background:#fff}
+.rv-hist-h{font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.rv-hist-h span{font-weight:600;font-size:11.5px;color:var(--text3)}
+.rv-it{display:flex;gap:10px;padding:7px 0;border-top:1px solid #f1f5f9}.rv-it:first-of-type{border-top:0}
+.rv-n{flex-shrink:0;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:#FEE2E2;color:#b91c1c}
+.rv-it.cur .rv-n{background:var(--brand);color:#fff}.rv-t{font-size:13px;font-weight:700;color:var(--navy)}.rv-q{font-size:11px;background:#F1F5FA;border-radius:6px;padding:1px 6px;color:var(--text2)}
+.rv-m{font-size:11.5px;color:var(--text3);margin-top:2px}.rv-mot{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5;white-space:pre-line}
+.rv-cupo{font-size:12.5px;border-radius:10px;padding:9px 12px;background:#F0F9FF;border:1px solid #BAE6FD;color:#075985;margin-bottom:6px}.rv-cupo.exc{background:#FEF2F2;border-color:#FECACA;color:#991B1B}
+.nc-box{border:1px solid #BBF7D0;background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-top:12px}.nc-h{font-size:12.5px;font-weight:800;color:#14532d;margin-bottom:6px}
+.nc-list{display:grid;gap:5px}
+.nc-cfg{border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:10px 0;background:#fff}.nc-cfg summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--navy)}
 .stepper .step{background:none;border:0;padding:4px 0;font:inherit;cursor:pointer;border-radius:10px}.stepper .step:hover .step-dot{transform:scale(1.08)}
 .step-dot{transition:transform .15s}.step.sel .step-dot{box-shadow:0 0 0 4px rgba(15,76,129,.25)}.step.sel .step-l{color:var(--brand);font-weight:800;text-decoration:underline}
 .step-n{position:absolute;top:-6px;right:-8px;background:var(--brand);color:#fff;border-radius:999px;font-size:9.5px;font-weight:800;min-width:16px;height:16px;line-height:16px;padding:0 4px;border:2px solid #fff}
@@ -1216,7 +1226,7 @@ const NAV_COLABORADOR=[
   {id:'mis_asignaciones',l:'Mis asignaciones',ic:'📋'},
 ]
 const TITLES={resumen:'Resumen de trabajos',mi_resumen:'Resumen de mis trabajos',contabilidad:'Contabilidad',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',ingresos:'Ingresos e informes',dashboard:'Dashboard',clientes:'Clientes',trabajos:'Trabajos',publicaciones:'Seguimiento de publicaciones',propuestas:'Propuestas y proformas',configuracion:'Configuración',cobros:'Cobros & Pagos',facturas:'Facturación electrónica',deudores:'Deudores',reuniones:'Reuniones',colaboradores:'Colaboradores & Asignaciones',usuarios:'Usuarios',mensajes:'Mensajes WhatsApp',mi_progreso:'Mi portal',mis_cuentas:'Mis pagos',mis_asignaciones:'Mis asignaciones'}
-const VERSION='v7.15.0'
+const VERSION='v7.16.0'
 
 function htmlApp(){
   const sc=syncErr?'sp-er':loading||syncing?'sp-ld':'sp-ok'
@@ -2272,8 +2282,9 @@ function htmlModal(){
   if(modal.type==='gasto')          c=mGasto(modal.rec)
   if(modal.type==='retencion')      c=mRetencion(modal.rec)
   if(modal.type==='asiento')        c=mAsiento(modal.rec)
+  if(modal.type==='rechazo')        c=mRechazo(modal.rec)
   if(!c)return''
-  const wide=['trabajo','pub_detalle','contrato','propuesta','proforma','autores','factura','gasto','retencion','asiento'].indexOf(modal.type)>-1
+  const wide=['trabajo','pub_detalle','contrato','propuesta','proforma','autores','factura','gasto','retencion','asiento','rechazo'].indexOf(modal.type)>-1
   return'<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal'+(wide?' wide':'')+'">'+c+'</div></div>'
 }
 
@@ -3928,7 +3939,7 @@ function htmlPtTrabajo(t){
   if(pub){
     h+='<div class="pt-etapa"><div><div class="pt-kicker">Etapa actual</div><div class="pt-etapa-v">'+(et?et.ic+' '+esc(et.l):'🕓 Por iniciar')+'</div></div>'
       +(sig&&cur!=='publicado'?'<div style="text-align:right"><div class="pt-kicker">Siguiente</div><div class="pt-etapa-s">'+esc(sig.l)+'</div></div>':'')+'</div>'
-      +'<div class="pt-stepper">'+htmlStepper(t)+'</div>'
+      +'<div class="pt-stepper">'+htmlStepper(t)+'</div>'+htmlHistorialRevistas(t,true)
   }
   // Última novedad
   h+='<div class="pt-novedad"><div class="pt-kicker">Última novedad</div>'
@@ -4638,6 +4649,7 @@ function htmlTimeline(t,soloCliente){
       +'</div>'
       +'<div class="tl-m">'+fmtD(s.fecha)+(s.revista?' · 📰 '+esc(s.revista):'')+(s.responsable&&!soloCliente?' · '+esc(s.responsable):'')+'</div>'
       +(s.nota?'<div class="tl-n">'+esc(s.nota)+'</div>':'')
+      +(!soloCliente&&s.notificados?'<div class="tl-m" style="color:var(--green)">📧 Notificado a '+esc(s.notificados)+'</div>':'')
       +'</div>'
   }).join('')+'</div>'
 }
@@ -4776,6 +4788,7 @@ function mPubDetalle(d){
     +'<button class="btn btn-g btn-sm" onclick="closeModal()">✕</button></div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">'
     +'<button class="btn btn-gold btn-sm" onclick="openModal(\'seguimiento\',{trabajoId:\''+t.id+'\'})">+ Registrar avance</button>'
+    +(etapaActual(t)!=='publicado'&&etapaActual(t)!=='aceptado'?'<button class="btn btn-r btn-sm" title="La revista no aceptó el artículo: registrar y elegir otra revista" onclick="abrirRechazo(\''+t.id+'\')">↩️ Rechazo y reenvío</button>':'')
     +(cl&&cl.telefono?'<a class="btn btn-wa btn-sm" style="text-decoration:none" target="_blank" href="'+esc(waUrl(cl.telefono,msgPubAvance(t,null)))+'">💬 Enviar estado por WhatsApp</a>':'')
     +'<button class="btn btn-g btn-sm" onclick="abrirContrato(\''+t.id+'\')">📝 Contrato'+(t.contratoUrl?' ✓':'')+'</button>'
     +'<button class="btn btn-g btn-sm" title="Crear o enviar el acceso del cliente a su portal de seguimiento" onclick="gestionarPortalCliente(\''+esc(t.clienteId)+'\')">👤 Portal del cliente</button>'
@@ -4784,8 +4797,9 @@ function mPubDetalle(d){
     +'</div>'
     +'<div class="sec-t">Etapa actual: '+esc(ei?ei.l:'Sin iniciar')+'</div>'
     +htmlStepper(t)
-    +(ru>0?'<div style="font-size:12px;color:'+(ru>=rm?'var(--red)':'var(--text2)')+';margin-top:2px">↩️ '+ru+' rechazo(s) · reenvíos sin costo usados: '+ru+' de '+rm+(ru>=rm?' — <strong>límite del contrato alcanzado</strong>':'')+'</div>':'')
+    +htmlNotifTrabajo(t)
     +'<div class="sec-t">Revista e indexación</div>'+htmlPubMeta(t)
+    +htmlHistorialRevistas(t,false)
     +'<div class="sec-t">Historial del proceso</div>'+htmlTimeline(t,false)
 }
 
@@ -4802,7 +4816,7 @@ function mSeguimiento(d){
   return'<h3>'+(e?'Editar avance':'Registrar avance')+'</h3>'
     +'<div style="font-size:12px;color:var(--text3);margin:-14px 0 14px">'+esc(t.titulo)+'</div>'
     +'<div class="fg">'
-    +'<div class="full"><label>Etapa</label><select id="sg_e">'+opts+'</select></div>'
+    +'<div class="full"><label>Etapa</label><select id="sg_e" onchange="if(this.value===\'rechazado\'&&!'+(e?'true':'false')+'){abrirRechazo(\''+t.id+'\')}">'+opts+'</select></div>'
     +'<div><label>Fecha</label><input id="sg_f" type="date" value="'+esc(toISO(d.fecha||'')||fechaHoyLocal())+'"/></div>'
     +'<div><label>Revista</label><input id="sg_r" value="'+esc(e?(d.revista||''):(det.revista||''))+'" placeholder="Revista a la que corresponde"/></div>'
     +'<div class="full"><label>Nota / detalle</label><textarea id="sg_n" rows="3" placeholder="Ej: ID del envío, observaciones de los revisores, próximos pasos...">'+esc(d.nota||'')+'</textarea></div>'
@@ -4811,7 +4825,8 @@ function mSeguimiento(d){
     +'<label class="chk"><input type="checkbox" id="sg_v"'+(String(d.visibleCliente)!=='0'?' checked':'')+'/> Visible para el cliente en su portal</label>'
     +(!e&&cl&&cl.telefono?'<label class="chk"><input type="checkbox" id="sg_w" checked/> Avisar al cliente por WhatsApp</label>':'')
     +'</div></div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:10px">Si eliges <strong>Rechazado</strong>, el trabajo vuelve a “Selección de revista” y se descuenta un reenvío sin costo.</div>'
+    +(!e?htmlSelectorCorreo(t,prefCorreo(t)):'')
+    +'<div style="font-size:11px;color:var(--text3);margin-top:10px">Si la revista no aceptó el artículo, elige <strong>Rechazado</strong>: se abre el registro del rechazo para elegir la nueva revista y se descuenta un reenvío sin costo.</div>'
     +'<div class="ma"><button class="btn btn-g" onclick="abrirPub(\''+t.id+'\')">Cancelar</button>'
     +'<button class="btn btn-p" onclick="submitSeguimiento(\''+esc(d.id||'')+'\',\''+t.id+'\')">Guardar avance</button></div>'
 }
@@ -4847,7 +4862,7 @@ async function submitSeguimiento(id,tid){
   const rec={id:id||uid(),trabajoId:tid,etapa:v('sg_e'),fecha:v('sg_f')||fechaHoyLocal(),nota:v('sg_n'),
     responsable:v('sg_p'),revista:v('sg_r'),visibleCliente:vis&&vis.checked?'1':'0',
     createdAt:prev.createdAt||new Date().toISOString()}
-  const avisar=!!(wa&&wa.checked&&rec.visibleCliente==='1')
+  const avisar=!!(wa&&wa.checked&&rec.visibleCliente==='1'),idsCorreo=id?[]:_leerSelCorreo()
   data.seguimientos=id?data.seguimientos.map(s=>s.id===id?rec:s):data.seguimientos.concat([rec])
   const tUpd=recalcularTrabajoPub(t,rec)
   data.trabajos=data.trabajos.map(x=>x.id===tid?tUpd:x)
@@ -4861,6 +4876,9 @@ async function submitSeguimiento(id,tid){
   const r2=await apiPost({action:'actualizar',tabla:'Trabajos',id:tid,fila:{etapa:tUpd.etapa,progreso:tUpd.progreso,estado:tUpd.estado,detalles:tUpd.detalles}})
   const rs=[r1,r2]
   for(const c of cuotasHito)rs.push(await apiPost({action:'actualizar',tabla:'Cuotas',id:c.id,fila:{fechaVencimiento:rec.fecha}}))
+  let msgC=''
+  if(rec.visibleCliente==='1'&&idsCorreo.length){const rc=await enviarAvanceCorreo(tUpd,rec,idsCorreo);if(rc&&rc.ok)msgC=' · correo enviado a '+(rc.enviados||[]).length+' autor(es)'}
+  if(msgC)toast('📧'+msgC)
   finSync(rs,cuotasHito.length?'Avance registrado ✓ · cuota "'+cuotasHito[0].label.slice(0,40)+'" vence el '+fmtDCorto(rec.fecha):'Avance registrado ✓')
 }
 
@@ -5480,8 +5498,8 @@ async function verificarScript(){
   if(!el)return
   if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">✗ Sin conexión con el Apps Script</span>';return}
   const p=r.permisos||{},sinPerm=p.drive===false||p.mail===false||p.completo===false
-  el.innerHTML=ver<830
-    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.13.0 (nueva versión en la misma implementación)</span>'
+  el.innerHTML=ver<860
+    ?'<span style="color:var(--amber)">⚠ Apps Script '+esc(r.script||'antiguo')+': publica la versión v7.16.0 (nueva versión en la misma implementación)</span>'
     :sinPerm
     ?'<span style="color:var(--red)">✗ Al Apps Script le faltan permisos de Google ('+([p.drive===false?'Google Drive':'',p.mail===false?'correo':''].filter(Boolean).join(', ')||'Drive para crear archivos u otros')+'). En el editor elige la función <strong>autorizarPermisos</strong>, pulsa ▶ Ejecutar y, en la pantalla de Google, marca <strong>todas las casillas</strong> antes de Continuar.</span>'
     :'<span style="color:var(--green)">✓ Apps Script '+esc(r.script)+' — permisos de Drive y correo concedidos, todo listo</span>'
@@ -8341,6 +8359,140 @@ async function resumenExcel(){
     const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[48,30,24,12,22,32,30,40,40,9,11,11,11,11,11,60].map(w=>({wch:w}))
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Resumen de trabajos');XLSX.writeFile(wb,'Resumen_trabajos_'+hoyISO()+'.xlsx');toast('Resumen en Excel ✓')
   }catch(e){alert('No se pudo generar el Excel: '+e.message)}
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// RECHAZO Y REENVÍO A OTRA REVISTA · NOTIFICACIONES POR CORREO DE LOS AVANCES
+// ════════════════════════════════════════════════════════════════
+const DECISIONES_RECHAZO=['Rechazo directo del editor (desk reject)','Rechazo tras la revisión por pares','Fuera del alcance de la revista','Rechazo por formato o requisitos','Otro motivo']
+// Revistas por las que pasó el artículo: las registradas en el rechazo y, para avances antiguos, las que figuran en los "rechazado"
+function historialRevistas(t){
+  const det=detallesDe(t),h=Array.isArray(det.historialRevistas)?det.historialRevistas.slice():[]
+  segsDe(t.id).filter(s=>s.etapa==='rechazado'&&!h.some(x=>x.segId===s.id)).forEach(s=>h.push({revista:s.revista||'—',fechaRechazo:toISO(s.fecha||''),motivo:s.nota||'',segId:s.id}))
+  return h.sort((a,b)=>String(a.fechaRechazo||'').localeCompare(String(b.fechaRechazo||'')))
+}
+function htmlHistorialRevistas(t,cli){
+  const h=historialRevistas(t),det=detallesDe(t);if(!h.length)return''
+  const ru=reenviosUsados(t.id),rm=reenviosMax(t)
+  return'<div class="rv-hist"><div class="rv-hist-h">📚 Historial de revistas <span>'+ru+' reenvío'+(ru!==1?'s':'')+' usado'+(ru!==1?'s':'')+' de '+rm+' sin costo'+(ru>=rm?' · <strong style="color:var(--red)">límite alcanzado</strong>':' · quedan '+(rm-ru))+'</span></div>'
+    +h.map((x,i)=>'<div class="rv-it rej"><div class="rv-n">'+(i+1)+'</div><div><div class="rv-t">'+esc(x.revista||'—')+(x.cuartil?' <span class="rv-q">'+esc(x.cuartil)+'</span>':'')+' <span class="b br" style="font-size:10px">No aceptado</span></div>'
+      +'<div class="rv-m">'+(x.fechaRechazo?'Decisión del '+fmtDCorto(x.fechaRechazo):'')+(x.decision?' · '+esc(x.decision):'')+'</div>'+(x.motivo&&!cli?'<div class="rv-mot">'+esc(x.motivo)+'</div>':x.motivo&&cli?'<div class="rv-mot">'+esc(String(x.motivo).slice(0,220))+'</div>':'')+'</div></div>').join('')
+    +'<div class="rv-it cur"><div class="rv-n">'+(h.length+1)+'</div><div><div class="rv-t">'+esc(det.revista||'Nueva revista por definir')+(det.cuartil&&det.cuartil!=='No aplica'?' <span class="rv-q">'+esc(det.cuartil)+'</span>':'')+' <span class="b bb" style="font-size:10px">Revista actual</span></div>'
+    +'<div class="rv-m">'+esc((Array.isArray(det.indexacion)?det.indexacion:[]).join(', '))+'</div></div></div></div>'
+}
+// ── Selector de destinatarios del correo (autores del trabajo) ──
+function autoresConCorreo(t){return autoresDe(t).map(a=>{const c=data.clientes.find(x=>x.id===a.clienteId);return{id:a.clienteId,nombre:a.nombre||c&&c.nombre||'—',email:c&&c.email||'',rol:a.rol}}).filter(a=>a.id)}
+function htmlSelectorCorreo(t,pref,titulo){
+  const au=autoresConCorreo(t);if(!au.length)return''
+  const sel=new Set(pref||[])
+  return'<div class="nc-box"><div class="nc-h">📧 '+(titulo||'Enviar este avance por correo a')+'</div><div class="nc-list">'
+    +au.map(a=>'<label class="chk" style="margin:0'+(a.email?'':';opacity:.55')+'"><input type="checkbox" class="nc-sel" value="'+esc(a.id)+'"'+(a.email&&sel.has(a.id)?' checked':'')+(a.email?'':' disabled')+'/> '+esc(a.nombre)+(a.rol==='correspondencia'&&au.length>1?' <span style="font-size:10.5px;color:var(--gold-dk)">(encargado)</span>':'')
+      +' <span style="font-size:11px;color:var(--text3)">'+(a.email?esc(a.email):'sin correo registrado')+'</span></label>').join('')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Solo se envía si el avance es visible para el cliente. Los correos se toman de la ficha de cada cliente.</div></div>'
+}
+const _leerSelCorreo=()=>Array.from(document.querySelectorAll('.nc-sel:checked')).map(x=>x.value)
+// Destinatarios por defecto de un trabajo: los elegidos en "Notificaciones automáticas"
+function prefCorreo(t){const d=detallesDe(t);return d.notifAuto==='1'&&Array.isArray(d.notifCorreo)?d.notifCorreo:[]}
+async function enviarAvanceCorreo(t,rec,ids,extra){
+  if(!ids||!ids.length)return null
+  const e=etapaInfo(rec.etapa)||{l:'Avance',ic:'📝'},det=detallesDe(t),cur=etapaActual(t),ci=ETAPAS_PUB.findIndex(x=>x.id===cur),sig=ci>-1&&ci<ETAPAS_PUB.length-1?ETAPAS_PUB[ci+1]:null
+  const filas=[['Trabajo',t.titulo],['Etapa',e.l],['Fecha',fmtDCorto(rec.fecha)]]
+  if(rec.revista||det.revista)filas.push(['Revista',rec.revista||det.revista])
+  if(extra&&extra.filas)extra.filas.forEach(f=>filas.push(f))
+  if(sig&&rec.etapa!=='publicado')filas.push(['Siguiente paso',sig.l])
+  const r=await apiPost({action:'notificarCorreo',trabajoId:t.id,destinatarios:ids,
+    asunto:(extra&&extra.asunto)||(rec.etapa==='rechazado'?'Novedad sobre tu artículo: '+t.titulo.slice(0,80):'Avance de tu trabajo: '+t.titulo.slice(0,80)),
+    titulo:(extra&&extra.titulo)||(e.ic+' '+e.l),intro:(extra&&extra.intro)||'Te compartimos una actualización del proceso de tu trabajo.',filas:filas,nota:rec.nota||'',url:urlApp()})
+  if(r&&r.ok){
+    const txt=(r.enviados||[]).join(', ')+' · '+new Date().toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+    rec.notificados=txt;data.seguimientos=data.seguimientos.map(s=>s.id===rec.id?Object.assign({},s,{notificados:txt}):s)
+    await apiPost({action:'actualizar',tabla:'Seguimientos',id:rec.id,fila:{notificados:txt}})
+    if(r.sinCorreo&&r.sinCorreo.length)toast('Sin correo: '+r.sinCorreo.join(', '),'err')
+  }else toast('No se pudo enviar el correo: '+(r&&r.error||'sin respuesta'),'err')
+  return r
+}
+// ── Configuración de notificaciones automáticas por trabajo ──
+function htmlNotifTrabajo(t){
+  const det=detallesDe(t),au=autoresConCorreo(t),sel=new Set(Array.isArray(det.notifCorreo)?det.notifCorreo:[]),auto=det.notifAuto==='1'
+  if(!au.length)return''
+  return'<details class="nc-cfg"'+(auto?'':'')+'><summary>📧 Notificaciones por correo · '+(auto?'<strong style="color:var(--green)">automáticas a '+au.filter(a=>sel.has(a.id)&&a.email).length+' autor(es)</strong>':'<span style="color:var(--text3)">desactivadas</span>')+'</summary>'
+    +'<div style="padding:8px 2px 2px"><label class="chk"><input type="checkbox" id="npd_auto"'+(auto?' checked':'')+'/> Enviar automáticamente cada avance visible a los autores marcados</label>'
+    +'<div class="nc-list" style="margin:8px 0">'+au.map(a=>'<label class="chk" style="margin:0'+(a.email?'':';opacity:.55')+'"><input type="checkbox" class="npd-sel" value="'+esc(a.id)+'"'+(sel.has(a.id)&&a.email?' checked':'')+(a.email?'':' disabled')+'/> '+esc(a.nombre)+' <span style="font-size:11px;color:var(--text3)">'+(a.email?esc(a.email):'sin correo · agrégalo en Clientes')+'</span></label>').join('')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Al registrar cada avance podrás quitar o agregar destinatarios. Se envía un correo con la etapa, la fecha, la revista, la nota y el enlace al portal.</div>'
+    +'<button class="btn btn-p btn-sm" onclick="guardarNotifTrabajo(\''+t.id+'\')">Guardar</button></div></details>'
+}
+async function guardarNotifTrabajo(tid){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  const ids=Array.from(document.querySelectorAll('.npd-sel:checked')).map(x=>x.value),auto=document.getElementById('npd_auto')
+  const det=Object.assign({},detallesDe(t),{notifCorreo:ids,notifAuto:auto&&auto.checked&&ids.length?'1':'0'}),val=JSON.stringify(det)
+  data.trabajos=data.trabajos.map(x=>x.id===tid?Object.assign({},x,{detalles:val}):x);draw()
+  const r=await apiPost({action:'actualizar',tabla:'Trabajos',id:tid,fila:{detalles:val}})
+  if(r&&r.ok)toast(det.notifAuto==='1'?'Notificaciones automáticas activadas ✓':'Notificaciones guardadas ✓');else toast('Error: '+(r&&r.error||'Sin respuesta'),'err')
+}
+// ── Flujo de rechazo ──
+function abrirRechazo(tid){const t=data.trabajos.find(x=>x.id===tid);if(!t)return;const det=detallesDe(t)
+  openModal('rechazo',{trabajoId:tid,fecha:fechaHoyLocal(),revistaRechazo:det.revista||'',decision:DECISIONES_RECHAZO[1],nueva:'',visible:'1'})}
+function mRechazo(d){
+  const t=data.trabajos.find(x=>x.id===d.trabajoId);if(!t)return''
+  const det=detallesDe(t),ru=reenviosUsados(t.id),rm=reenviosMax(t),excede=ru+1>rm
+  const alts=String(det.revistasAlt||'').split(/\n+/).map(x=>x.trim()).filter(Boolean)
+  const cl=data.clientes.find(c=>c.id===t.clienteId)
+  return'<h3>↩️ Registrar rechazo y reenvío a otra revista</h3><div style="font-size:12px;color:var(--text3);margin:-6px 0 12px">'+esc(t.titulo)+'</div>'
+    +'<div class="rv-cupo '+(excede?'exc':'')+'">'+(excede?'⚠️ Este sería el reenvío <strong>'+(ru+1)+'</strong> y el contrato incluye <strong>'+rm+'</strong> sin costo. Los reenvíos adicionales se acuerdan por escrito con el cliente.'
+      :'Este rechazo usará el reenvío sin costo <strong>'+(ru+1)+' de '+rm+'</strong>. Después quedarán '+(rm-ru-1)+'.')+'</div>'
+    +'<div class="sec-t">Revista que no aceptó el artículo</div><div class="fg">'
+    +'<div><label>Revista *</label><input id="rj_rev" value="'+esc(d.revistaRechazo||'')+'"/></div><div><label>Fecha de la decisión *</label><input id="rj_f" type="date" value="'+esc(toISO(d.fecha||''))+'"/></div>'
+    +'<div class="full"><label>Tipo de decisión</label><select id="rj_dec">'+DECISIONES_RECHAZO.map(x=>'<option'+(d.decision===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'
+    +'<div class="full"><label>Motivos y observaciones de los revisores</label><textarea id="rj_mot" rows="3" placeholder="Copia aquí lo principal del dictamen: qué observaron, qué recomiendan…">'+esc(d.motivo||'')+'</textarea></div></div>'
+    +'<div class="sec-t">Nueva revista para el reenvío</div>'
+    +(alts.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+alts.map(a=>'<button type="button" class="wf-chip" onclick="document.getElementById(\'rj_nrev\').value='+jss(a).replace(/"/g,'&quot;')+'">📰 '+esc(a)+'</button>').join('')+'<span style="font-size:11px;color:var(--text3);align-self:center">revistas alternativas del trabajo</span></div>':'')
+    +'<div class="fg"><div class="full"><label>Nueva revista (déjala vacía si la eliges después)</label><input id="rj_nrev" value="'+esc(d.nueva||'')+'" placeholder="Nombre de la revista"/></div>'
+    +'<div><label>ISSN / e-ISSN</label><input id="rj_issn" placeholder="0000-0000"/></div><div><label>Cuartil / categoría</label><select id="rj_q"><option value="">—</option>'+CUARTILES.map(c=>'<option>'+esc(c)+'</option>').join('')+'</select></div>'
+    +'<div class="full"><label>Sitio web</label><input id="rj_url" type="url" placeholder="https://..."/></div>'
+    +'<div class="full"><label>Indexación</label><div class="chk-grid">'+INDEXACIONES.map(x=>'<label class="chk"><input type="checkbox" name="rj_idx" value="'+esc(x)+'"/>'+esc(x)+'</label>').join('')+'</div></div></div>'
+    +(excede?'<div class="fg" style="margin-top:8px"><div class="full"><label class="chk"><input type="checkbox" id="rj_cobrar"/> Crear una cuota por el reenvío adicional</label></div><div><label>Valor del reenvío adicional ($)</label><input id="rj_val" type="number" min="0" step="0.01"/></div></div>':'')
+    +'<div class="sec-t">Avisar</div><label class="chk"><input type="checkbox" id="rj_vis" checked/> Visible para el cliente en su portal</label>'
+    +(cl&&cl.telefono?'<label class="chk" style="margin-top:4px"><input type="checkbox" id="rj_wa"/> Avisar al autor encargado por WhatsApp</label>':'')
+    +htmlSelectorCorreo(t,prefCorreo(t),'Enviar la novedad por correo a')
+    +'<div class="ma"><button class="btn btn-g" onclick="abrirPub(\''+t.id+'\')">Cancelar</button><button class="btn btn-p" id="rj_btn" onclick="submitRechazo(\''+t.id+'\')">Registrar rechazo</button></div>'
+}
+async function submitRechazo(tid){
+  const t=data.trabajos.find(x=>x.id===tid);if(!t)return
+  const rev=v('rj_rev').trim(),f=v('rj_f'),dec=v('rj_dec'),mot=v('rj_mot').trim(),nrev=v('rj_nrev').trim()
+  if(!rev||!f){alert('Escribe la revista que rechazó el artículo y la fecha de la decisión.');return}
+  if(nrev&&_normNom(nrev)===_normNom(rev)){alert('La nueva revista no puede ser la misma que rechazó el artículo.');return}
+  const vis=document.getElementById('rj_vis'),wa=document.getElementById('rj_wa'),cob=document.getElementById('rj_cobrar'),val=parseFloat(v('rj_val'))||0
+  const ids=_leerSelCorreo(),visible=vis&&vis.checked?'1':'0'
+  const det0=detallesDe(t),idx=Array.from(document.querySelectorAll('input[name="rj_idx"]:checked')).map(x=>x.value)
+  const sRech={id:uid(),trabajoId:tid,etapa:'rechazado',fecha:f,revista:rev,nota:dec+(mot?'. '+mot:''),responsable:user&&user.name||'',visibleCliente:visible,createdAt:new Date().toISOString()}
+  // Historial de revistas y nueva revista en los detalles del trabajo
+  const hist=(Array.isArray(det0.historialRevistas)?det0.historialRevistas:[]).concat([{revista:rev,issn:det0.issn||'',cuartil:det0.cuartil||'',indexacion:Array.isArray(det0.indexacion)?det0.indexacion:[],fechaEnvio:toISO(det0.fechaEnvio||''),fechaRechazo:f,decision:dec,motivo:mot,segId:sRech.id}])
+  const det=Object.assign({},det0,{historialRevistas:hist})
+  if(nrev){Object.assign(det,{revista:nrev,issn:v('rj_issn'),cuartil:v('rj_q'),urlRevista:v('rj_url'),indexacion:idx,fechaEnvio:''});det.revistasAlt=String(det0.revistasAlt||'').split(/\n+/).map(x=>x.trim()).filter(x=>x&&_normNom(x)!==_normNom(nrev)).join('\n')}
+  else Object.assign(det,{revista:'',issn:'',cuartil:'',urlRevista:'',indexacion:[]})
+  const segs=[sRech]
+  if(nrev)segs.push({id:uid(),trabajoId:tid,etapa:'seleccion',fecha:f,revista:nrev,nota:'Nueva revista seleccionada para el reenvío: '+nrev+(v('rj_q')?' ('+v('rj_q')+')':'')+(idx.length?' · '+idx.join(', '):''),responsable:user&&user.name||'',visibleCliente:visible,createdAt:new Date(Date.now()+1000).toISOString()})
+  const btn=document.getElementById('rj_btn');if(btn){btn.disabled=true;btn.textContent='Guardando…'}
+  // WhatsApp se abre antes de cualquier espera para que el navegador no lo bloquee
+  const cl=data.clientes.find(c=>c.id===t.clienteId)
+  if(wa&&wa.checked&&cl&&cl.telefono)window.open(waUrl(cl.telefono,'Hola '+(cl.nombre||'')+' 👋\n\nTe cuento que la revista *'+rev+'* no aceptó el artículo *'+t.titulo+'*'+(dec?' ('+dec.toLowerCase()+')':'')+'.'
+    +(nrev?'\n\nYa seleccionamos una nueva revista para el reenvío: *'+nrev+'*'+(v('rj_q')?' ('+v('rj_q')+')':'')+'. Ajustaremos el manuscrito a sus normas.':'\n\nEn los próximos días te propondré la nueva revista para el reenvío.')
+    +'\n\nEs parte normal del proceso editorial. Puedes ver el detalle en tu portal: '+urlApp()+'\n\n— '+(prestador().nombre||'Research Assessor')),'_blank')
+  data.seguimientos=data.seguimientos.concat(segs)
+  const tUpd=recalcularTrabajoPub(Object.assign({},t,{detalles:JSON.stringify(det)}),segs[segs.length-1])
+  data.trabajos=data.trabajos.map(x=>x.id===tid?tUpd:x)
+  const rs=[]
+  for(const s of segs)rs.push(await apiPost({action:'insertar',tabla:'Seguimientos',fila:s}))
+  rs.push(await apiPost({action:'actualizar',tabla:'Trabajos',id:tid,fila:{etapa:tUpd.etapa,progreso:tUpd.progreso,estado:tUpd.estado,detalles:tUpd.detalles}}))
+  if(cob&&cob.checked&&val>0){const q={id:uid(),trabajoId:tid,clienteId:t.clienteId,clienteNombre:t.clienteNombre||'',trabajoTitulo:t.titulo,label:'Reenvío adicional a otra revista'+(nrev?' ('+nrev+')':''),fechaVencimiento:sumarDias(f,15),acordado:r2(val),pagado:0,estado:'pendiente'}
+    data.cuotas=data.cuotas.concat([q]);rs.push(await apiPost({action:'insertar',tabla:'Cuotas',fila:q}))}
+  let msgC=''
+  if(visible==='1'&&ids.length){const r=await enviarAvanceCorreo(tUpd,sRech,ids,{asunto:'Novedad sobre tu artículo: '+t.titulo.slice(0,80),titulo:'↩️ La revista no aceptó el artículo',
+    intro:'La revista '+rev+' no aceptó el artículo. Es una situación habitual en el proceso editorial y ya trabajamos en el reenvío.',filas:[['Decisión',dec]].concat(nrev?[['Nueva revista',nrev+(v('rj_q')?' ('+v('rj_q')+')':'')]]:[]).concat([['Reenvíos sin costo usados',reenviosUsados(tid)+' de '+reenviosMax(t)]])})
+    if(r&&r.ok)msgC=' · correo a '+(r.enviados||[]).length+' autor(es)'}
+  modal={type:'pub_detalle',rec:{trabajoId:tid}}
+  finSync(rs,'Rechazo registrado ✓'+(nrev?' · nueva revista: '+nrev:'')+msgC)
 }
 
 // ── Diagnóstico de instalación de la app ──
